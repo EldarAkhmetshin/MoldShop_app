@@ -4,7 +4,7 @@ import time
 import tkinter
 from os.path import abspath
 from tkinter import *
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 from tkinter.ttk import Frame
 
 from src.config_data.config import passwords
@@ -38,7 +38,7 @@ class LogInApp(Frame):
         Инициация окна приложения и контенера для размещения виджетов
         """
         self.master.title('MoldShop Management')
-        self.pack(fill=BOTH)
+        self.pack(fill=BOTH, expand=True)
         self.login_frame = Frame(self)
         self.login_frame.pack()
 
@@ -72,21 +72,20 @@ class LogInApp(Frame):
         """
         Функция рендера всех виджетов окна авторизации пользователя
         """
-        # Рендер виджетов
-        (Label(self.login_frame, text='Уважаемый пользователь, \nавторизуйтесь для входа в систему')
+        (ttk.Label(self.login_frame, text='Уважаемый пользователь, \nавторизуйтесь для входа в систему',
+                   style='Regular.TLabel')
          .grid(column=2, row=1, pady=15))
 
-        Label(self.login_frame, text='Логин:').grid(column=1, row=2, padx=5, pady=5)
-        Label(self.login_frame, text='Пароль:').grid(column=1, row=3, padx=5, pady=5)
+        ttk.Label(self.login_frame, text='Логин:', style='Regular.TLabel').grid(column=1, row=2, padx=5, pady=5)
+        ttk.Label(self.login_frame, text='Пароль:', style='Regular.TLabel').grid(column=1, row=3, padx=5, pady=5)
 
-        self.login_entry_field = Entry(self.login_frame, font=('Times', '10', 'bold'))
+        self.login_entry_field = ttk.Entry(self.login_frame, font=('Arial', '10', 'normal'))
         self.login_entry_field.grid(padx=5, pady=5, column=2, row=2)
-        self.password_entry_field = Entry(self.login_frame, show='*', font=('Times', '10', 'bold'))
+        self.password_entry_field = ttk.Entry(self.login_frame, show='*', font=('Arial', '10', 'normal'))
         self.password_entry_field.grid(padx=5, pady=5, column=2, row=3)
 
-        Button(
-            self.login_frame, text='Войти', background='white',
-            width=20, font=('Times', '10'),
+        ttk.Button(
+            self.login_frame, text='Войти', style='Regular.TButton',
             command=lambda: self.check_entry_user_data()
         ).grid(padx=10, pady=10, column=2, row=4)
 

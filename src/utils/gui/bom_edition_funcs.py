@@ -3,7 +3,7 @@
 import sqlite3
 import tkinter
 from tkinter import *
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 from tkinter.ttk import Frame
 from typing import Callable
 
@@ -18,10 +18,15 @@ class EditedBOM(tkinter.Toplevel):
     информации о выбранной запчасти из BOM пресс-формы.
     """
 
-    def __init__(self, part_data: dict, mold_number: str):
+    def __init__(self, mold_number: str, table_name: str, part_data: dict = None):
         """
         Создание переменных
         """
+        if part_data is None:
+            self.part_data = {}
+        else:
+            self.part_data = part_data
+        self.table_name = table_name
         self.mold_number = mold_number
         self.min_percent_entry_field = None
         self.storage_cell_entry_field = None
@@ -35,20 +40,20 @@ class EditedBOM(tkinter.Toplevel):
         self.pcs_in_mold_entry_field = None
         self.name_entry_field = None
         self.number_entry_field = None
-        self.number = part_data.get('NUMBER')
-        self.part_name = part_data.get('PART_NAME')
-        self.pcs_in_mold = part_data.get('PCS_IN_MOLDS')
-        self.description = part_data.get('DESCRIPTION')
-        self.additional_info = part_data.get('ADDITIONAL_INFO')
-        self.supplier = part_data.get('SUPPLIER')
-        self.material = part_data.get('MATERIAL')
-        self.dimensions = part_data.get('DIMENSIONS')
-        self.parts_quantity = part_data.get('PARTS_QUANTITY')
-        self.used_parts_quantity = part_data.get('USED_PARTS_QUANTITY')
-        self.storage_cell = part_data.get('STORAGE_CELL')
-        self.min_percent = part_data.get('MIN_PERCENT')
+        self.number = self.part_data.get('NUMBER')
+        self.part_name = self.part_data.get('PART_NAME')
+        self.pcs_in_mold = self.part_data.get('PCS_IN_MOLDS')
+        self.description = self.part_data.get('DESCRIPTION')
+        self.additional_info = self.part_data.get('ADDITIONAL_INFO')
+        self.supplier = self.part_data.get('SUPPLIER')
+        self.material = self.part_data.get('MATERIAL')
+        self.dimensions = self.part_data.get('DIMENSIONS')
+        self.parts_quantity = self.part_data.get('PARTS_QUANTITY')
+        self.used_parts_quantity = self.part_data.get('USED_PARTS_QUANTITY')
+        self.storage_cell = self.part_data.get('STORAGE_CELL')
+        self.min_percent = self.part_data.get('MIN_PERCENT')
 
-        self.edited_part_data = None
+        self.changed_data = None
         self.input_error_label = None
         self.frame = None
         super().__init__()
@@ -74,47 +79,48 @@ class EditedBOM(tkinter.Toplevel):
         :param necessary_field: Булево значение о необходимости заполнения данных
         :return: Виджет поля ввода
         """
-        Label(self.frame, text=text).grid(column=1, row=row, padx=5, pady=5)
-        Label(self.frame, text=point_info).grid(column=2, row=row, padx=5, pady=5)
+        ttk.Label(self.frame, text=text, style='Regular.TLabel').grid(column=1, row=row, padx=5, pady=5)
+        if self.part_data:
+            entry_column_num = 3
+            ttk.Label(self.frame, text=point_info, style='Regular.TLabel').grid(column=2, row=row, padx=5, pady=5)
+        else:
+            entry_column_num = 2
 
-        if necessary_field:
-            Label(self.frame, text='*', font=('Times', '13')).grid(column=4, row=row)
-        entry_field = Entry(self.frame, font=('Times', '10', 'bold'))
-        entry_field.grid(pady=5, column=3, row=row)
+        if necessary_field and not self.part_data:
+            ttk.Label(self.frame, text='*', font=('Times', '13')).grid(column=4, row=row)
+        entry_field = ttk.Entry(self.frame, font=('Times', '10', 'bold'))
+        entry_field.grid(pady=5, padx=2, column=entry_column_num, row=row)
         return entry_field
 
     def render_widgets(self):
         """
-        Функция рендера всех виджетов окна ввода информации о новой пресс-форме
+        Функция рендера всех виджетов окна ввода информации
         """
-        (Label(self.frame, text='Редактирование информации о запчасти', font=('Times', '15', 'bold'))
-         .grid(column=2, row=1, pady=15))
+        define_title: Callable = lambda: 'Редактирование информации о запчасти' \
+            if self.part_data else 'Добавление нового элемента в BOM'
+
+        ttk.Label(self.frame, text=define_title(), style='Title.TLabel').grid(column=2, row=1, pady=15)
 
         self.number_entry_field = self.get_label_and_entry_widgets_in_row(text='Номер', point_info=self.number,
                                                                           row=2, necessary_field=True)
         self.name_entry_field = self.get_label_and_entry_widgets_in_row(text='Наименование',
-                                                                        point_info=self.part_name, row=3)
+                                                                        point_info=self.part_name, necessary_field=True,
+                                                                        row=3)
         self.pcs_in_mold_entry_field = self.get_label_and_entry_widgets_in_row(text='Кол-во в п/ф',
-                                                                               point_info=self.pcs_in_mold,
-                                                                               row=4, necessary_field=True)
+                                                                               point_info=self.pcs_in_mold, row=4)
         self.description_entry_field = self.get_label_and_entry_widgets_in_row(text='Описание',
-                                                                               point_info=self.description,
-                                                                               row=5, necessary_field=True)
+                                                                               point_info=self.description, row=5)
         self.additional_info_entry_field = self.get_label_and_entry_widgets_in_row(text='Дополнительная информация',
                                                                                    point_info=self.additional_info,
-                                                                                   row=6, necessary_field=True)
+                                                                                   row=6)
         self.supplier_entry_field = self.get_label_and_entry_widgets_in_row(text='Поставщик',
-                                                                            point_info=self.supplier,
-                                                                            row=7, necessary_field=True)
+                                                                            point_info=self.supplier, row=7)
         self.material_entry_field = self.get_label_and_entry_widgets_in_row(text='Материал',
-                                                                            point_info=self.material,
-                                                                            row=8, necessary_field=True)
+                                                                            point_info=self.material, row=8)
         self.dimensions_entry_field = self.get_label_and_entry_widgets_in_row(text='Габаритные размеры',
-                                                                              point_info=self.dimensions,
-                                                                              row=9)
+                                                                              point_info=self.dimensions, row=9)
         self.parts_qantity_entry_field = self.get_label_and_entry_widgets_in_row(text='Остаток', row=10,
-                                                                                 point_info=self.parts_quantity,
-                                                                                 necessary_field=True)
+                                                                                 point_info=self.parts_quantity)
         self.used_parts_quantity_entry_field = self.get_label_and_entry_widgets_in_row(text='Остаток б/у',
                                                                                        point_info=self.used_parts_quantity,
                                                                                        row=11)
@@ -124,19 +130,63 @@ class EditedBOM(tkinter.Toplevel):
                                                                                point_info=self.used_parts_quantity,
                                                                                row=13)
 
-        Button(
-            self.frame, text='Применить', background='white',
-            width=20, font=('Times', '10'),
-            command=self.validate_and_save_edited_mold_data
-        ).grid(padx=10, pady=10, column=2, row=14)
+        if self.part_data:
+            ttk.Button(
+                self.frame, text='Применить', style='Regular.TButton',
+                command=self.validate_and_save_edited_part_data
+            ).grid(padx=10, pady=10, column=2, row=14)
+        else:
+            ttk.Button(
+                self.frame, text='Применить', style='Regular.TButton',
+                width=20,
+                command=self.validate_and_save_new_part_data
+            ).grid(padx=10, pady=10, column=2, row=14)
         # Запуск работы окна приложения
         self.mainloop()
 
-    def validate_and_save_edited_mold_data(self):
+    def validate_and_save_new_part_data(self):
         """
         Фнкция проверки введённых данных пользователем
         """
-        # Проверка правильности ввода информации о годе выпуска пресс формы и количестве гнёзд
+        if self.input_error_label:
+            self.input_error_label.destroy()
+        # Проверка на заполнение обязательных полей
+        part_number = self.number_entry_field.get()
+        part_name = self.name_entry_field.get()
+        if part_number and part_name:
+            # Загрузка данных в базу данных
+            row = (
+                part_number, part_name, self.pcs_in_mold_entry_field.get(), self.description_entry_field.get(),
+                self.additional_info_entry_field.get(), self.supplier_entry_field.get(),
+                self.material_entry_field.get(), self.dimensions_entry_field.get(),
+                self.parts_qantity_entry_field.get(), self.used_parts_quantity_entry_field.get(),
+                self.storage_cell_entry_field.get(), self.min_percent_entry_field.get()
+            )
+            try:
+                bom = table_funcs.TableInDb(self.table_name, 'Database')
+                bom.insert_data(info=row)
+            except sqlite3.ProgrammingError:
+                self.input_error_label = Label(self.frame,
+                                               text='Ошибка записи данных! Обратитесь к администратору',
+                                               foreground='Red')
+                self.input_error_label.grid(column=1, row=15)
+            else:
+                self.quit()
+                self.destroy()
+                messagebox.showinfo('Уведомление',
+                                    'Информация о новом элементе успешно добавлена в BOM')
+                self.changed_data = True
+        # Если данные введены некорректно пользователь получит уведомление об ошибке
+        else:
+            self.input_error_label = Label(self.frame,
+                                           text='Не заполненны обязательные поля', foreground='Red')
+            self.input_error_label.grid(column=1, row=15)
+
+    def validate_and_save_edited_part_data(self):
+        """
+        Фнкция проверки введённых данных пользователем
+        """
+        # Проверка правильности ввода информации
         if self.input_error_label:
             self.input_error_label.destroy()
         try:
@@ -151,35 +201,35 @@ class EditedBOM(tkinter.Toplevel):
             # Загрузка изменённых данных в базу данных
             try:
                 define_data: Callable = lambda old_data, new_data: new_data if new_data else old_data
-                molds_data = table_funcs.TableInDb(f'BOM_{self.mold_number}', 'Database')
-                molds_data.change_few_data(param='NUMBER', value=self.number,
-                                           data={
-                                               'NUMBER': define_data(old_data=self.number,
-                                                                     new_data=self.number_entry_field.get()),
-                                               'PART_NAME': define_data(old_data=self.part_name,
-                                                                        new_data=self.name_entry_field.get()),
-                                               'PCS_IN_MOLDS': define_data(old_data=self.pcs_in_mold,
-                                                                           new_data=self.pcs_in_mold_entry_field.get()),
-                                               'DESCRIPTION': define_data(old_data=self.description,
-                                                                          new_data=self.description_entry_field.get()),
-                                               'ADDITIONAL_INFO': define_data(old_data=self.additional_info,
-                                                                              new_data=self.additional_info_entry_field.get()),
-                                               'SUPPLIER': define_data(old_data=self.supplier,
-                                                                       new_data=self.supplier_entry_field.get()),
-                                               'MATERIAL': define_data(old_data=self.material,
-                                                                       new_data=self.material_entry_field.get()),
-                                               'DIMENSIONS': define_data(old_data=self.dimensions,
-                                                                         new_data=self.dimensions_entry_field.get()),
-                                               # 'PARTS_QUANTITY': define_data(old_data=self.parts_quantity,
-                                               #                       new_data=self.parts_qantity_entry_field.get()),
-                                               # 'USED_PARTS_QUANTITY': define_data(old_data=self.used_parts_quantity,
-                                               #                         new_data=self.parts_qantity_entry_field.get()),
-                                               # 'STORAGE_CELL': define_data(old_data=self.storage_cell,
-                                               #                               new_data=self.storage_cell_entry_field),
-                                               # 'MIN_PERCENT': define_data(old_data=self.min_percent,
-                                               #                               new_data=self.min_percent_entry_field)
-                                           })
-            except sqlite3.ProgrammingError:
+                bom = table_funcs.TableInDb(self.table_name, 'Database')
+                bom.change_data(param='NUMBER', value=self.number,
+                                data={
+                                    'NUMBER': define_data(old_data=self.number,
+                                                          new_data=self.number_entry_field.get()),
+                                    'PART_NAME': define_data(old_data=self.part_name,
+                                                             new_data=self.name_entry_field.get()),
+                                    'PCS_IN_MOLDS': define_data(old_data=self.pcs_in_mold,
+                                                                new_data=self.pcs_in_mold_entry_field.get()),
+                                    'DESCRIPTION': define_data(old_data=self.description,
+                                                               new_data=self.description_entry_field.get()),
+                                    'ADDITIONAL_INFO': define_data(old_data=self.additional_info,
+                                                                   new_data=self.additional_info_entry_field.get()),
+                                    'SUPPLIER': define_data(old_data=self.supplier,
+                                                            new_data=self.supplier_entry_field.get()),
+                                    'MATERIAL': define_data(old_data=self.material,
+                                                            new_data=self.material_entry_field.get()),
+                                    'DIMENSIONS': define_data(old_data=self.dimensions,
+                                                              new_data=self.dimensions_entry_field.get()),
+                                    'PARTS_QUANTITY': define_data(old_data=self.parts_quantity,
+                                                                  new_data=self.parts_qantity_entry_field.get()),
+                                    'USED_PARTS_QUANTITY': define_data(old_data=self.used_parts_quantity,
+                                                                       new_data=self.parts_qantity_entry_field.get()),
+                                    'STORAGE_CELL': define_data(old_data=self.storage_cell,
+                                                                new_data=self.storage_cell_entry_field.get()),
+                                    'MIN_PERCENT': define_data(old_data=self.min_percent,
+                                                               new_data=self.min_percent_entry_field.get())
+                                })
+            except (sqlite3.ProgrammingError, sqlite3.OperationalError):
                 self.input_error_label = Label(self.frame,
                                                text='Ошибка записи данных! Обратитесь к администратору',
                                                foreground='Red')
@@ -188,7 +238,7 @@ class EditedBOM(tkinter.Toplevel):
                 self.quit()
                 self.destroy()
                 messagebox.showinfo('Уведомление', 'Информация о пресс-форме успешно изменена')
-                self.edited_part_data = True
+                self.changed_data = True
 
     def confirm_delete(self):
         message = "Вы уверены, что хотите закрыть это окно?"
