@@ -14,10 +14,12 @@ from src.utils.logger.logs import get_info_log, get_warning_log
 class DataBase(ABC):
 
     @abstractmethod
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str):
         """
-        Function initiate the new object from the database
-        :param name:  title
+        Функция инициирует новый экземпляр из базы данных
+        :param name:  Имя базы данных
+        :param cursor: Область в памяти базы данных, предназначенная для хранения последнего оператора SQL.
+        :param connection: Переменная для получения доступа к базе данных и внесению изменений в ней
         """
         self._name = name
         self._cursor = None
@@ -26,48 +28,41 @@ class DataBase(ABC):
     @property
     def name(self):
         """
-        Encapsulation function
-        :return:name: Database title
+        Функция инкапсуляции переменной
         """
         return self._name
 
     @property
     def cursor(self):
         """
-        Encapsulation function
-        :return: cursor: An area in database memory that is dedicated to storing the last SQL statement
+        Функция инкапсуляции переменной
         """
         return self._cursor
 
     @property
     def connection(self):
         """
-        Encapsulation function
-        :return: connection: Connection string for getting access to the database
+        Функция инкапсуляции переменной
         """
         return self._connection
 
     @cursor.setter
     def cursor(self, cursor):
         """
-        Function for "safety" changing of variable
-        :param cursor: An area in database memory that is dedicated to storing the last SQL statement
-        :return: cursor: Changed value of "cursor"
+        Функция «безопасного» изменения переменной
         """
         self._cursor = cursor
 
     @connection.setter
     def connection(self, connection):
         """
-        Function for "safety" changing of variable
-        :param connection: Connection string for getting access to the database
-        :return: connection: Changed value of "connection"
+        Функция «безопасного» изменения переменной
         """
         self._connection = connection
 
-    def connect_db(self) -> None:
+    def connect_db(self):
         """
-        Function connect to the database for some activities
+        Функция подключения к базе данных для взаимодействия с ней
         """
         path = os.path.abspath(os.path.join('..', 'savings', 'database', f'{self.name}.db'))
         self.connection = sqlite3.connect(path)
@@ -76,19 +71,19 @@ class DataBase(ABC):
 
 class TableInDb(DataBase):
 
-    def __init__(self, table_name: str, database_name: str) -> None:
+    def __init__(self, table_name: str, database_name: str):
         """
-        Function initiate the new object from the table
-        :param table_name:  title
-        :param database_name: Database title
+        Функция инициирует новый экземпляр из таблицы базы данных
+        :param table_name:  Имя таблицы
+        :param database_name: Имя базы данных
         """
         super().__init__(database_name)
         self.table_name = table_name
 
-    def crt_new_table_and_connect_db(self, table_params: dict) -> None:
+    def crt_new_table_and_connect_db(self, table_params: dict):
         """
-        Function create the new table and add the columns inside
-        :param table_params: Dict with the new column titles for the table
+        Функция создает новую таблицу и добавляет столбцы в неё
+        :param table_params: Словарь с перечисленными новыми столбцами таблицы {Имя столбца: Формат данных для этого столбца}
         """
         self.connect_db()
         cnt = 0
@@ -103,10 +98,10 @@ class TableInDb(DataBase):
         self.connection.commit()
         self.cursor.close()
 
-    def add_column(self, table_params: dict) -> None:
+    def add_column(self, table_params: dict):
         """
-        Function add new columns in the table
-        :param table_params: Dict with the new column titles for the table
+        Функция добавления новых столбцов в таблицу
+        :param table_params: Словарь с перечисленными новыми столбцами таблицы {Имя столбца: Формат данных для этого столбца}
         """
         self.connect_db()
         for i_param, i_type in table_params.items():
@@ -124,10 +119,10 @@ class TableInDb(DataBase):
         result = self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {param}={value}')
         return result.fetchone() is None
 
-    def insert_data(self, info: tuple) -> None:
+    def insert_data(self, info: tuple):
         """
-        Function create the new string in the table and paste data in each column
-        :param info: Tuple with values for the new string in the table
+        Функция создает новую строку в таблице и вставляет данные в каждый столбец
+        :param info: Кортеж со значениями новой строки в таблице
         """
         self.connect_db()
         cols = tuple(i_param[1] for i_param in self.cursor.execute(f'PRAGMA table_info ({self.table_name});'))
@@ -139,42 +134,39 @@ class TableInDb(DataBase):
         except sqlite3.DatabaseError as error:
             logger.exception(f'{error}')
         else:
-            get_warning_log(user='', message=f'New data were added', func_name=self.insert_data.__name__,
+            get_info_log(user='', message=f'New data were added', func_name=self.insert_data.__name__,
                             func_path=abspath(__file__))
         self.connection.commit()
         self.cursor.close()
 
-    def change_data(self, param: str, value: (str, int), data: dict) -> None:
+    def change_data(self, param: str, value: (str, int), data: dict):
         """
-        Function change the values in the table according to requested parameters
+        Функция изменения значений в таблице в соответствии с запрошенными параметрами
 
-        :param param: Column title for searching in the table
-        :param value: Value for column "param"
-        :param data: Dict with data for changing values in the table ({Column title : Value for this column}).
+        :param param: Имя столбца / параметра на который будет ориентирован поиск
+        :param value: Значение параметра для поиска
+        :param data: Словарь с  новыми данными для изменения значений в найденной строке таблицы ({Название столбца / параметра: Новое значение})
         """
         self.connect_db()
-        print(self.table_name)
         for i_key, i_value in data.items():
-            print(i_key, i_value)
             self.cursor.execute(f'UPDATE {self.table_name} Set {i_key} = ?'
                                 f'WHERE {param} = ?', (i_value, value))
         self.connection.commit()
         self.cursor.close()
 
-    def get_table(self, type_returned_data: str, param: str = None, value: str | int = None, user_id: int = None,
-                  last_string: bool = None, param_2: str = None, value_2: str | int = None) -> List[dict] | Dict:
+    def get_table(self, type_returned_data: str, param: str = None, value: str | int = None,
+                  last_string: bool = None, param_2: str = None, value_2: str | int = None) -> List[dict] | List[tuple] | Dict:
         """
-        Function get the table from database according to requested parameters
+        Функция получения данных из таблицы базы данных в соответствии с запрошенными параметрами
 
-        :param type_returned_data:
-        :param param: Column title for searching in the table
-        :param value: Value for column "id_param"
-        :param user_id: UserID in the Bot
-        :param last_string: Bool state for getting last string from the table
-        :param param_2: 2nd Title of column for search in the table
-        :param value_2: Value for column "param_2"
+        :param type_returned_data: Формат возращаемой информации в массиве данных (словарь или кортеж).
+        :param param: Имя столбца / параметра на который будет ориентирован поиск
+        :param value: Значение параметра для поиска
+        :param last_string: Булево значение для получения только 1-й последней строки удовлетворяющей запрашиваемым параметрам 
+        :param param_2: Имя 2-го столбца / параметра на который будет ориентирован поиск
+        :param value_2: Значение 2-го параметра для поиска
 
-        :return: all_info: Received table or string from this table
+        :return: all_info: Возвращаемая информация согласно запрашиваемым параметрам
         """
         self.connect_db()
         if not value and not user_id:
@@ -208,9 +200,9 @@ class TableInDb(DataBase):
 
     def delete_data(self, column_name: str, value: (str, int)):
         """
-        Function delete the data from the table according to requested parameters and values
-        :param column_name: Column title for searching in the table
-        :param value: Value for column "id_param"
+        Функция удаляет данные из таблицы в соответствии с запрошенными параметрами и значениями
+        :param column_name: Имя столбца / параметра для поиска в таблице
+        :param value: Значение из указанного столбца удаляемой строки
         """
         self.connect_db()
         self.cursor.execute(f"DELETE FROM {self.table_name} WHERE {column_name}='{value}';")
@@ -219,7 +211,7 @@ class TableInDb(DataBase):
 
     def delete_db_table(self):
         """
-        Function delete the data from the table according to requested parameters and values
+        Функция удаляет таблицу из базы данных
         """
         self.connect_db()
         self.cursor.execute(f"DROP TABLE {self.table_name}")
