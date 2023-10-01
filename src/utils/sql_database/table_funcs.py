@@ -135,7 +135,7 @@ class TableInDb(DataBase):
             logger.exception(f'{error}')
         else:
             get_info_log(user='', message=f'New data were added', func_name=self.insert_data.__name__,
-                            func_path=abspath(__file__))
+                         func_path=abspath(__file__))
         self.connection.commit()
         self.cursor.close()
 
@@ -154,33 +154,30 @@ class TableInDb(DataBase):
         self.connection.commit()
         self.cursor.close()
 
-    def get_table(self, type_returned_data: str, param: str = None, value: str | int = None,
-                  last_string: bool = None, param_2: str = None, value_2: str | int = None) -> List[dict] | List[tuple] | Dict:
+    def get_table(self, type_returned_data: str, first_param: str = None, first_value: str | int = None,
+                  last_string: bool = None, second_param: str = None, second_value: str | int = None) \
+            -> List[dict] | List[tuple] | Dict:
         """
         Функция получения данных из таблицы базы данных в соответствии с запрошенными параметрами
 
         :param type_returned_data: Формат возращаемой информации в массиве данных (словарь или кортеж).
-        :param param: Имя столбца / параметра на который будет ориентирован поиск
-        :param value: Значение параметра для поиска
+        :param first_param: Имя столбца / параметра на который будет ориентирован поиск
+        :param first_value: Значение параметра для поиска
         :param last_string: Булево значение для получения только 1-й последней строки удовлетворяющей запрашиваемым параметрам 
-        :param param_2: Имя 2-го столбца / параметра на который будет ориентирован поиск
-        :param value_2: Значение 2-го параметра для поиска
+        :param second_param: Имя 2-го столбца / параметра на который будет ориентирован поиск
+        :param second_value: Значение 2-го параметра для поиска
 
         :return: all_info: Возвращаемая информация согласно запрашиваемым параметрам
         """
         self.connect_db()
-        if not value and not user_id:
+        if not first_value:
             self.cursor.execute(f'SELECT * FROM {self.table_name}')
-        elif param_2 and value_2:
-            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {param} = {value} '
-                                f'AND {param_2} = {value_2}')
-        elif not user_id:
-            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {param} = "{value}"')
-        elif not value:
-            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE ID = {user_id}')
-        else:
-            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {param} = {value} '
-                                f'AND ID = {user_id}')
+        elif first_param and first_value:
+            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} = {first_value} ')
+        elif second_param and second_value:
+            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} = {first_value} '
+                                f'AND {second_param} = {second_value}')
+
         result = self.cursor.fetchall()
         columns = tuple(i_param[1] for i_param in self.cursor.execute(f'PRAGMA table_info ({self.table_name});'))
         self.cursor.close()

@@ -85,7 +85,7 @@ class QRWindow(tkinter.Toplevel):
             try:
                 # Сохранение нового статус п/ф в таблице перечня пресс-форм
                 molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
-                mold_info = molds_data.get_table(type_returned_data='dict', param='MOLD_NUMBER', value=mold_number,
+                mold_info = molds_data.get_table(type_returned_data='dict', first_param='MOLD_NUMBER', first_value=mold_number,
                                                  last_string=True)
                 molds_data.change_data(param='MOLD_NUMBER', value=mold_number,
                                        data={

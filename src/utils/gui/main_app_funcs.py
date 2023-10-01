@@ -500,7 +500,7 @@ class App(Frame):
         stock_frame.pack(side=LEFT, padx=5, pady=1)
         # Рендер виджетов
         molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
-        mold_info = molds_data.get_table(type_returned_data='dict', param='MOLD_NUMBER', value=self.mold_number,
+        mold_info = molds_data.get_table(type_returned_data='dict', first_param='MOLD_NUMBER', first_value=self.mold_number,
                                          last_string=True)
         (ttk.Label(title_frame, text=f'BOM для пресс-формы № {self.mold_number} ', style='Title.TLabel')
          .pack(side=LEFT, padx=8, pady=4))
@@ -985,8 +985,8 @@ class App(Frame):
             try:
                 # Выгрузка информации о пресс-форме из базы данных
                 all_molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
-                mold_data = all_molds_data.get_table(type_returned_data='dict', param='MOLD_NUMBER',
-                                                     value=mold_number, last_string=True)
+                mold_data = all_molds_data.get_table(type_returned_data='dict', first_param='MOLD_NUMBER',
+                                                     first_value=mold_number, last_string=True)
             except (sqlite3.OperationalError, IndexError):
                 messagebox.showerror('Уведомление об ошибке', f'Данных о пресс-форме "{mold_number}" не имеется')
                 get_warning_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
@@ -1009,8 +1009,8 @@ class App(Frame):
             try:
                 # Выгрузка информации о пресс-форме из базы данных
                 bom = table_funcs.TableInDb(table_name, 'Database')
-                part_data = bom.get_table(type_returned_data='dict', param='NUMBER',
-                                          value=part_number, last_string=True)
+                part_data = bom.get_table(type_returned_data='dict', first_param='NUMBER',
+                                          first_value=part_number, last_string=True)
             except (sqlite3.OperationalError, IndexError):
                 messagebox.showerror('Уведомление об ошибке', f'Данных о запчасти не имеется')
                 get_warning_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
@@ -1035,8 +1035,8 @@ class App(Frame):
             try:
                 # Выгрузка информации о пресс-форме из базы данных
                 bom = table_funcs.TableInDb(table_name, 'Database')
-                part_data = bom.get_table(type_returned_data='dict', param='NUMBER',
-                                          value=part_number, last_string=True)
+                part_data = bom.get_table(type_returned_data='dict', first_param='NUMBER',
+                                          first_value=part_number, last_string=True)
             except (sqlite3.OperationalError, IndexError):
                 messagebox.showerror('Уведомление об ошибке', f'Данных о запчасти не имеется')
                 get_warning_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
