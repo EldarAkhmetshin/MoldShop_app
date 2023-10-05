@@ -472,10 +472,11 @@ class App(Frame):
         """
         Функция рендера всех виджетов окна приложения в режиме просмотра BOM (спецификации) пресс-формы
         """
+        define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
         # Рендер панели инструментов
         self.render_toolbar(back_func=self.get_molds_data,
                             add_row_func=lambda: self.render_typical_additional_window(
-                                called_class=lambda: EditedBOM(self.mold_number),
+                                called_class=lambda: EditedBOM(self.mold_number, define_table_name()),
                                 window_name='New Spare Part Information',
                                 called_function=lambda: self.open_bom(
                                     self.mold_number)),

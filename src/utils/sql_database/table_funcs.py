@@ -173,10 +173,10 @@ class TableInDb(DataBase):
         if not first_value:
             self.cursor.execute(f'SELECT * FROM {self.table_name}')
         elif first_param and first_value:
-            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} = {first_value} ')
+            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} = "{first_value}" ')
         elif second_param and second_value:
-            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} = {first_value} '
-                                f'AND {second_param} = {second_value}')
+            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} = "{first_value}" '
+                                f'AND {second_param} = "{second_value}"')
 
         result = self.cursor.fetchall()
         columns = tuple(i_param[1] for i_param in self.cursor.execute(f'PRAGMA table_info ({self.table_name});'))
