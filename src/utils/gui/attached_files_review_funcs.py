@@ -16,7 +16,7 @@ from src.utils.sql_database import table_funcs
 class Attachment(tkinter.Toplevel):
     """
     Класс представляет набор функций для создания графического интерфейса дополнительного окна просмотра вложенных файлов, 
-    редактирования их предпросмотра и скачивания их в указанную директорию пользователем
+    редактирования, их предпросмотра и скачивания в указанную директорию пользователем
     """
 
     def __init__(self, number: str, bom_part: bool = None):
@@ -51,17 +51,16 @@ class Attachment(tkinter.Toplevel):
         ttk.Label(self.frame_body, text=text, style='Regular.TLabel').grid(column=1, row=row, padx=5, pady=5)
         ttk.Button(
             self.frame_body, text='Загрузить', style='Regular.TButton',
-            command=self.validate_and_save_new_part_data
+            command=lambda: self.download_file(filename=text)
         ).grid(padx=10, pady=10, column=2, row=row)
         ttk.Button(
             self.frame_body, text='Предпросмотр', style='Regular.TButton',
-            command=self.validate_and_save_new_part_data
+            command=lambda: self.preview_file(filename=text)
         ).grid(padx=10, pady=10, column=3, row=row)
         ttk.Button(
             self.frame_body, text='Удалить вложение', style='Regular.TButton',
-            width=20, command=self.validate_and_save_new_part_data
+            width=20, command=lambda: self.delete_file(filename=text)
         ).grid(padx=10, pady=10, column=3, row=row)           
-        return entry_field
 
     def render_widgets(self):
         """
@@ -80,7 +79,7 @@ class Attachment(tkinter.Toplevel):
         # Запуск работы окна приложения
         self.mainloop()
 
-    def download_file(self):
+    def download_file(self, filename: str):
       pass
 
     def open_additional_preview_window(self, filename: str):
@@ -102,8 +101,8 @@ class Attachment(tkinter.Toplevel):
           pages[i].save(page_name, 'JPEG')
           open_additional_preview_window(page_name)
           os.remove(os.path.abspath(os.path.join('..', 'pics', page_name)))
-      else:
+      elif ('.jpg' or '.jpeg' or '.png') in filename:
           open_additional_preview_window(filename)
 
-    def delete_file(self):
+    def delete_file(self, filename: str):
       pass
