@@ -49,7 +49,7 @@ def log_in_app():
     app.render_widgets()
 
 
-if __name__ == '__main__':
+def run():
     logger_add()
     create_tables_in_db()
     log_in_app()

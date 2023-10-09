@@ -1,6 +1,6 @@
 from cx_Freeze import setup, Executable
 
-executables = [Executable('main.py')]
+executables = [Executable('__main__.py')]
 
 excludes = []
 

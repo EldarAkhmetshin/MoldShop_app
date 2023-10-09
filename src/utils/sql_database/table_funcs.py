@@ -64,7 +64,8 @@ class DataBase(ABC):
         """
         Функция подключения к базе данных для взаимодействия с ней
         """
-        path = os.path.abspath(os.path.join('..', 'savings', 'database', f'{self.name}.db'))
+        #path = os.path.abspath(os.path.join('..', 'savings', 'database', f'{self.name}.db'))
+        path = os.path.abspath(os.path.join(f'{self.name}.db'))
         self.connection = sqlite3.connect(path)
         self.cursor = self.connection.cursor()
 
