@@ -19,11 +19,12 @@ class Attachment(tkinter.Toplevel):
     редактирования, их предпросмотра и скачивания в указанную директорию пользователем
     """
 
-    def __init__(self, number: str, bom_part: bool = None):
+    def __init__(self, mold_number: str, part_number: str = None, bom_part: bool = None):
         """
         Создание переменных
         """
-        self.number = number
+        self.mold_number = mold_number
+        self. part_number = part_number
         self.bom_part = bom_part
         self.input_error_label = None
         self.image = None
