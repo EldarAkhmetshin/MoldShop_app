@@ -209,7 +209,7 @@ class App(Frame):
                 messagebox.showinfo(title='Уведомление', message='Таблица успешно сохранена на Ваш компьютер')
 
     def render_toolbar(self, back_func: Callable, add_row_func: Callable = None, edit_row_func: Callable = None,
-                       delete_row_func: Callable = None):
+                       delete_row_func: Callable = None, new_attachment_func: Callable = None, looking_attachments_func: Callable = None):
         """
         Рендер виджетов панели иснтрументов
         :param back_func:
@@ -341,7 +341,9 @@ class App(Frame):
         self.render_toolbar(back_func=self.open_main_menu, add_row_func=lambda: self.render_typical_additional_window(
             called_class=EditedMold, window_name='New Mold Information', called_function=self.get_molds_data),
                             edit_row_func=self.render_mold_edition_window,
-                            delete_row_func=lambda: self.delete_selected_table_row('All_molds_data', 'MOLD_NUMBER'))
+                            delete_row_func=lambda: self.delete_selected_table_row('All_molds_data', 'MOLD_NUMBER'),
+                            looking_attachments_func=lambda: self.render_typical_additional_window(
+            called_class=lambda: Attachment(mold_number: self.mold_number), window_name='Attachments'))
         # Объявление основного и вложенных контейнеров для виджетов
         self.frame_main_widgets = Frame(self, relief=RIDGE)
         self.frame_main_widgets.pack(fill=X, expand=True)
@@ -481,7 +483,8 @@ class App(Frame):
                                 called_function=lambda: self.open_bom(
                                     self.mold_number)),
                             edit_row_func=self.render_bom_edition_window,
-                            delete_row_func=lambda: self.delete_selected_table_row(f'BOM_{self.mold_number}', 'NUMBER'))
+                            delete_row_func=lambda: self.delete_selected_table_row(f'BOM_{self.mold_number}', 'NUMBER'),
+                            looking_attachments_func=self.render_attachment_window)
         # Объявление основного и вложенных контейнеров для виджетов
         self.frame_main_widgets = Frame(self, relief=RIDGE)
         self.frame_main_widgets.pack(fill=X)
@@ -828,19 +831,21 @@ class App(Frame):
                         self.sorted_bom_tuple.get('Отсутствующие').append(self.bom_data[num])
 
     def get_value_by_selected_row(self, table_name: str, column_name: str) -> str:
+        """
+        Получение определенного значения (например: номер пресс-формы или номер элемента в BOM) из 
+        выделенной строки таблицы пользователем (table_row_number) в окне приложения 
+        """
         # Получения номера выделенной строки
         table_row_number = self.get_row_number_in_table()
-        # Выгрузка информации из базы данных сводного перечня всех пресс-форм, чтобы
-        # по номеру выделенной строки (table_row_number) в таблице определить номер пресс-формы (mold_number)
-        # Так как выведенная таблица в окне приложения перевернутая,
-        # необходимо сделать реверсию массива после выгрузки
+        # Получение таблицы
         if self.sort_status:
-            bom_table = self.sorted_molds_data_dict.get(self.sort_status)
+            table = self.sorted_molds_data_dict.get(self.sort_status)
         else:
             db = table_funcs.TableInDb(table_name, 'Database')
-            bom_table = db.get_table(type_returned_data='dict')
-        reversed_table = list(reversed(bom_table))
-        # Получение номера пресс-форма из массива данных
+            table = db.get_table(type_returned_data='dict')
+        # Так как выведенная таблица в окне приложения перевернута, необходимо сделать реверсию полученного массива
+        reversed_table = list(reversed(table))
+        # Получение значения из массива данных
         try:
             return reversed_table[table_row_number].get(column_name)
         except (TypeError, IndexError):
@@ -931,7 +936,7 @@ class App(Frame):
             self.tree.pack_forget()
             self.open_mold_scanning_window()
 
-    def render_typical_additional_window(self, called_class: Callable, window_name: str, called_function: Callable):
+    def render_typical_additional_window(self, called_class: Callable, window_name: str, called_function: Callable = None):
         """
         Функция создания дополнительного окна по шаблону
         :param called_function: Вызываемая функция в случае изменения каких либо данных после взаимодействия
@@ -947,7 +952,8 @@ class App(Frame):
             get_info_log(user=user_data.get('user_name'), message='Successful data changing',
                          func_name=self.render_typical_additional_window.__name__, func_path=abspath(__file__))
             self.tree.pack_forget()
-            called_function()
+            if called_function:
+                called_function()
 
     def render_upload_bom_window(self):
         """
@@ -980,7 +986,7 @@ class App(Frame):
         mold_number = self.mold_number_entry_field.get()
         if not mold_number:
             mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
-
+        # Если получен номер елемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
         if mold_number:
 
             try:
@@ -1004,7 +1010,7 @@ class App(Frame):
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
         table_name = define_table_name()
         part_number = self.get_value_by_selected_row(table_name, 'NUMBER')
-
+        # Если получен номер елемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
         if part_number:
 
             try:
@@ -1023,6 +1029,19 @@ class App(Frame):
                     window_name='BOM Edition',
                     called_function=lambda: self.open_bom(self.mold_number))
 
+    def render_attachments_window(self):
+        """
+        Рендер окна для просмотра прикреплённых вложенных файлов
+        """
+        define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
+        table_name = define_table_name()
+        part_number = self.get_value_by_selected_row(table_name, 'NUMBER')
+        # Если получен номер елемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
+        if part_number:
+            self.render_typical_additional_window(called_class=lambda: Attachment(mold_number=self.mold_number, part_number=part_number),
+                                                  window_name='Attachments')
+    
+
     def open_parts_quantity_changing_window(self, consumption: bool = None):
         """
         Рендер окна для редактирования данных о пресс-форме
@@ -1030,7 +1049,7 @@ class App(Frame):
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
         table_name = define_table_name()
         part_number = self.get_value_by_selected_row(table_name, 'NUMBER')
-
+        # Если получен номер елемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
         if part_number:
 
             try:
