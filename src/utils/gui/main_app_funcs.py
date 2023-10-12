@@ -134,7 +134,7 @@ class App(Frame):
     def open_file_and_download(self, window: tkinter, hot_runner: bool = None):
         """
         Функция загрузки спецификации пресс-формы (BOM) из Иксель файла формата xlsx в таблицу базы данных
-        :param window:
+        :param window: дополнительное окно приложения
         :param hot_runner: Булево значение True если таблица загружается для BOM горячекого канала
         """
         # Открытие диалогового окна для выбора файла пользователем с локальной директории компьютера,
@@ -171,6 +171,45 @@ class App(Frame):
                 messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
                                      message=error_message.format(mold_number=mold_number))
 
+    def upload_attachment(self, part_number: str = None, hot_runner: bool = None):
+        """
+        Функция загрузки вложения (какого либо файла) в директорию приложения для дальнейшего использования
+        :param part_number: ID номер элемента BOM относящегося к определённой пресс-форме
+        :param hot_runner: Булево значение True если таблица загружается для BOM горячекого канала
+        """
+        # Открытие диалогового окна для выбора файла пользователем с локальной директории компьютера,
+        # c дальнейшим извлечением пути к выбранному файлу в виде строки
+        try:
+            file_path = filedialog.askopenfile(
+                filetypes=(('XLSX files', '*.xlsx'),)
+            ).name
+        except AttributeError:
+            pass
+        else:
+            # Получение имени файла
+            file_path_list = file_path.split('/')
+            file_name = file_path_list[-1]
+            # Копирование и вставка файла в директорию приложения
+            define_path: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number, file_name)) if not part_number /
+                    else (os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number, file_name) if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', part_number, file_name))
+            try:
+                shutil.copy2(file_path, os.path.abspath(define_path())
+            except IOError:
+                define_folder: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number)) if not part_number /
+                    else (os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number) if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', part_number))
+                os.mkdir(define_folder())
+                try:
+                    shutil.copy2(file_path, os.path.abspath(define_path())
+                except IOError:
+                    error_message = error_messages.get('not_downloaded_bom').get('message_body')
+                    messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
+                                         message=error_message.format(mold_number=mold_number))
+            else:
+                self.render_typical_additional_window(called_class=lambda: Attachment(
+                mold_number=self.mold_number, part_number=part_number, hot_runner=hot_runner),
+                                                  window_name='Attachments')
+
+    
     def save_excel_table(self):
         """
         Функция сохранения  открытой таблицы из окна приложения в Иксель файл формата xlsx
