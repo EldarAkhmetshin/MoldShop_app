@@ -7,7 +7,6 @@ from tkinter import *
 from tkinter import messagebox, ttk
 from tkinter.ttk import Frame
 from typing import Callable
-
 from PIL import ImageTk
 from pdf2image import convert_from_path
 
@@ -22,13 +21,13 @@ class Attachment(tkinter.Toplevel):
     редактирования, их предпросмотра и скачивания в указанную директорию пользователем
     """
 
-    def __init__(self, mold_number: str, part_number: str = None, bom_part: bool = None):
+    def __init__(self, mold_number: str, part_number: str = None, hot_runner: bool = None):
         """
         Создание переменных
         """
         self.mold_number = mold_number
         self. part_number = part_number
-        self.bom_part = bom_part
+        self.hot_runner = hot_runner
         self.input_error_label = None
         self.image = None
         self.image_pil = None
