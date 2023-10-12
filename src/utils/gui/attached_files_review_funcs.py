@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
+import os
 import sqlite3
 import tkinter
 from tkinter import *
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 from tkinter.ttk import Frame
 from typing import Callable
+
+from PIL import ImageTk
 from pdf2image import convert_from_path
 
 from src.config_data.config import passwords
@@ -61,49 +64,41 @@ class Attachment(tkinter.Toplevel):
         ttk.Button(
             self.frame_body, text='Удалить вложение', style='Regular.TButton',
             width=20, command=lambda: self.delete_file(filename=text)
-        ).grid(padx=10, pady=10, column=3, row=row)           
+        ).grid(padx=10, pady=10, column=3, row=row)
 
     def render_widgets(self):
         """
         Функция рендера всех виджетов окна ввода информации
         """
-        define_title: Callable = lambda: 'Редактирование информации о запчасти' \
-            if self.part_data else 'Добавление нового элемента в BOM'
-
         ttk.Label(self.frame_header, text='Просмотр вложенных файлов', style='Title.TLabel').pack(side=TOP, pady=15)
 
-        ttk.Button(
-            self.frame, text='Применить', style='Regular.TButton',
-            width=20,
-            command=self.validate_and_save_new_part_data
-        ).grid(padx=10, pady=10, column=2, row=14)
         # Запуск работы окна приложения
         self.mainloop()
 
     def download_file(self, filename: str):
-      pass
+        pass
 
     def open_additional_preview_window(self, filename: str):
-      self.image = Image.open(os.path.abspath(os.path.join('..', 'pics', filename))) \
-          .resize((1024, 768))
-      self.image_pil = ImageTk.PhotoImage(self.image)
-      window = tkinter.Toplevel()
-      window.title('Preview')
-      window.geometry('1024x768')
-      window.resizable(False, False)
-      (Label(window, image=image)
-       .pack(side=TOP, pady=5))
-    
+        self.image = Image.open(os.path.abspath(os.path.join('..', 'pics', filename))) \
+            .resize((1024, 768))
+        self.image_pil = ImageTk.PhotoImage(self.image)
+        window = tkinter.Toplevel()
+        window.title('Preview')
+        window.geometry('1024x768')
+        window.resizable(False, False)
+        (Label(window, image=self.image_pil)
+         .pack(side=TOP, pady=5))
+
     def preview_file(self, filename):
-      if '.pdf' in filename:
-        pages = convert_from_path(os.path.abspath(os.path.join('..', 'pics', filename)))
-        for i in the range(len(pages)):
-          page_name = f'page{i}.jpg'
-          pages[i].save(page_name, 'JPEG')
-          open_additional_preview_window(page_name)
-          os.remove(os.path.abspath(os.path.join('..', 'pics', page_name)))
-      elif ('.jpg' or '.jpeg' or '.png') in filename:
-          open_additional_preview_window(filename)
+        if '.pdf' in filename:
+            pages = convert_from_path(os.path.abspath(os.path.join('..', 'pics', filename)))
+            for i in range(len(pages)):
+                page_name = f'page{i}.jpg'
+                pages[i].save(page_name, 'JPEG')
+                self.open_additional_preview_window(page_name)
+                os.remove(os.path.abspath(os.path.join('..', 'pics', page_name)))
+        elif ('.jpg' or '.jpeg' or '.png') in filename:
+            self.open_additional_preview_window(filename)
 
     def delete_file(self, filename: str):
-      pass
+        pass

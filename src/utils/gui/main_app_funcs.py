@@ -26,6 +26,7 @@ from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database import table_funcs, new_tables
 from src.utils.gui.mold_data_edition_funcs import EditedMold
 from src.utils.gui.stock_changing_funcs import Stock
+from src.utils.gui.attached_files_review_funcs import Attachment
 
 
 class App(Frame):
@@ -55,49 +56,49 @@ class App(Frame):
         self.mold_number_entry_field = None
         self.event = None
         # Объявление переменных изображений
-        self.image_logo = Image.open(os.path.abspath(os.path.join('..', 'pics', 'company_logo.png'))) \
+        self.image_logo = Image.open(os.path.abspath(os.path.join('pics', 'company_logo.png'))) \
             .resize((150, 70))
         self.image_logo_pil = ImageTk.PhotoImage(self.image_logo)
-        self.image_body = Image.open(os.path.abspath(os.path.join('..', 'pics', 'main__picture.png'))) \
+        self.image_body = Image.open(os.path.abspath(os.path.join('pics', 'main__picture.png'))) \
             .resize((800, 500))
         self.image_body_pil = ImageTk.PhotoImage(self.image_body)
-        self.main_menu_icon = Image.open(os.path.abspath(os.path.join('..', 'pics', 'main_menu.png'))) \
+        self.main_menu_icon = Image.open(os.path.abspath(os.path.join('pics', 'main_menu.png'))) \
             .resize((20, 20))
         self.main_menu_icon_pil = ImageTk.PhotoImage(self.main_menu_icon)
-        self.image_mold = Image.open(os.path.abspath(os.path.join('..', 'pics', 'mold.png'))) \
+        self.image_mold = Image.open(os.path.abspath(os.path.join('pics', 'mold.png'))) \
             .resize((144, 120))
         self.image_mold_pil = ImageTk.PhotoImage(self.image_mold)
-        self.image_spare_part = Image.open(os.path.abspath(os.path.join('..', 'pics', 'spare_parts.png'))) \
+        self.image_spare_part = Image.open(os.path.abspath(os.path.join('pics', 'spare_parts.png'))) \
             .resize((144, 120))
         self.image_spare_part_pil = ImageTk.PhotoImage(self.image_spare_part)
-        self.image_scanner = Image.open(os.path.abspath(os.path.join('..', 'pics', 'scanner.png'))) \
+        self.image_scanner = Image.open(os.path.abspath(os.path.join('pics', 'scanner.png'))) \
             .resize((144, 120))
         self.image_scanner_pil = ImageTk.PhotoImage(self.image_scanner)
-        self.back_icon = Image.open(os.path.abspath(os.path.join('..', 'pics', 'back.png'))) \
+        self.back_icon = Image.open(os.path.abspath(os.path.join('pics', 'back.png'))) \
             .resize((20, 20))
         self.back_icon_pil = ImageTk.PhotoImage(self.back_icon)
-        self.plus_icon = Image.open(os.path.abspath(os.path.join('..', 'pics', 'plus.png'))) \
+        self.plus_icon = Image.open(os.path.abspath(os.path.join('pics', 'plus.png'))) \
             .resize((20, 20))
         self.plus_icon_pil = ImageTk.PhotoImage(self.plus_icon)
-        self.delete_icon = Image.open(os.path.abspath(os.path.join('..', 'pics', 'delete.png'))) \
+        self.delete_icon = Image.open(os.path.abspath(os.path.join('pics', 'delete.png'))) \
             .resize((20, 20))
         self.delete_icon_pil = ImageTk.PhotoImage(self.delete_icon)
-        self.edit_icon = Image.open(os.path.abspath(os.path.join('..', 'pics', 'edit.png'))) \
+        self.edit_icon = Image.open(os.path.abspath(os.path.join('pics', 'edit.png'))) \
             .resize((20, 20))
         self.edit_icon_pil = ImageTk.PhotoImage(self.edit_icon)
-        self.excel_icon = Image.open(os.path.abspath(os.path.join('..', 'pics', 'excel.png'))) \
+        self.excel_icon = Image.open(os.path.abspath(os.path.join('pics', 'excel.png'))) \
             .resize((20, 20))
         self.excel_icon_pil = ImageTk.PhotoImage(self.excel_icon)
-        self.info_icon = Image.open(os.path.abspath(os.path.join('..', 'pics', 'info.png'))) \
+        self.info_icon = Image.open(os.path.abspath(os.path.join('pics', 'info.png'))) \
             .resize((20, 20))
         self.info_icon_pil = ImageTk.PhotoImage(self.info_icon)
-        self.help_icon = Image.open(os.path.abspath(os.path.join('..', 'pics', 'help.png'))) \
+        self.help_icon = Image.open(os.path.abspath(os.path.join('pics', 'help.png'))) \
             .resize((20, 20))
         self.help_icon_pil = ImageTk.PhotoImage(self.help_icon)
-        self.new_attachment_icon = Image.open(os.path.abspath(os.path.join('..', 'pics', 'new_attachment.png'))) \
+        self.new_attachment_icon = Image.open(os.path.abspath(os.path.join('pics', 'new_attachment.png'))) \
             .resize((20, 20))
         self.new_attachment_icon_pil = ImageTk.PhotoImage(self.new_attachment_icon)
-        self.attachments_icon = Image.open(os.path.abspath(os.path.join('..', 'pics', 'attachments.png'))) \
+        self.attachments_icon = Image.open(os.path.abspath(os.path.join('pics', 'attachments.png'))) \
             .resize((20, 20))
         self.attachments_icon_pil = ImageTk.PhotoImage(self.attachments_icon)
         # Объявление переменных будущих контейнеров для хранения виджетов
@@ -209,9 +210,12 @@ class App(Frame):
                 messagebox.showinfo(title='Уведомление', message='Таблица успешно сохранена на Ваш компьютер')
 
     def render_toolbar(self, back_func: Callable, add_row_func: Callable = None, edit_row_func: Callable = None,
-                       delete_row_func: Callable = None, new_attachment_func: Callable = None, looking_attachments_func: Callable = None):
+                       delete_row_func: Callable = None, new_attachment_func: Callable = None,
+                       looking_attachments_func: Callable = None):
         """
         Рендер виджетов панели иснтрументов
+        :param looking_attachments_func:
+        :param new_attachment_func:
         :param back_func:
         :param add_row_func:
         :param edit_row_func:
@@ -343,7 +347,7 @@ class App(Frame):
                             edit_row_func=self.render_mold_edition_window,
                             delete_row_func=lambda: self.delete_selected_table_row('All_molds_data', 'MOLD_NUMBER'),
                             looking_attachments_func=lambda: self.render_typical_additional_window(
-            called_class=lambda: Attachment(mold_number: self.mold_number), window_name='Attachments'))
+                                called_class=lambda: Attachment(mold_number=self.mold_number), window_name='Attachments'))
         # Объявление основного и вложенных контейнеров для виджетов
         self.frame_main_widgets = Frame(self, relief=RIDGE)
         self.frame_main_widgets.pack(fill=X, expand=True)
@@ -484,7 +488,7 @@ class App(Frame):
                                     self.mold_number)),
                             edit_row_func=self.render_bom_edition_window,
                             delete_row_func=lambda: self.delete_selected_table_row(f'BOM_{self.mold_number}', 'NUMBER'),
-                            looking_attachments_func=self.render_attachment_window)
+                            looking_attachments_func=self.render_attachments_window)
         # Объявление основного и вложенных контейнеров для виджетов
         self.frame_main_widgets = Frame(self, relief=RIDGE)
         self.frame_main_widgets.pack(fill=X)
@@ -526,24 +530,27 @@ class App(Frame):
 
         ttk.Button(
             sort_frame, text='Все', style='Green.TButton',
-            command=lambda: self.open_bom(mold_number=self.mold_number)
+            command=lambda: self.open_bom(mold_number=self.mold_number, hot_runner=self.hot_runner_bom)
         ).pack(padx=6, pady=5, side=LEFT)
 
         ttk.Button(
             sort_frame, text='В наличие', style='Yellow.TButton',
-            command=lambda: self.open_bom(mold_number=self.mold_number, sort_status='В наличие')
+            command=lambda: self.open_bom(mold_number=self.mold_number, sort_status='В наличие',
+                                          hot_runner=self.hot_runner_bom)
         ).pack(padx=6, pady=5, side=LEFT)
 
         ttk.Button(
             sort_frame, text='Отсутствующие', style='Coral.TButton',
             width=18,
-            command=lambda: self.open_bom(mold_number=self.mold_number, sort_status='Отсутствующие')
+            command=lambda: self.open_bom(mold_number=self.mold_number, sort_status='Отсутствующие',
+                                          hot_runner=self.hot_runner_bom)
         ).pack(padx=6, pady=5, side=LEFT)
 
         ttk.Button(
             sort_frame, text='Меньше минимума', style='Gold.TButton',
             width=18,
-            command=lambda: self.open_bom(mold_number=self.mold_number, sort_status='Меньше минимума')
+            command=lambda: self.open_bom(mold_number=self.mold_number, sort_status='Меньше минимума',
+                                          hot_runner=self.hot_runner_bom)
         ).pack(padx=6, pady=5, side=LEFT)
 
         ttk.Button(
@@ -707,41 +714,41 @@ class App(Frame):
                                called_function=self.get_molds_data),
                            funk_four=self.render_mold_edition_window)
 
-    def edited_open_bom(self, mold_number: str = None, hot_runner: bool = None, sort_status: str | bool = None):
-        """
-        Функция для вывода спецификации (BOM) пресс-формы в табличном виде в окне приложения
-        :param hot_runner:
-        :param mold_number: Номер пресс-формы полученный из строки ввода
-        """
-        self.mold_number_entry_field.delete(0, END)
-        if not mold_number:
-            mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
-        # Выгрузка из базы данных таблицы BOM, сортировка и запись в переменные класса
-        self.sort_bom_parts()
-        if sort_status:
-            self.sort_status = sort_status
-            self.current_table = self.sorted_bom_tuple.get(sort_status)
-        else:
-            self.sort_status = None
-        # Очистка области в окне приложения перед выводом новой таблицы
-        self.tree.unbind("<Double-ButtonPress-1>")
-        self.tree.unbind("<Return>")
-        self.frame_toolbar.pack_forget()
-        self.frame_main_widgets.pack_forget()
-        self.tree.pack_forget()
-        # Обновление обработчиков событий
-        self.remove_listeners()
-        self.add_listeners(funk_two=self.get_molds_data,
-                           funk_three=lambda: self.render_typical_additional_window(
-                               called_class=lambda: EditedBOM(self.mold_number),
-                               window_name='New Spare Part Information',
-                               called_function=lambda: self.open_bom(
-                                   self.mold_number)),
-                           funk_four=self.render_bom_edition_window)
-        self.render_widgets_selected_bom()
-        # Определение размера столбцов таблицы
-        columns_sizes = {'#1': 5, '#2': 10, '#3': 35, '#4': 25, '#5': 10, '#6': 10, '#7': 20, '#8': 20}
-        self.render_table(columns_sizes=columns_sizes)
+    # def edited_open_bom(self, mold_number: str = None, hot_runner: bool = None, sort_status: str | bool = None):
+    #     """
+    #     Функция для вывода спецификации (BOM) пресс-формы в табличном виде в окне приложения
+    #     :param hot_runner:
+    #     :param mold_number: Номер пресс-формы полученный из строки ввода
+    #     """
+    #     self.mold_number_entry_field.delete(0, END)
+    #     if not mold_number:
+    #         mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
+    #     # Выгрузка из базы данных таблицы BOM, сортировка и запись в переменные класса
+    #     self.sort_bom_parts()
+    #     if sort_status:
+    #         self.sort_status = sort_status
+    #         self.current_table = self.sorted_bom_tuple.get(sort_status)
+    #     else:
+    #         self.sort_status = None
+    #     # Очистка области в окне приложения перед выводом новой таблицы
+    #     self.tree.unbind("<Double-ButtonPress-1>")
+    #     self.tree.unbind("<Return>")
+    #     self.frame_toolbar.pack_forget()
+    #     self.frame_main_widgets.pack_forget()
+    #     self.tree.pack_forget()
+    #     # Обновление обработчиков событий
+    #     self.remove_listeners()
+    #     self.add_listeners(funk_two=self.get_molds_data,
+    #                        funk_three=lambda: self.render_typical_additional_window(
+    #                            called_class=lambda: EditedBOM(self.mold_number),
+    #                            window_name='New Spare Part Information',
+    #                            called_function=lambda: self.open_bom(
+    #                                self.mold_number)),
+    #                        funk_four=self.render_bom_edition_window)
+    #     self.render_widgets_selected_bom()
+    #     # Определение размера столбцов таблицы
+    #     columns_sizes = {'#1': 5, '#2': 10, '#3': 35, '#4': 25, '#5': 10, '#6': 10, '#7': 20, '#8': 20}
+    #     self.render_table(columns_sizes=columns_sizes)
 
     def add_listeners(self, funk_two: Callable, funk_three: Callable = None,
                       funk_four: Callable = None, funk_five: Callable = None):
@@ -814,19 +821,23 @@ class App(Frame):
                     self.sorted_bom_dict.get(status).append(part_info)
                     self.sorted_bom_tuple.get(status).append(self.bom_data[num])
             else:
+                # Проверка числовых значений и сортировка данных по условиям
                 try:
                     min_percent = int(part_info.get('MIN_PERCENT'))
-                    current_percent = int(part_info.get('PARTS_QUANTITY')) / int(part_info.get('PCS_IN_MOLD')) * 100
+                    parts_qantity = int(part_info.get('PARTS_QUANTITY'))
+                    pcs_in_mold = int(part_info.get('PCS_IN_MOLDS'))
+                    current_percent = int(parts_qantity) / int(pcs_in_mold) * 100
                 except TypeError:
                     pass
                 else:
-                    if current_percent >= min_percent:
+
+                    if parts_qantity > 0:
                         self.sorted_bom_dict.get('В наличие').append(part_info)
                         self.sorted_bom_tuple.get('В наличие').append(self.bom_data[num])
-                    elif current_percent < min_percent:
-                        self.sorted_bom_dict.get('Меньше минимума').append(part_info)
-                        self.sorted_bom_tuple.get('Меньше минимума').append(self.bom_data[num])
-                    else:
+                        if current_percent < min_percent:
+                            self.sorted_bom_dict.get('Меньше минимума').append(part_info)
+                            self.sorted_bom_tuple.get('Меньше минимума').append(self.bom_data[num])
+                    elif parts_qantity == 0:
                         self.sorted_bom_dict.get('Отсутствующие').append(part_info)
                         self.sorted_bom_tuple.get('Отсутствующие').append(self.bom_data[num])
 
@@ -868,6 +879,7 @@ class App(Frame):
             # Выгрузка информации из базы данных
             if sort_status:
                 self.sort_status = sort_status
+                self.sort_bom_parts(hot_runner)
                 self.current_table = self.sorted_bom_tuple.get(sort_status)
             else:
                 self.sort_status = None
@@ -1039,8 +1051,7 @@ class App(Frame):
         # Если получен номер елемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
         if part_number:
             self.render_typical_additional_window(called_class=lambda: Attachment(mold_number=self.mold_number, part_number=part_number),
-                                                  window_name='Attachments')
-    
+                window_name='Attachments')
 
     def open_parts_quantity_changing_window(self, consumption: bool = None):
         """
