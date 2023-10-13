@@ -42,3 +42,13 @@ def create_tables_in_db():
     moving_history.crt_new_table_and_connect_db(
         table_params={'DATE': 'TEXT', 'USER': 'TEXT', 'MOLD_NUMBER': 'TEXT', 'MOLD_NAME': 'TEXT',
                       'LAST_STATUS': 'TEXT', 'NEXT_STATUS': 'TEXT'})
+
+    in_warehouse_history = table_funcs.TableInDb('IN_Warehouse_history', 'Database')
+    in_warehouse_history.crt_new_table_and_connect_db(
+        table_params={'DATE': 'TEXT', 'USER': 'TEXT', 'MOLD_NUMBER': 'TEXT', 'MOLD_NAME': 'TEXT', 'PART_NUMBER': 'TEXT', 'PART_NAME': 'TEXT', 'PART_TYPE': 'TEXT',
+                      'QUANTITY': 'INT'})
+    
+    out_warehouse_history = table_funcs.TableInDb('OUT_Warehouse_history', 'Database')
+    out_warehouse_history.crt_new_table_and_connect_db(
+        table_params={'DATE': 'TEXT', 'USER': 'TEXT', 'MOLD_NUMBER': 'TEXT', 'MOLD_NAME': 'TEXT', 'PART_NUMBER': 'TEXT', 'PART_NAME': 'TEXT', 'PART_TYPE': 'TEXT',
+                      'QUANTITY': 'INT'})
