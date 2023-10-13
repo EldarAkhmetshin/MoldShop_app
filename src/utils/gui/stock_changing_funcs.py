@@ -125,10 +125,17 @@ class Stock(tkinter.Toplevel):
         """
         Функция проверки введённых данных пользователем
         """
+        # Определения столбца для изменения данных
         define_column_name: Callable = lambda: 'PARTS_QUANTITY' \
             if self.required_part_type == 'Новая' else 'USED_PARTS_QUANTITY'
+        # Определение имени таблицы для сохранения истории изменений склада
+        define_table_name: Callable = lambda: 'OUT_warehouse_history' if self.consumption else 'IN_warehouse_history'
+        # Определение данных для записи в таблицу с историей изменений склада
+        define_data: Callable = lambda: (str(datetime.now()), user_data.get('user_name'), self.part_number, self.part_name, self.required_part_type,
+                                        self.get_end_quantity())
         if self.input_error_label:
             self.input_error_label.destroy()
+        
 
         self.required_part_type = self.part_type_combobox.get()
         self.required_quantity = self.quantity_entry_field.get()
@@ -137,10 +144,13 @@ class Stock(tkinter.Toplevel):
             if self.check_parts_quantity():
                 # Загрузка данных в базу данных
                 try:
-                    # Изменение количества запчасти в BOM
+                    # Изменение количества запчастей в BOM
                     bom = table_funcs.TableInDb(self.table_name, 'Database')
                     bom.change_data(param='NUMBER', value=self.part_number,
                                     data={define_column_name(): self.get_end_quantity()})
+                    # Новая запись в журнале истории изменений склада
+                    warehouse_history = table_funcs.TableInDb(define_table_name(), 'Database')
+                    warehouse_history.insert_data(info=define_data())
                 except sqlite3.ProgrammingError:
                     self.input_error_label = Label(self.frame,
                                                    text='Ошибка записи данных! Обратитесь к администратору',
