@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
+import shutil
 import sqlite3
 import tkinter
 import os
@@ -17,7 +18,8 @@ from idlelib.tooltip import Hovertip
 from typing import Callable
 
 from src.global_values import user_data
-from src.data import mold_statuses_dict, mold_statuses_list, part_statuses_list
+from src.data import mold_statuses_dict, mold_statuses_list, part_statuses_list, columns_warehouse_table, \
+    columns_sizes_warehouse_table
 from src.molds import get_data_from_excel_file, check_mold_number
 from src.data import info_messages, error_messages, columns_molds_moving_history_table, columns_sizes_moving_history_table
 from src.utils.gui.bom_edition_funcs import EditedBOM
@@ -74,6 +76,9 @@ class App(Frame):
         self.image_scanner = Image.open(os.path.abspath(os.path.join('pics', 'scanner.png'))) \
             .resize((144, 120))
         self.image_scanner_pil = ImageTk.PhotoImage(self.image_scanner)
+        self.image_rack = Image.open(os.path.abspath(os.path.join('pics', 'rack.png'))) \
+            .resize((144, 120))
+        self.image_rack_pil = ImageTk.PhotoImage(self.image_rack)
         self.back_icon = Image.open(os.path.abspath(os.path.join('pics', 'back.png'))) \
             .resize((20, 20))
         self.back_icon_pil = ImageTk.PhotoImage(self.back_icon)
@@ -190,26 +195,33 @@ class App(Frame):
             file_path_list = file_path.split('/')
             file_name = file_path_list[-1]
             # Копирование и вставка файла в директорию приложения
-            define_path: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number, file_name)) if not part_number /
-                    else (os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number, file_name) if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', part_number, file_name))
+            define_path: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number, file_name) \
+                if not part_number \
+                else (
+                os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number, file_name)
+                if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', part_number,
+                                                file_name))
             try:
-                shutil.copy2(file_path, os.path.abspath(define_path())
+                shutil.copy2(file_path, os.path.abspath(define_path()))
             except IOError:
-                define_folder: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number)) if not part_number /
-                    else (os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number) if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', part_number))
+                define_folder: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number) \
+                    if not part_number \
+                    else (
+                    os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number)
+                    if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts',
+                                                    part_number))
                 os.mkdir(define_folder())
                 try:
-                    shutil.copy2(file_path, os.path.abspath(define_path())
+                    shutil.copy2(file_path, os.path.abspath(define_path()))
                 except IOError:
                     error_message = error_messages.get('not_downloaded_bom').get('message_body')
                     messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
-                                         message=error_message.format(mold_number=mold_number))
+                                         message=error_message.format(mold_number=self.mold_number))
             else:
                 self.render_typical_additional_window(called_class=lambda: Attachment(
-                mold_number=self.mold_number, part_number=part_number, hot_runner=hot_runner),
-                                                  window_name='Attachments')
+                    mold_number=self.mold_number, part_number=part_number, hot_runner=hot_runner),
+                                                      window_name='Attachments')
 
-    
     def save_excel_table(self):
         """
         Функция сохранения  открытой таблицы из окна приложения в Иксель файл формата xlsx
@@ -344,7 +356,8 @@ class App(Frame):
 
         ttk.Button(
             self.frame_main_widgets, style='Menu.TButton',
-            text='Отслеживание поставок запчастей'
+            text='Журнал склада',
+            command=lambda: self.open_warehouse_history_window(consumption=True)
         ).grid(padx=30, pady=15, column=7, row=3)
 
         ttk.Button(
@@ -354,18 +367,24 @@ class App(Frame):
 
         ttk.Label(self.frame_body, image=self.image_body_pil).pack(side=RIGHT, pady=27)
 
-    def open_main_menu(self):
-        """
-        Рендер главного меню приложения
-        """
-        # Очистка контйнеров от старых виджетов
+    def clean_frames(self):
+        self.tree.unbind("<Double-ButtonPress-1>")
+        self.tree.unbind("<Return>")
         self.tree.pack_forget()
+        self.frame_header.pack_forget()
         self.frame_main_widgets.pack_forget()
         self.frame_body.pack_forget()
         self.sort_status = None
         if self.frame_toolbar:
             self.frame_toolbar.pack_forget()
         self.remove_listeners()
+
+    def open_main_menu(self):
+        """
+        Рендер главного меню приложения
+        """
+        # Очистка контейнеров от старых виджетов
+        self.clean_frames()
         # Обновление контейнеров
         self.frame_header = Frame(self, relief=RIDGE)
         self.frame_header.pack()
@@ -469,8 +488,6 @@ class App(Frame):
         """
         Функция рендера всех виджетов окна приложения в режиме изменения статуса пресс-формы и просмотра журнала перемещений
         """
-        # Очистка окна
-        self.frame_header.pack_forget()
         # Рендер панели инструментов
         self.render_toolbar(back_func=self.open_main_menu)
         # Объявление основного и вложенных контейнеров для виджетов
@@ -512,6 +529,47 @@ class App(Frame):
 
         get_info_log(user=user_data.get('user_name'), message='Mold scaning mode widgets were rendered',
                      func_name=self.render_widgets_molds_list.__name__, func_path=abspath(__file__))
+
+    def render_widgets_warehouse_mode(self, consumption: bool = None):
+        """
+        Функция рендера всех виджетов окна приложения в режиме изменения статуса пресс-формы и просмотра журнала перемещений
+        """
+        define_title: Callable = lambda: 'История расходов склада пресс-форм' if consumption \
+            else 'История приходов склада пресс-форм'
+        # Рендер панели инструментов
+        self.render_toolbar(back_func=self.open_main_menu)
+        # Объявление основного и вложенных контейнеров для виджетов
+        self.frame_main_widgets = Frame(self, relief=RIDGE)
+        self.frame_main_widgets.pack(fill=X)
+        main_sub_frame = Frame(self.frame_main_widgets)
+        main_sub_frame.pack(side=LEFT, pady=2, padx=2)
+        picture_subframe = Frame(self.frame_main_widgets)
+        picture_subframe.pack(side=RIGHT, pady=2, padx=2)
+        title_frame = Frame(main_sub_frame)
+        title_frame.pack(fill=BOTH, expand=True)
+        description_frame = Frame(main_sub_frame)
+        description_frame.pack(fill=BOTH, expand=True)
+        status_frame = ttk.LabelFrame(main_sub_frame, text='Тип журнала склада', relief=RIDGE)
+        status_frame.pack(side=LEFT, padx=4, pady=2)
+        # Рендер виджетов
+        (ttk.Label(title_frame, text=define_title(), style='Title.TLabel')
+         .pack(side=LEFT, padx=8, pady=2))
+        ttk.Label(description_frame, text='*********', style='Regular.TLabel').pack(side=LEFT, padx=8, pady=2)
+
+        ttk.Button(
+            status_frame, text='Приходы', style='Regular.TButton',
+            command=self.open_warehouse_history_window
+        ).pack(side=LEFT, padx=3, pady=3)
+
+        ttk.Button(
+            status_frame, text='Расходы', style='Regular.TButton',
+            command=lambda: self.open_warehouse_history_window(consumption=True)
+        ).pack(side=LEFT, padx=3, pady=3)
+
+        ttk.Label(picture_subframe, image=self.image_rack_pil).pack(side=RIGHT, pady=1)
+
+        get_info_log(user=user_data.get('user_name'), message='Warehouse mode widgets were rendered',
+                     func_name=self.render_widgets_warehouse_mode.__name__, func_path=abspath(__file__))
 
     def render_widgets_selected_bom(self):
         """
@@ -725,12 +783,7 @@ class App(Frame):
         # Выгрузка из базы данных перечня пресс-форм, сортировка и запись в переменные класса
         self.sort_molds()
         # Очистка области в окне приложения перед выводом новой таблицы
-        if self.frame_toolbar:
-            self.frame_toolbar.pack_forget()
-        self.frame_header.pack_forget()
-        self.frame_main_widgets.pack_forget()
-        self.frame_body.pack_forget()
-        self.tree.pack_forget()
+        self.clean_frames()
         if sort_status:
             self.sort_status = sort_status
             self.current_table = self.sorted_molds_data_tuple.get(sort_status)
@@ -752,42 +805,6 @@ class App(Frame):
                                called_class=EditedMold, window_name='New Mold Information',
                                called_function=self.get_molds_data),
                            funk_four=self.render_mold_edition_window)
-
-    # def edited_open_bom(self, mold_number: str = None, hot_runner: bool = None, sort_status: str | bool = None):
-    #     """
-    #     Функция для вывода спецификации (BOM) пресс-формы в табличном виде в окне приложения
-    #     :param hot_runner:
-    #     :param mold_number: Номер пресс-формы полученный из строки ввода
-    #     """
-    #     self.mold_number_entry_field.delete(0, END)
-    #     if not mold_number:
-    #         mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
-    #     # Выгрузка из базы данных таблицы BOM, сортировка и запись в переменные класса
-    #     self.sort_bom_parts()
-    #     if sort_status:
-    #         self.sort_status = sort_status
-    #         self.current_table = self.sorted_bom_tuple.get(sort_status)
-    #     else:
-    #         self.sort_status = None
-    #     # Очистка области в окне приложения перед выводом новой таблицы
-    #     self.tree.unbind("<Double-ButtonPress-1>")
-    #     self.tree.unbind("<Return>")
-    #     self.frame_toolbar.pack_forget()
-    #     self.frame_main_widgets.pack_forget()
-    #     self.tree.pack_forget()
-    #     # Обновление обработчиков событий
-    #     self.remove_listeners()
-    #     self.add_listeners(funk_two=self.get_molds_data,
-    #                        funk_three=lambda: self.render_typical_additional_window(
-    #                            called_class=lambda: EditedBOM(self.mold_number),
-    #                            window_name='New Spare Part Information',
-    #                            called_function=lambda: self.open_bom(
-    #                                self.mold_number)),
-    #                        funk_four=self.render_bom_edition_window)
-    #     self.render_widgets_selected_bom()
-    #     # Определение размера столбцов таблицы
-    #     columns_sizes = {'#1': 5, '#2': 10, '#3': 35, '#4': 25, '#5': 10, '#6': 10, '#7': 20, '#8': 20}
-    #     self.render_table(columns_sizes=columns_sizes)
 
     def add_listeners(self, funk_two: Callable, funk_three: Callable = None,
                       funk_four: Callable = None, funk_five: Callable = None):
@@ -913,7 +930,6 @@ class App(Frame):
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{mold_number}' if hot_runner else f'BOM_{mold_number}'
         if not mold_number:
             mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
-        #self.sort_bom_parts()
         try:
             # Выгрузка информации из базы данных
             if sort_status:
@@ -929,12 +945,7 @@ class App(Frame):
             messagebox.showerror('Уведомление об ошибке', f'Спецификации по номеру "{mold_number}" не имеется')
         else:
             # Очистка области в окне приложения перед выводом новой таблицы
-            self.tree.unbind("<Double-ButtonPress-1>")
-            self.tree.unbind("<Return>")
-            self.frame_toolbar.pack_forget()
-            self.frame_main_widgets.pack_forget()
-            self.tree.pack_forget()
-            self.sort_status = None
+            self.clean_frames()
             # Обновление обработчиков событий
             self.remove_listeners()
             self.add_listeners(funk_two=self.get_molds_data,
@@ -955,11 +966,7 @@ class App(Frame):
         Функция вывода окна с виджетами для смены статуса пресс-формы и таблицей с историей этих изменений
         """
         # Очистка области в окне приложения перед выводом новой таблицы
-        if self.frame_toolbar:
-            self.frame_toolbar.pack_forget()
-        self.frame_main_widgets.pack_forget()
-        self.frame_body.pack_forget()
-        self.tree.pack_forget()
+        self.clean_frames()
         # Формирование табличных данных
         moving_history = table_funcs.TableInDb('Molds_moving_history', 'Database')
         moving_history_data = moving_history.get_table(type_returned_data='tuple')
@@ -970,6 +977,26 @@ class App(Frame):
         self.render_widgets_mold_scanning_mode()
         # Определение размера столбцов таблицы
         self.render_table(columns_sizes=columns_sizes_moving_history_table)
+        # Объявление обработчиков событий
+        self.add_listeners(funk_two=self.open_main_menu)
+
+    def open_warehouse_history_window(self, consumption: bool = None):
+        """
+        Функция вывода окна с виджетами для смены статуса пресс-формы и таблицей с историей этих изменений
+        """
+        define_table_name: Callable = lambda: 'OUT_warehouse_history' if consumption else 'IN_warehouse_history'
+        # Очистка области в окне приложения перед выводом новой таблицы
+        self.clean_frames()
+        # Формирование табличных данных
+        warehouse_history = table_funcs.TableInDb(define_table_name(), 'Database')
+        warehouse_history_data = warehouse_history.get_table(type_returned_data='tuple')
+        self.current_table = []
+        self.current_table = [columns_warehouse_table if i == 0 else warehouse_history_data[i - 1]
+                              for i in range(0, len(warehouse_history_data) + 1)]
+        # Рендер виджетов
+        self.render_widgets_warehouse_mode(consumption)
+        # Определение размера столбцов таблицы
+        self.render_table(columns_sizes=columns_sizes_warehouse_table)
         # Объявление обработчиков событий
         self.add_listeners(funk_two=self.open_main_menu)
 

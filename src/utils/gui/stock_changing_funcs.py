@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*- #
 import sqlite3
 import tkinter
+from datetime import datetime
 from tkinter import *
 from tkinter import messagebox, ttk
 from tkinter.ttk import Frame
@@ -28,7 +29,7 @@ class Stock(tkinter.Toplevel):
         self.used_parts_quantity_entry_field = None
         self.parts_qantity_entry_field = None
         self.part_number = self.part_data.get('NUMBER')
-
+        self.part_name = self.part_data.get('PART_NAME')
         if not self.part_data.get('PARTS_QUANTITY'):
             self.parts_quantity = 0
         else:
@@ -131,11 +132,11 @@ class Stock(tkinter.Toplevel):
         # Определение имени таблицы для сохранения истории изменений склада
         define_table_name: Callable = lambda: 'OUT_warehouse_history' if self.consumption else 'IN_warehouse_history'
         # Определение данных для записи в таблицу с историей изменений склада
-        define_data: Callable = lambda: (str(datetime.now()), user_data.get('user_name'), self.part_number, self.part_name, self.required_part_type,
-                                        self.get_end_quantity())
+        define_data: Callable = lambda: (
+            str(datetime.now()), user_data.get('user_name'), self.mold_number, self.part_number,
+            self.part_name, self.required_part_type, self.required_quantity)
         if self.input_error_label:
             self.input_error_label.destroy()
-        
 
         self.required_part_type = self.part_type_combobox.get()
         self.required_quantity = self.quantity_entry_field.get()

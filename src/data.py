@@ -13,6 +13,10 @@ error_messages = {
                                            '\nУбедитесь, что п/ф с данным номером есть в общем перечне'},
 }
 
-columns_molds_moving_history_table = ('Дата', 'Отвественный', 'Номер пресс-формы',
+columns_molds_moving_history_table = ('Дата', 'Ответcтвенный', 'Номер пресс-формы',
                                       'Название проекта', 'Прошлый статус', 'Новый статус')
 columns_sizes_moving_history_table = {f'#{i}': 20 for i in range(1, len(columns_molds_moving_history_table) + 1)}
+
+columns_warehouse_table = ('Дата', 'Ответcтвенный', 'Номер пресс-формы', 'Номер запчасти',
+                           'Имя запчасти', 'Тип запчасти', 'Количество')
+columns_sizes_warehouse_table = {f'#{i}': 20 for i in range(1, len(columns_warehouse_table) + 1)}
