@@ -1,4 +1,1 @@
-user_data = {
-    'user_name': None,
-    'access': None
-}
+user_data = {}
