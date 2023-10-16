@@ -399,9 +399,10 @@ class App(Frame):
         """
         Функция рендера всех виджетов окна приложения в режиме просмотра перечня всех пресс-форм
         """
+        molds_data_editing_access = user_data.get('molds_and_boms_data_changing')
         # Рендер панели инструментов
         self.render_toolbar(back_func=self.open_main_menu, add_row_func=lambda: self.render_typical_additional_window(
-            called_class=EditedMold, window_name='New Mold Information', called_function=self.get_molds_data),
+            called_class=EditedMold, window_name='New Mold Information', access=molds_data_editing_access, called_function=self.get_molds_data),
                             edit_row_func=self.render_mold_edition_window,
                             delete_row_func=lambda: self.delete_selected_table_row('All_molds_data', 'MOLD_NUMBER'),
                             looking_attachments_func=lambda: self.render_typical_additional_window(
@@ -1000,21 +1001,22 @@ class App(Frame):
         # Объявление обработчиков событий
         self.add_listeners(funk_two=self.open_main_menu)
 
-    def open_qr_window(self, next_status):
+    def open_qr_window(self, next_status: str):
         """
         Рендер окна для получения сообщения от сканера QR кода
         """
-        qr_window = QRWindow(next_status)
-        qr_window.title('QR code getting')
-        qr_window.resizable(False, False)
-        qr_window.render_widgets_before_getting_code()
-        if qr_window.changed_data:
-            get_info_log(user=user_data.get('user_name'), message='Status changing',
-                         func_name=self.open_qr_window.__name__, func_path=abspath(__file__))
-            self.tree.pack_forget()
-            self.open_mold_scanning_window()
+        if user_data.get('mold_status_changing'):
+            qr_window = QRWindow(next_status)
+            qr_window.title('QR code getting')
+            qr_window.resizable(False, False)
+            qr_window.render_widgets_before_getting_code()
+            if qr_window.changed_data:
+                get_info_log(user=user_data.get('user_name'), message='Status changing',
+                             func_name=self.open_qr_window.__name__, func_path=abspath(__file__))
+                self.tree.pack_forget()
+                self.open_mold_scanning_window()
 
-    def render_typical_additional_window(self, called_class: Callable, window_name: str, called_function: Callable = None):
+    def render_typical_additional_window(self, called_class: Callable, window_name: str, access: bool = None, called_function: Callable = None):
         """
         Функция создания дополнительного окна по шаблону
         :param called_function: Вызываемая функция в случае изменения каких либо данных после взаимодействия
@@ -1022,16 +1024,17 @@ class App(Frame):
         :param window_name: Название открываемого окна
         :param called_class: Вызываемый класс для создания его экземпляра
         """
-        window = called_class()
-        window.title(window_name)
-        window.resizable(False, False)
-        window.render_widgets()
-        if window.changed_data:
-            get_info_log(user=user_data.get('user_name'), message='Successful data changing',
-                         func_name=self.render_typical_additional_window.__name__, func_path=abspath(__file__))
-            self.tree.pack_forget()
-            if called_function:
-                called_function()
+        if access:
+            window = called_class()
+            window.title(window_name)
+            window.resizable(False, False)
+            window.render_widgets()
+            if window.changed_data:
+                get_info_log(user=user_data.get('user_name'), message='Successful data changing',
+                             func_name=self.render_typical_additional_window.__name__, func_path=abspath(__file__))
+                self.tree.pack_forget()
+                if called_function:
+                    called_function()
 
     def render_upload_bom_window(self):
         """
@@ -1061,6 +1064,7 @@ class App(Frame):
         """
         Рендер окна для редактирования данных о пресс-форме
         """
+        mold_data_edition_access = user_data.get('molds_and_boms_data_changing')
         mold_number = self.mold_number_entry_field.get()
         if not mold_number:
             mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
@@ -1078,13 +1082,14 @@ class App(Frame):
                                 func_name=self.render_mold_edition_window.__name__, func_path=abspath(__file__))
             else:
                 self.render_typical_additional_window(called_class=lambda: EditedMold(mold_data=mold_data),
-                                                      window_name='Mold Data Edition',
+                                                      window_name='Mold Data Edition', access=mold_data_edition_access,
                                                       called_function=self.get_molds_data)
 
     def render_bom_edition_window(self):
         """
         Рендер окна для редактирования данных о пресс-форме
         """
+        bom_edition_access = user_data.get('molds_and_boms_data_changing')
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
         table_name = define_table_name()
         part_number = self.get_value_by_selected_row(table_name, 'NUMBER')
@@ -1104,7 +1109,7 @@ class App(Frame):
                 self.render_typical_additional_window(
                     called_class=lambda: EditedBOM(part_data=part_data, mold_number=self.mold_number,
                                                    table_name=table_name),
-                    window_name='BOM Edition',
+                    window_name='BOM Edition', access=bom_edition_access,
                     called_function=lambda: self.open_bom(self.mold_number))
 
     def render_attachments_window(self):
@@ -1123,6 +1128,7 @@ class App(Frame):
         """
         Рендер окна для редактирования данных о пресс-форме
         """
+        stock_changing_access = user_data.get('stock_changing')
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
         table_name = define_table_name()
         part_number = self.get_value_by_selected_row(table_name, 'NUMBER')
@@ -1142,72 +1148,74 @@ class App(Frame):
                 self.render_typical_additional_window(
                     called_class=lambda: Stock(part_data=part_data, mold_number=self.mold_number,
                                                consumption=consumption, table_name=table_name),
-                    window_name='BOM Edition',
+                    window_name='BOM Edition', access=stock_changing_access,
                     called_function=lambda: self.open_bom(self.mold_number))
 
     def delete_selected_table_row(self, table_name: str, column_name: str):
         """
         Фнкция удаления строки из таблицы базы данных на основании выделенной строки
         """
-        db = table_funcs.TableInDb(table_name, 'Database')
-
-        message = "Вы уверены, что хотите удалить данную строку"
-        if messagebox.askyesno(title='Подтверждение', message=message, parent=self):
-
-            try:
-                number = self.get_value_by_selected_row(table_name, column_name)
-                db.delete_data(column_name=column_name, value=number)
-            except sqlite3.OperationalError:
-                messagebox.showerror('Уведомление об ошибке', 'Ошибка удаления. Обратитесь к администратору.')
-                get_info_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
-                             func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
-            else:
-                messagebox.showinfo('Уведомление', 'Удаление успешно произведено!')
-                get_info_log(user=user_data.get('user_name'), message='Row was deleted from table',
-                             func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
-
-                if column_name == 'MOLD_NUMBER':
-
-                    try:
-                        bom = table_funcs.TableInDb(f'BOM_{number}', 'Database')
-                        bom.delete_db_table()
-                    except sqlite3.OperationalError:
-                        pass
-                    self.tree.pack_forget()
-                    self.get_molds_data()
+        if user_data.get('molds_and_boms_data_changing'):
+            db = table_funcs.TableInDb(table_name, 'Database')
+    
+            message = "Вы уверены, что хотите удалить данную строку"
+            if messagebox.askyesno(title='Подтверждение', message=message, parent=self):
+    
+                try:
+                    number = self.get_value_by_selected_row(table_name, column_name)
+                    db.delete_data(column_name=column_name, value=number)
+                except sqlite3.OperationalError:
+                    messagebox.showerror('Уведомление об ошибке', 'Ошибка удаления. Обратитесь к администратору.')
+                    get_info_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
+                                 func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
                 else:
-                    self.tree.pack_forget()
-                    self.open_bom(self.mold_number)
+                    messagebox.showinfo('Уведомление', 'Удаление успешно произведено!')
+                    get_info_log(user=user_data.get('user_name'), message='Row was deleted from table',
+                                 func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
+    
+                    if column_name == 'MOLD_NUMBER':
+    
+                        try:
+                            bom = table_funcs.TableInDb(f'BOM_{number}', 'Database')
+                            bom.delete_db_table()
+                        except sqlite3.OperationalError:
+                            pass
+                        self.tree.pack_forget()
+                        self.get_molds_data()
+                    else:
+                        self.tree.pack_forget()
+                        self.open_bom(self.mold_number)
 
     def delete_selected_bom(self):
         """
         Фнкция удаления BOM таблицы из базы данных на основании выделенной строки
         """
-        mold_number = self.mold_number_entry_field.get()
-        if not mold_number:
-            mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
-
-        if mold_number:
-            message = "Вы уверены, что хотите удалить данный BOM"
-            if messagebox.askyesno(title='Подтверждение', message=message, parent=self):
-
-                try:
-                    bom = table_funcs.TableInDb(f'BOM_{mold_number}', 'Database')
-                    bom.delete_db_table()
+        if user_data.get('molds_and_boms_data_changing'):
+            mold_number = self.mold_number_entry_field.get()
+            if not mold_number:
+                mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
+    
+            if mold_number:
+                message = "Вы уверены, что хотите удалить данный BOM"
+                if messagebox.askyesno(title='Подтверждение', message=message, parent=self):
+    
                     try:
-                        hot_runner_bom = table_funcs.TableInDb(f'BOM_HOT_RUNNER_{mold_number}', 'Database')
-                        hot_runner_bom.delete_db_table()
+                        bom = table_funcs.TableInDb(f'BOM_{mold_number}', 'Database')
+                        bom.delete_db_table()
+                        try:
+                            hot_runner_bom = table_funcs.TableInDb(f'BOM_HOT_RUNNER_{mold_number}', 'Database')
+                            hot_runner_bom.delete_db_table()
+                        except sqlite3.OperationalError:
+                            pass
                     except sqlite3.OperationalError:
-                        pass
-                except sqlite3.OperationalError:
-                    messagebox.showerror('Уведомление об ошибке',
-                                         'Ошибка удаления. Вероятнее всего данный BOM отсутствовал.')
-                    get_warning_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
-                                    func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
-                else:
-                    messagebox.showinfo('Уведомление', 'Удаление BOM успешно произведено!')
-                    get_info_log(user=user_data.get('user_name'), message='Row was deleted from table',
-                                 func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
+                        messagebox.showerror('Уведомление об ошибке',
+                                             'Ошибка удаления. Вероятнее всего данный BOM отсутствовал.')
+                        get_warning_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
+                                        func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
+                    else:
+                        messagebox.showinfo('Уведомление', 'Удаление BOM успешно произведено!')
+                        get_info_log(user=user_data.get('user_name'), message='Row was deleted from table',
+                                     func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
 
     def confirm_delete(self):
         message = "Вы уверены, что хотите удалить данную строку"
