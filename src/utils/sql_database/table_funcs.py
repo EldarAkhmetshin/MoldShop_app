@@ -11,9 +11,8 @@ from typing import Any, List, Dict, Callable
 from src.utils.logger.logs import get_info_log, get_warning_log
 
 
-class DataBase(ABC):
+class DataBase():
 
-    @abstractmethod
     def __init__(self, name: str):
         """
         Функция инициирует новый экземпляр из базы данных
@@ -69,6 +68,17 @@ class DataBase(ABC):
         self.connection = sqlite3.connect(path)
         self.cursor = self.connection.cursor()
 
+    def get_all_tables(self) -> list:
+        """
+        Функция возвращает список с наименованием всех таблиц в базе данных
+        :return tables: Список наименований всех таблиц базы данных
+        """
+        self.connect_db()
+        self.cursor.execute(''' SELECT name FROM sqlite_master WHERE type = "table"''' )
+        tables = cursor.fetchall()
+        self.cursor.close()
+        return tables
+
 
 class TableInDb(DataBase):
 
@@ -88,7 +98,6 @@ class TableInDb(DataBase):
         """
         self.connect_db()
         cnt = 0
-        print(self.table_name, table_params)
         for i_param, i_type in table_params.items():
             if cnt == 0:
                 cnt += 1
@@ -215,3 +224,5 @@ class TableInDb(DataBase):
         self.cursor.execute(f"DROP TABLE {self.table_name}")
         self.connection.commit()
         self.cursor.close()
+
+        
