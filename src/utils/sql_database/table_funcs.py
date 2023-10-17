@@ -75,7 +75,7 @@ class DataBase():
         """
         self.connect_db()
         self.cursor.execute(''' SELECT name FROM sqlite_master WHERE type = "table"''' )
-        tables = cursor.fetchall()
+        tables = self.cursor.fetchall()
         self.cursor.close()
         return tables
 

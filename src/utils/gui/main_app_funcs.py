@@ -24,6 +24,7 @@ from src.molds import get_data_from_excel_file, check_mold_number
 from src.data import info_messages, error_messages, columns_molds_moving_history_table, columns_sizes_moving_history_table
 from src.utils.gui.bom_edition_funcs import EditedBOM
 from src.utils.gui.mold_status_changing_funcs import QRWindow
+from src.utils.gui.spare_parts_searching_funcs import Searcher
 from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database import table_funcs, new_tables
 from src.utils.gui.mold_data_edition_funcs import EditedMold
@@ -348,10 +349,8 @@ class App(Frame):
             self.frame_main_widgets, style='Menu.TButton',
             text='Поиск',
             command=lambda: self.render_typical_additional_window(
-                                called_class=Searcher,
-                                window_name='Spare Parts Searching',
-                                called_function=lambda: self.open_bom(
-                                    self.mold_number))
+                called_class=Searcher,
+                window_name='Spare Parts Searching')
         ).grid(padx=30, pady=15, column=9, row=2)
 
         ttk.Button(
@@ -1021,15 +1020,17 @@ class App(Frame):
                 self.tree.pack_forget()
                 self.open_mold_scanning_window()
 
-    def render_typical_additional_window(self, called_class: Callable, window_name: str, access: bool = None, called_function: Callable = None):
+    def render_typical_additional_window(self, called_class: Callable, window_name: str, access: bool = None,
+                                         called_function: Callable = None):
         """
         Функция создания дополнительного окна по шаблону
+        :param access:
         :param called_function: Вызываемая функция в случае изменения каких либо данных после взаимодействия
         пользователя в открытом окне
         :param window_name: Название открываемого окна
         :param called_class: Вызываемый класс для создания его экземпляра
         """
-        if access:
+        if access != 'False':
             window = called_class()
             window.title(window_name)
             window.resizable(False, False)

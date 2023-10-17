@@ -59,13 +59,14 @@ class LogInApp(Frame):
         #     get_info_log(user=user_name, message='Successful login', func_name=self.check_entry_user_data.__name__,
         #                  func_path=abspath(__file__))
         #     time.sleep(0.3)
-        if users.get(user_name).get('password') = self.password_entry_field.get():
+        if users.get(user_name).get('password') == self.password_entry_field.get():
             # Сохранение информации о пользователе в глобальную переменную
             user_data['user_name'] = user_name
             user_data['access'] = True
             user_data['stock_changing'] = users.get(user_name).get('stock_changing')
             user_data['mold_status_changing'] = users.get(user_name).get('mold_status_changing')
             user_data['molds_and_boms_data_changing'] = users.get(user_name).get('molds_and_boms_data_changing')
+            print(user_data)
             self.window.destroy()
             get_info_log(user=user_name, message='Successful login', func_name=self.check_entry_user_data.__name__,
                          func_path=abspath(__file__))

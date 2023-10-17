@@ -11,6 +11,7 @@ from typing import Callable
 from src.config_data.config import passwords
 from src.global_values import user_data
 from src.utils.sql_database import table_funcs
+from src.utils.sql_database.table_funcs import DataBase, TableInDb
 
 
 class Searcher(tkinter.Toplevel):
@@ -51,33 +52,33 @@ class Searcher(tkinter.Toplevel):
         Функция рендера всех виджетов окна ввода информации
         """
         ttk.Label(self.frame_header, text='Поиск запчастей', style='Title.TLabel').pack(side=TOP, pady=15)
-      
-        ttk.Label(self.frame_body, text='Параметры', style='Regular.TLabel').grid(column=1, row=1, padx=5, pady=10)
-      
-        ttk.Label(self.frame_body, text='Наименование', style='Regular.TLabel').grid(column=2, row=2, padx=5, pady=5)
+
+        ttk.Label(self.frame_body, text='Параметры поиска:', style='Regular.TLabel').grid(column=1, row=1, padx=5, pady=10)
+
+        ttk.Label(self.frame_body, text='Наименование', style='Regular.TLabel').grid(column=1, row=2, padx=5, pady=5)
         self.name_entry_field = ttk.Entry(self.frame_body, font=('Times', '11', 'normal'))
         self.name_entry_field.grid(column=2, row=2, padx=5, pady=5)
 
-        ttk.Label(self.frame_body, text='Описание', style='Regular.TLabel').grid(column=2, row=3, padx=5, pady=5)
+        ttk.Label(self.frame_body, text='Описание', style='Regular.TLabel').grid(column=1, row=3, padx=5, pady=5)
         self.description_entry_field = ttk.Entry(self.frame_body, font=('Times', '11', 'normal'))
         self.description_entry_field.grid(column=2, row=3, padx=5, pady=5)
 
-        ttk.Label(self.frame_body, text='Изготовитель', style='Regular.TLabel').grid(column=2, row=4, padx=5, pady=5)
+        ttk.Label(self.frame_body, text='Изготовитель', style='Regular.TLabel').grid(column=1, row=4, padx=5, pady=5)
         self.maker_entry_field = ttk.Entry(self.frame_body, font=('Times', '11', 'normal'))
-        self.maker_entry_field.grid(column=2, row=4, padx=5, pady=5)      
+        self.maker_entry_field.grid(column=2, row=4, padx=5, pady=5)
 
-        ttk.Label(self.frame_body, text='Пресс-форма', style='Regular.TLabel').grid(column=2, row=5, padx=5, pady=5)
-        ttk.Checkbutton(variable=self.mold).grid(column=2, row=5, padx=5, pady=5)
+        ttk.Label(self.frame_body, text='Пресс-форма', style='Regular.TLabel').grid(column=1, row=5, padx=5, pady=5)
+        ttk.Checkbutton(self.frame_body, variable=self.mold).grid(column=2, row=5, padx=5, pady=5)
 
-        ttk.Label(self.frame_body, text='Горячий канал', style='Regular.TLabel').grid(column=2, row=6, padx=5, pady=5)
-        ttk.Checkbutton(variable=self.hot_runner).grid(column=2, row=6, padx=5, pady=5)
-        
-        ttk.Label(self.frame_body, text='Наличие на складе', style='Regular.TLabel').grid(column=2, row=7, padx=5, pady=5)
-        ttk.Checkbutton(variable=self.stock).grid(column=2, row=7, padx=5, pady=5)
-        
+        ttk.Label(self.frame_body, text='Горячий канал', style='Regular.TLabel').grid(column=1, row=6, padx=5, pady=5)
+        ttk.Checkbutton(self.frame_body, variable=self.hot_runner).grid(column=2, row=6, padx=5, pady=5)
+
+        ttk.Label(self.frame_body, text='Наличие на складе', style='Regular.TLabel').grid(column=1, row=7, padx=5, pady=5)
+        ttk.Checkbutton(self.frame_body, variable=self.stock).grid(column=2, row=7, padx=5, pady=5)
+
         ttk.Button(
             self.frame_bottom, text='Применить', style='Regular.TButton',
-            command=self.validate_and_save_changed_data
+            command=self.start_search
         ).pack(padx=10, pady=10, side=TOP)
         # Запуск работы окна приложения
         self.mainloop()
@@ -94,8 +95,8 @@ class Searcher(tkinter.Toplevel):
         # Старт сортировки если один из параметров заполнен
         if self.name_entry_field or self.description_entry_field or self.maker_entry_field:
             for table in tables_names:
-              bom = TableInDb(table, 'Database')
-          
+                bom = TableInDb(table, 'Database')
+
         else:
             self.input_error_label = Label(self.frame_bottom,
                                            text='По вашему запросу ничего не найдено', foreground='Red')
