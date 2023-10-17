@@ -346,7 +346,12 @@ class App(Frame):
 
         ttk.Button(
             self.frame_main_widgets, style='Menu.TButton',
-            text='Поиск'
+            text='Поиск',
+            command=lambda: self.render_typical_additional_window(
+                                called_class=Searcher,
+                                window_name='Spare Parts Searching',
+                                called_function=lambda: self.open_bom(
+                                    self.mold_number))
         ).grid(padx=30, pady=15, column=9, row=2)
 
         ttk.Button(
