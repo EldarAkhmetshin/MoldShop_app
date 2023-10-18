@@ -165,17 +165,20 @@ class TableInDb(DataBase):
         self.cursor.close()
 
     def get_table(self, type_returned_data: str, first_param: str = None, first_value: str | int = None,
-                  last_string: bool = None, second_param: str = None, second_value: str | int = None) \
+                  last_string: bool = None, second_param: str = None, second_value: str | int = None,
+                  third_param: str = None, rhird_value: str = None) \
             -> List[dict] | List[tuple] | Dict:
         """
         Функция получения данных из таблицы базы данных в соответствии с запрошенными параметрами
 
         :param type_returned_data: Формат возращаемой информации в массиве данных (словарь или кортеж).
-        :param first_param: Имя столбца / параметра на который будет ориентирован поиск
-        :param first_value: Значение параметра для поиска
+        :param first_param: Имя 1-го столбца / параметра на который будет ориентирован поиск
+        :param first_value: Значение 1-го параметра для поиска
         :param last_string: Булево значение для получения только 1-й последней строки удовлетворяющей запрашиваемым параметрам 
         :param second_param: Имя 2-го столбца / параметра на который будет ориентирован поиск
         :param second_value: Значение 2-го параметра для поиска
+        :param second_param: Имя 3-го столбца / параметра на который будет ориентирован поиск
+        :param second_value: Значение 3-го параметра для поиска
 
         :return: all_info: Возвращаемая информация согласно запрашиваемым параметрам
         """
@@ -184,9 +187,13 @@ class TableInDb(DataBase):
             self.cursor.execute(f'SELECT * FROM {self.table_name}')
         elif first_param and first_value:
             self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} = "{first_value}" ')
-        elif second_param and second_value:
+        elif first_param and first_value and second_param and second_value:
             self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} = "{first_value}" '
                                 f'AND {second_param} = "{second_value}"')
+        elif first_param and first_value and second_param and second_value and third_param and third_value:
+            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} = "{first_value}" '
+                                f'AND {second_param} = "{second_value}" '
+                                f'AND {third_param} = "{third_value}"')
 
         result = self.cursor.fetchall()
         columns = tuple(i_param[1] for i_param in self.cursor.execute(f'PRAGMA table_info ({self.table_name});'))
