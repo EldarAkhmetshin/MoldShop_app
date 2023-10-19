@@ -21,6 +21,6 @@ columns_warehouse_table = ('Дата', 'Ответcтвенный', 'Номер 
                            'Имя запчасти', 'Тип запчасти', 'Количество')
 columns_sizes_warehouse_table = {f'#{i}': 20 for i in range(1, len(columns_warehouse_table) + 1)}
 
-columns_searching_results = (' Состовляющая', 'Номер п/ф', 'Наименование элемента', 'Описание',
+columns_searching_results = ('Составляющая', 'Номер п/ф', 'Наименование элемента', 'Описание',
                            'Доп. информация', 'Наличие (новые)', 'Наличие (б/у)')
 columns_sizes_warehouse_table = {f'#{i}': 13 for i in range(1, len(columns_warehouse_table) + 1)}
