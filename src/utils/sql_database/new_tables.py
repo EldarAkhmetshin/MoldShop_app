@@ -4,15 +4,13 @@ from src.utils.sql_database import table_funcs
 def create_bom_for_new_mold(mold_number: str, rows_data: list, hot_runner: bool = None):
     """
     Создание новой таблицы в базе данных.
-    :param hot_runner: Булево значение True если таблица сохраняется для BOM горячекого канала
+    :param hot_runner: Булево значение True если таблица сохраняется для BOM горячего канала
     :param mold_number: Номер пресс-формы
     :param rows_data: Список строк для сохранения в базу данных
     """
     # Загрузка информации в базу данных
-    if hot_runner:
-        bom = table_funcs.TableInDb(table_name=f'BOM_HOT_RUNNER_{mold_number}', database_name='Database')
-    else:
-        bom = table_funcs.TableInDb(table_name=f'BOM_{mold_number}', database_name='Database')
+    define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{mold_number}' if hot_runner else f'BOM_{mold_number}'
+    bom = table_funcs.TableInDb(table_name=define_table_name()', database_name='Database')
     bom.crt_new_table_and_connect_db(table_params={'NUMBER': 'TEXT', 'PART_NAME': 'TEXT',
                                                    'PCS_IN_MOLDS': 'TEXT', 'DESCRIPTION': 'TEXT',
                                                    'ADDITIONAL_INFO': 'TEXT', 'SUPPLIER': 'TEXT',
