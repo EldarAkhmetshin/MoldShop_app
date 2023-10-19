@@ -35,19 +35,32 @@ from src.utils.gui.attached_files_review_funcs import Attachment
 class App(Frame):
     """
     Класс представляет набор функций для создания графического интерфейса основного окна приложения с помощью
-    библиотеки Tkinter. А именно отрисовка / вывод различных изображений, таблиц, кнопок, полей ввода для обработки
-    информации.
+    библиотеки Tkinter. А именно отрисовка / вывод различных изображений, таблиц, кнопок, полей ввода и т.д. 
+    Помимо рендера виджетов, класс включает в себя функции для обработки отображаемой информации. В частности это 
+    взимодействие с таблицами базы данных. 
     """
 
     def __init__(self):
         """
-        self.tree: Объект для вывода информации в табличном виде
+        self.tree: Контейнер для вывода информации в табличном виде
         self.frame_header: Контейнер (прямоугольная область экрана) для отображения шапки приложения
         self.frame_main_widgets: Контейнер для отображения кнопок и полей ввода ниже шапки приложения
         self.frame_body: Контейнер для отображения основной информации (например: таблица)
         self.tracked_variable: Переменная для отслеживания записываемых данных в поле ввода
         self.sort_status: Текстовое значение указывающее на необходимость проведения сортировки перечня п/ф
         по определённому критерию ("IN"; "OUT"; "IN SERVICE").
+        self.hot_runner_bom:
+        self.sorted_bom_tuple:
+        self.part_number_entry_field:
+        self.all_molds_table_dict:
+        self.mold_number:
+        self.mold_number_entry_field:
+        self.current_table:
+        self.event:
+        self.sort_status:
+        self.sorted_molds_data_tuple:
+        self.sorted_molds_data_dict:
+        self.molds_list_data:
         """
         super().__init__()
         self.hot_runner_bom = None
@@ -127,6 +140,9 @@ class App(Frame):
         self.init_gui()
 
     def init_gui(self):
+        """
+        Инициация окна приложения, а также основных контейнеров
+        """
         self.master.title('MoldShop Management')
         self.pack(fill=BOTH)
 
@@ -141,7 +157,7 @@ class App(Frame):
         """
         Функция загрузки спецификации пресс-формы (BOM) из Иксель файла формата xlsx в таблицу базы данных
         :param window: дополнительное окно приложения
-        :param hot_runner: Булево значение True если таблица загружается для BOM горячекого канала
+        :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
         """
         # Открытие диалогового окна для выбора файла пользователем с локальной директории компьютера,
         # c дальнейшим извлечением пути к выбранному файлу в виде строки
@@ -181,7 +197,7 @@ class App(Frame):
         """
         Функция загрузки вложения (какого либо файла) в директорию приложения для дальнейшего использования
         :param part_number: ID номер элемента BOM относящегося к определённой пресс-форме
-        :param hot_runner: Булево значение True если таблица загружается для BOM горячекого канала
+        :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
         """
         # Открытие диалогового окна для выбора файла пользователем с локальной директории компьютера,
         # c дальнейшим извлечением пути к выбранному файлу в виде строки
@@ -225,7 +241,7 @@ class App(Frame):
 
     def save_excel_table(self):
         """
-        Функция сохранения  открытой таблицы из окна приложения в Иксель файл формата xlsx
+        Функция сохранения открытой таблицы из окна приложения в Иксель файл формата xlsx
         """
         # Открытие диалогового окна для сохранения файла пользователем в локальной директории компьютера,
         # c дальнейшим извлечением пути к выбранному файлу в виде строки
@@ -266,12 +282,12 @@ class App(Frame):
                        looking_attachments_func: Callable = None):
         """
         Рендер виджетов панели иснтрументов
-        :param looking_attachments_func:
-        :param new_attachment_func:
-        :param back_func:
-        :param add_row_func:
-        :param edit_row_func:
-        :param delete_row_func:
+        :param looking_attachments_func: Функция просмотра вложенных файлов
+        :param new_attachment_func: Функция прикрепления файла
+        :param back_func: Вызываемая функция при нажатии кнопки "Назад" 
+        :param add_row_func: Функция добавления новой строки в открытой таблице
+        :param edit_row_func: Функция редактирования выбранной строки в открытой таблице
+        :param delete_row_func: Функция удаления выбранной строки в открытой таблице
         """
         # Объявление контейнеров
         self.frame_toolbar = ttk.Frame(self)
@@ -329,6 +345,9 @@ class App(Frame):
                                                                                                    pady=4)
 
     def render_widgets_main_menu(self):
+        """
+        Функция рендера всех виджетов главного меню приложения
+        """
         ttk.Label(self.frame_header, image=self.image_logo_pil).pack(side=LEFT, pady=2)
         (Label(self.frame_header, text="Mold Shop Management", width=100,
                font=("Times", "20", "bold"), background="deepskyblue", foreground="gainsboro").
@@ -372,6 +391,9 @@ class App(Frame):
         ttk.Label(self.frame_body, image=self.image_body_pil).pack(side=RIGHT, pady=27)
 
     def clean_frames(self):
+        """
+        Функция очистки окна приложения перед выводом новых виджетов
+        """
         self.tree.unbind("<Double-ButtonPress-1>")
         self.tree.unbind("<Return>")
         self.tree.pack_forget()
@@ -385,7 +407,7 @@ class App(Frame):
 
     def open_main_menu(self):
         """
-        Рендер главного меню приложения
+        Вывод главного меню приложения
         """
         # Очистка контейнеров от старых виджетов
         self.clean_frames()
@@ -538,6 +560,7 @@ class App(Frame):
     def render_widgets_warehouse_mode(self, consumption: bool = None):
         """
         Функция рендера всех виджетов окна приложения в режиме изменения статуса пресс-формы и просмотра журнала перемещений
+        :param consumption: Булево значение, которое принимает значение True когда выбран расход (взятие запчастей со склада)
         """
         define_title: Callable = lambda: 'История расходов склада пресс-форм' if consumption \
             else 'История приходов склада пресс-форм'
@@ -865,6 +888,7 @@ class App(Frame):
         """
         Функция сортировки перечня BOM в зависимости от имеющегося количества запчастей на складе.
         Вызывается при открытие окна с BOM. Функция необходима для минимизации количества вызовов базы данных.
+        :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
         """
         # Перезапись переменных для обновления данных, которые будут получены из БД
         self.sorted_bom_tuple = {status: [] for status in part_statuses_list}
@@ -905,7 +929,9 @@ class App(Frame):
     def get_value_by_selected_row(self, table_name: str, column_name: str) -> str:
         """
         Получение определенного значения (например: номер пресс-формы или номер элемента в BOM) из 
-        выделенной строки таблицы пользователем (table_row_number) в окне приложения 
+        выделенной строки таблицы пользователем (table_row_number) в окне приложения
+        :param table_name: Имя таблицы из базы данных
+        :param: column_name: Имя столбца / параметра по которому будет искаться строка
         """
         # Получения номера выделенной строки
         table_row_number = self.get_row_number_in_table()
@@ -926,8 +952,8 @@ class App(Frame):
     def open_bom(self, mold_number: str = None, hot_runner: bool = None, sort_status: str | bool = None):
         """
         Функция для вывода спецификации (BOM) пресс-формы в табличном виде в окне приложения
-        :param sort_status:
-        :param hot_runner:
+        :param sort_status: Булево значение, которое характеризует был ли выбран параметр сортировки для отображения таблицы
+        :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
         :param mold_number: Номер пресс-формы полученный из строки ввода
         """
         self.mold_number_entry_field.delete(0, END)
@@ -987,7 +1013,8 @@ class App(Frame):
 
     def open_warehouse_history_window(self, consumption: bool = None):
         """
-        Функция вывода окна с виджетами для смены статуса пресс-формы и таблицей с историей этих изменений
+        Функция вывода окна с виджетами для смены статусов пресс-форм и таблицей с историей их изменений
+        :param consumption: Булево значение, которое принимает значение True когда происходит расход
         """
         define_table_name: Callable = lambda: 'OUT_warehouse_history' if consumption else 'IN_warehouse_history'
         # Очистка области в окне приложения перед выводом новой таблицы
@@ -1008,6 +1035,7 @@ class App(Frame):
     def open_qr_window(self, next_status: str):
         """
         Рендер окна для получения сообщения от сканера QR кода
+        :param next_status: Новое значение параметра STATUS из таблицы перечня всех пресс-форм, которое заменит старое 
         """
         if user_data.get('mold_status_changing'):
             qr_window = QRWindow(next_status)
@@ -1020,11 +1048,11 @@ class App(Frame):
                 self.tree.pack_forget()
                 self.open_mold_scanning_window()
 
-    def render_typical_additional_window(self, called_class: Callable, window_name: str, access: bool = None,
+    def render_typical_additional_window(self, called_class: Callable, window_name: str, access: str = None,
                                          called_function: Callable = None):
         """
         Функция создания дополнительного окна по шаблону
-        :param access:
+        :param access: Переменная характеризующая наличие доступа у пользователя для выбранного действия
         :param called_function: Вызываемая функция в случае изменения каких либо данных после взаимодействия
         пользователя в открытом окне
         :param window_name: Название открываемого окна
@@ -1041,10 +1069,13 @@ class App(Frame):
                 self.tree.pack_forget()
                 if called_function:
                     called_function()
+        else:
+            messagebox.showerror('Ошибка доступа',
+                     'У Вас нет доступа. Для его предоставления обратитесь к администратору')
 
     def render_upload_bom_window(self):
         """
-        Рендер окна для загрузки нового BOM
+        Рендер окна для выбора типа загружаемого BOM (пресс-форма или горячий канал)
         """
         window = tkinter.Toplevel()
         window.title('New BOM uploading')
@@ -1052,14 +1083,14 @@ class App(Frame):
         window.resizable(False, False)
         window.focus_set()
         window.grab_set()
-        (Label(window, text='Выберите тип загружаемого BOM', font=('Times', '11', 'normal'))
+        (ttk.Label(window, text='Выберите тип загружаемого BOM', font=('Times', '11', 'normal'))
          .pack(side=TOP, pady=5))
-        Button(
+        ttk.Button(
             window, text='Пресс-форма', background='white',
             width=20, font=('Times', '10'),
             command=lambda: self.open_file_and_download(window)
         ).pack(side=LEFT, padx=5, pady=5)
-        Button(
+        ttk.Button(
             window, text='Горячий канал', background='white',
             width=20, font=('Times', '10'),
             command=lambda: self.open_file_and_download(window, hot_runner=True)
@@ -1093,7 +1124,7 @@ class App(Frame):
 
     def render_bom_edition_window(self):
         """
-        Рендер окна для редактирования данных о пресс-форме
+        Рендер окна для редактирования данных запчастях открытого в приложении BOM
         """
         bom_edition_access = user_data.get('molds_and_boms_data_changing')
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
@@ -1120,7 +1151,7 @@ class App(Frame):
 
     def render_attachments_window(self):
         """
-        Рендер окна для просмотра прикреплённых вложенных файлов
+        Рендер окна для просмотра прикреплённых вложенных файлов к номеру пресс-формы, либо номеру запчасти
         """
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
         table_name = define_table_name()
@@ -1132,7 +1163,8 @@ class App(Frame):
 
     def open_parts_quantity_changing_window(self, consumption: bool = None):
         """
-        Рендер окна для редактирования данных о пресс-форме
+        Вывод окна для взаимодействия со складом. Взятие каких либо запчастей, либо её приём на склад. 
+        :param consumption: Булево значение, которое принимает значение True когда происходит расход
         """
         stock_changing_access = user_data.get('stock_changing')
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
@@ -1160,15 +1192,16 @@ class App(Frame):
     def delete_selected_table_row(self, table_name: str, column_name: str):
         """
         Фнкция удаления строки из таблицы базы данных на основании выделенной строки
+        :param table_name: Имя таблицы из базы данных
+        :param: column_name: Имя столбца / параметра по которому будет искаться строка для удаления
         """
-        if user_data.get('molds_and_boms_data_changing'):
-            db = table_funcs.TableInDb(table_name, 'Database')
-    
+        if user_data.get('molds_and_boms_data_changing'):                
             message = "Вы уверены, что хотите удалить данную строку"
             if messagebox.askyesno(title='Подтверждение', message=message, parent=self):
     
                 try:
                     number = self.get_value_by_selected_row(table_name, column_name)
+                    db = table_funcs.TableInDb(table_name, 'Database')
                     db.delete_data(column_name=column_name, value=number)
                 except sqlite3.OperationalError:
                     messagebox.showerror('Уведомление об ошибке', 'Ошибка удаления. Обратитесь к администратору.')
@@ -1224,6 +1257,9 @@ class App(Frame):
                                      func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
 
     def confirm_delete(self):
+        """
+        Фнкция вывода диалогового окна для запроса подтверждения закрытия окна
+        """
         message = "Вы уверены, что хотите удалить данную строку"
         if messagebox.askyesno(title='Подтверждение', message=message, parent=self):
             return True
