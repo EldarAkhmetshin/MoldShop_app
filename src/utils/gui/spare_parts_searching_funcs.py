@@ -31,9 +31,10 @@ class Searcher(tkinter.Toplevel):
         self.mold = IntVar()
         self.hot_runner = IntVar()
         self.stock = IntVar()
+        self.results = []
         self.input_error_label = None
         super().__init__()
-        self.protocol("WM_DELETE_WINDOW", self.confirm_delete)
+        self.focus_set()
         self.init_gui()
 
     def init_gui(self):
@@ -63,23 +64,21 @@ class Searcher(tkinter.Toplevel):
         self.description_entry_field = ttk.Entry(self.frame_body, font=('Times', '11', 'normal'))
         self.description_entry_field.grid(column=2, row=3, padx=5, pady=5)
 
-        ttk.Label(self.frame_body, text='Изготовитель', style='Regular.TLabel').grid(column=1, row=4, padx=5, pady=5)
-        self.maker_entry_field = ttk.Entry(self.frame_body, font=('Times', '11', 'normal'))
-        self.maker_entry_field.grid(column=2, row=4, padx=5, pady=5)
+        ttk.Label(self.frame_body, text='Доп. информация', style='Regular.TLabel').grid(column=1, row=4, padx=5, pady=5)
+        self.additional_info_entry_field = ttk.Entry(self.frame_body, font=('Times', '11', 'normal'))
+        self.additional_info_entry_field.grid(column=2, row=4, padx=5, pady=5)
 
-        ttk.Label(self.frame_body, text='Пресс-форма', style='Regular.TLabel').grid(column=1, row=5, padx=5, pady=5)
-        ttk.Checkbutton(self.frame_body, variable=self.mold).grid(column=2, row=5, padx=5, pady=5)
+        ttk.Label(self.frame_body, text='Составляющая', style='Regular.TLabel').grid(column=1, row=5, padx=5, pady=5)
+        product_type_combobox = ttk.Combobox(self.frame_body, values=['Пресс-форма', 'Горячий канал', 'Всё'], state='readonly')
+        self.product_type_combobox.grid(column=2, row=5, padx=5, pady=5)
 
-        ttk.Label(self.frame_body, text='Горячий канал', style='Regular.TLabel').grid(column=1, row=6, padx=5, pady=5)
-        ttk.Checkbutton(self.frame_body, variable=self.hot_runner).grid(column=2, row=6, padx=5, pady=5)
-
-        ttk.Label(self.frame_body, text='Наличие на складе', style='Regular.TLabel').grid(column=1, row=7, padx=5, pady=5)
+        ttk.Label(self.frame_body, text='Наличие на складе', style='Regular.TLabel').grid(column=1, row=6, padx=5, pady=5)
         ttk.Checkbutton(self.frame_body, variable=self.stock).grid(column=2, row=7, padx=5, pady=5)
 
         ttk.Button(
             self.frame_bottom, text='Применить', style='Regular.TButton',
             command=self.start_search
-        ).pack(padx=10, pady=10, side=TOP)
+        ).pack(side=TOP, padx=10, pady=10)
         # Запуск работы окна приложения
         self.mainloop()
 
@@ -95,14 +94,18 @@ class Searcher(tkinter.Toplevel):
         # Старт сортировки если один из параметров заполнен
         if self.name_entry_field or self.description_entry_field or self.maker_entry_field:
             for table in tables_names:
-                bom = TableInDb(table, 'Database')
+                if product_type_combobox.get() == 'Пресс-форма' and 'HOT_RUNNER' not in table:
+                    bom = TableInDb(table, 'Database')
+                    table_list = bom.get_table(type_returned_data='dict', first_param='PART_NAME', first_value=self.name_entry_field.get(), 
+                                              second_param='DESCRIPTION', second_value=self.description_entry_field.get(),
+                                              third_param='ADDITIONAL_INFO', third_value=self.additional_info_entry_field.get())
+                    for row in table_list:
+                        if (self.stock == 1 and int(row.get('PARTS_QUANTITY')) > 0) or self.stock == 0:
+                            self.results.append((table, table, row.get('PART_NAME'), row.get('DESCRIPTION'),
+                                                 row.get('ADDITIONAL_INFO'), row.get('PARTS_QUANTITY'), row.get('USED_PARTS_QUANTITY')))
+                
 
         else:
             self.input_error_label = Label(self.frame_bottom,
                                            text='По вашему запросу ничего не найдено', foreground='Red')
             self.input_error_label.grid(side=TOP, padx=5, pady=5)
-
-    def confirm_delete(self):
-        message = "Вы уверены, что хотите закрыть это окно?"
-        if messagebox.askyesno(message=message, parent=self):
-            self.destroy()
