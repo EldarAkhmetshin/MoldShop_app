@@ -82,6 +82,28 @@ class Searcher(tkinter.Toplevel):
         # Запуск работы окна приложения
         self.mainloop()
 
+    def render_results(self):
+        if len(self.results) == 0:
+            self.input_error_label = Label(self.frame_bottom, text='По вашему запросу ничего не найдено', foreground='Red')
+            self.input_error_label.pack(side=TOP, padx=5, pady=5)
+        else:
+            # рендер дополнительного окна для вывода результатов
+            window = tkinter.Toplevel()
+            window.title('Searching Results')
+            window.resizable(False, False)
+            window.focus_set()
+            # определяем таблицу
+            self.tree = ttk.Treeview(window, columns=columns_searching_results, show="headings")
+            self.tree.pack(fill=BOTH, expand=1)
+            # определяем заголовки
+            for col_name in columns:
+                self.tree.heading(col_name, text=col_name)
+            # настраиваем столбцы
+            for col_num, col_size in columns_sizes_warehouse_table.items():
+                self.tree.column(column=col_num, stretch=YES, width=col_size)
+            for row in self.results:
+                self.tree.insert("", END, values=row)
+    
     def start_search(self):
         """
         Функция проведения поиска запчастей по введённым ранее параметрам
@@ -103,9 +125,8 @@ class Searcher(tkinter.Toplevel):
                         if (self.stock == 1 and int(row.get('PARTS_QUANTITY')) > 0) or self.stock == 0:
                             self.results.append((table, table, row.get('PART_NAME'), row.get('DESCRIPTION'),
                                                  row.get('ADDITIONAL_INFO'), row.get('PARTS_QUANTITY'), row.get('USED_PARTS_QUANTITY')))
+            self.render_results()
                 
-
         else:
-            self.input_error_label = Label(self.frame_bottom,
-                                           text='По вашему запросу ничего не найдено', foreground='Red')
-            self.input_error_label.grid(side=TOP, padx=5, pady=5)
+            self.input_error_label = Label(self.frame_bottom, text='По вашему запросу ничего не найдено', foreground='Red')
+            self.input_error_label.pack(side=TOP, padx=5, pady=5)
