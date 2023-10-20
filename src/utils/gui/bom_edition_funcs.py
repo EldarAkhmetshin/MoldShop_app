@@ -14,8 +14,8 @@ from src.utils.sql_database import table_funcs
 
 class EditedBOM(tkinter.Toplevel):
     """
-    Класс представляет набор функций для создания графического интерфейса окна редактирования
-    информации о выбранной запчасти из BOM пресс-формы.
+    Класс представляет набор функций для создания графического интерфейса окон редактирования
+    информации о выбранной запчасти из BOM пресс-формы, а также валидации и записи новой информации в таблицы базы данных.
     """
 
     def __init__(self, mold_number: str, table_name: str, part_data: dict = None):
@@ -141,6 +141,8 @@ class EditedBOM(tkinter.Toplevel):
                 width=20,
                 command=self.validate_and_save_new_part_data
             ).grid(padx=10, pady=10, column=2, row=14)
+        get_info_log(user=user_data.get('user_name'), message='Widgets were rendered',
+                     func_name=self.render_widgets.__name__, func_path=abspath(__file__))
         # Запуск работы окна приложения
         self.mainloop()
 
@@ -176,6 +178,8 @@ class EditedBOM(tkinter.Toplevel):
                 messagebox.showinfo('Уведомление',
                                     'Информация о новом элементе успешно добавлена в BOM')
                 self.changed_data = True
+                get_info_log(user=user_data.get('user_name'), message='New data was successfully added',
+                             func_name=self.validate_and_save_new_part_data.__name__, func_path=abspath(__file__))
         # Если данные введены некорректно пользователь получит уведомление об ошибке
         else:
             self.input_error_label = Label(self.frame,
@@ -239,8 +243,13 @@ class EditedBOM(tkinter.Toplevel):
                 self.destroy()
                 messagebox.showinfo('Уведомление', 'Информация о пресс-форме успешно изменена')
                 self.changed_data = True
+                get_info_log(user=user_data.get('user_name'), message='Data was successfully changed',
+                             func_name=self.validate_and_save_edited_part_data.__name__, func_path=abspath(__file__))
 
     def confirm_delete(self):
+        """
+        Фнкция вывода диалогового окна для запроса подтверждения закрытия окна
+        """
         message = "Вы уверены, что хотите закрыть это окно?"
         if messagebox.askyesno(message=message, parent=self):
             self.destroy()
