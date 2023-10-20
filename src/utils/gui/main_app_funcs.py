@@ -43,29 +43,25 @@ class App(Frame):
     def __init__(self):
         """
         self.tree: Контейнер для вывода информации в табличном виде
-        self.frame_header: Контейнер (прямоугольная область экрана) для отображения шапки приложения
+        self.frame_header: Контейнер для отображения шапки приложения
         self.frame_main_widgets: Контейнер для отображения кнопок и полей ввода ниже шапки приложения
-        self.frame_body: Контейнер для отображения основной информации (например: таблица)
+        self.frame_body: Контейнер для отображения основной информации
         self.tracked_variable: Переменная для отслеживания записываемых данных в поле ввода
-        self.sort_status: Текстовое значение указывающее на необходимость проведения сортировки перечня п/ф
-        по определённому критерию ("IN"; "OUT"; "IN SERVICE").
-        self.hot_runner_bom:
-        self.sorted_bom_tuple:
-        self.part_number_entry_field:
+        self.hot_runner_bom: Булево значение, которое становится True когда выбирается пользователем таблица горячего канала
+        self.sorted_bom_tuple: Словарь, содержащий данные (BOM выбранной пресс-формы) в кортежах для вывода отсортированной информации по разным признакам
         self.all_molds_table_dict:
-        self.mold_number:
-        self.mold_number_entry_field:
-        self.current_table:
-        self.event:
-        self.sort_status:
-        self.sorted_molds_data_tuple:
-        self.sorted_molds_data_dict:
+        self.mold_number: Текстовое значение параметра "MOLD_NUMBER" из таблицы базы данных. Принимает значение выбранной пресс-формы пользователем в данный момент
+        self.mold_number_entry_field: Поле ввода для открытия BOM по номеру пресс-формы
+        self.current_table: Массив состоящий из кортежей с данными для вывода таблицы в окне приложения
+        self.event: Обрабатываемое событие
+        self.sort_status: Значение характеризующее выбранный параметр сортировки для вывода табличных данных
+        self.sorted_molds_data_tuple: Словарь, содержащий данные (общий перечень пресс-форм) в кортежах для вывода отсортированной информации по разным признакам
+        self.sorted_molds_data_dict: Словарь, содержащий данные (общий перечень пресс-форм) в словарях для вывода отсортированной информации по разным признакам
         self.molds_list_data:
         """
         super().__init__()
         self.hot_runner_bom = None
         self.sorted_bom_tuple = None
-        self.part_number_entry_field = None
         self.all_molds_table_dict = None
         self.mold_number = None
         self.current_table = None
