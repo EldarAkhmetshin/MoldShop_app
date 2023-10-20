@@ -1,6 +1,7 @@
 import tkinter.ttk
 from tkinter import Tk, Menu
 from ttkthemes import ThemedStyle
+from loguru import logger
 
 from src.utils.gui.styles import define_styles
 from src.utils.sql_database.new_tables import create_tables_in_db
@@ -48,7 +49,7 @@ def log_in_app():
     window.bind('<Return>', app.on_pressed_key)
     app.render_widgets()
 
-
+@logger.catch
 def run():
     logger_add()
     create_tables_in_db()
