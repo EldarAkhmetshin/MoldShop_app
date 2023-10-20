@@ -9,7 +9,6 @@ def get_info_log(user: str, message: str, func_name: str, func_path: str):
     :param func_path:
     :param message: All information from Telegram about user
     :param func_name: Name of function which will call this func for writing log
-    :return:
     """
     try:
         logger.info('User: {: ^10} | Message: {: ^50} | Function: {: ^25} | Func_path: {: ^50}'.
@@ -25,7 +24,6 @@ def get_warning_log(user: str, message: str, func_name: str, func_path: str):
     :param func_path:
     :param message: All information from Telegram about user
     :param func_name: Name of function which will call this func for writing log
-    :return:
     """
     try:
         logger.warning('User: {: ^10} | Message: {: ^50} | Function: {: ^25} | Func_path: {: ^50}'.
@@ -33,11 +31,12 @@ def get_warning_log(user: str, message: str, func_name: str, func_path: str):
     except TypeError:
         logger.exception(f'User: {message} | Warning log is not saved')
 
+# @logger.catch(exception, *, level='ERROR', reraise=False, onerror=None, 
+#               exclude=None, default=None, message="...")
 
 def logger_add():
     """
     Function create log file
-    :return:
     """
     path_temp_file = os.path.abspath(os.path.join('..', 'savings', 'logs', 'logs.log'))
     logger.add(path_temp_file, format="{time} {level} {message}", level="INFO", rotation="10000 KB", compression="zip")
