@@ -23,4 +23,4 @@ columns_sizes_warehouse_table = {f'#{i}': 20 for i in range(1, len(columns_wareh
 
 columns_searching_results = ('Составляющая', 'Номер п/ф', 'Наименование элемента', 'Описание',
                            'Доп. информация', 'Наличие (новые)', 'Наличие (б/у)')
-columns_sizes_warehouse_table = {f'#{i}': 13 for i in range(1, len(columns_warehouse_table) + 1)}
+columns_sizes_warehouse_table = {f'#{i}': 20 for i in range(1, len(columns_warehouse_table) + 1)}

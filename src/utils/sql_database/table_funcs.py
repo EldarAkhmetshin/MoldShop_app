@@ -17,8 +17,8 @@ class DataBase():
         """
         Функция инициирует новый экземпляр из базы данных
         :param name:  Имя базы данных
-        :param cursor: Область в памяти базы данных, предназначенная для хранения последнего оператора SQL.
-        :param connection: Переменная для получения доступа к базе данных и внесению изменений в ней
+        cursor: Область в памяти базы данных, предназначенная для хранения последнего оператора SQL.
+        connection: Переменная для получения доступа к базе данных и внесению изменений в ней
         """
         self._name = name
         self._cursor = None
@@ -166,34 +166,40 @@ class TableInDb(DataBase):
 
     def get_table(self, type_returned_data: str, first_param: str = None, first_value: str | int = None,
                   last_string: bool = None, second_param: str = None, second_value: str | int = None,
-                  third_param: str = None, rhird_value: str = None) \
+                  third_param: str = None, third_value: str = None) \
             -> List[dict] | List[tuple] | Dict:
         """
         Функция получения данных из таблицы базы данных в соответствии с запрошенными параметрами
-
         :param type_returned_data: Формат возращаемой информации в массиве данных (словарь или кортеж).
         :param first_param: Имя 1-го столбца / параметра на который будет ориентирован поиск
         :param first_value: Значение 1-го параметра для поиска
         :param last_string: Булево значение для получения только 1-й последней строки удовлетворяющей запрашиваемым параметрам 
         :param second_param: Имя 2-го столбца / параметра на который будет ориентирован поиск
         :param second_value: Значение 2-го параметра для поиска
-        :param second_param: Имя 3-го столбца / параметра на который будет ориентирован поиск
-        :param second_value: Значение 3-го параметра для поиска
+        :param third_param: Имя 3-го столбца / параметра на который будет ориентирован поиск
+        :param third_value: Значение 3-го параметра для поиска
 
         :return: all_info: Возвращаемая информация согласно запрашиваемым параметрам
         """
         self.connect_db()
-        if not first_value:
+        if not first_value and not second_value and not third_value:
             self.cursor.execute(f'SELECT * FROM {self.table_name}')
-        elif first_param and first_value:
-            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} = "{first_value}" ')
-        elif first_param and first_value and second_param and second_value:
-            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} = "{first_value}" '
-                                f'AND {second_param} = "{second_value}"')
         elif first_param and first_value and second_param and second_value and third_param and third_value:
-            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} = "{first_value}" '
-                                f'AND {second_param} = "{second_value}" '
-                                f'AND {third_param} = "{third_value}"')
+            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} LIKE "%{first_value}%" '
+                                f'AND {second_param} LIKE "%{second_value}%" '
+                                f'AND {third_param} LIKE "%{third_value}%" ')
+        elif first_param and first_value and second_param and second_value:
+            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} LIKE "%{first_value}%" '
+                                f'AND {second_param} LIKE "%{second_value}%"')
+        elif third_param and third_value and second_param and second_value:
+            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {second_param} LIKE "%{second_value}%" '
+                                f'AND {third_param} LIKE "%{third_value}%"')
+        elif first_param and first_value:
+            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {first_param} LIKE "%{first_value}%" ')
+        elif second_param and second_value:
+            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {second_param} LIKE "%{second_value}%" ')
+        elif third_param and third_value:
+            self.cursor.execute(f'SELECT * FROM {self.table_name} WHERE {third_param} LIKE "%{third_value}%" ')
 
         result = self.cursor.fetchall()
         columns = tuple(i_param[1] for i_param in self.cursor.execute(f'PRAGMA table_info ({self.table_name});'))

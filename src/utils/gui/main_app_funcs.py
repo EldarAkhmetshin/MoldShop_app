@@ -116,6 +116,9 @@ class App(Frame):
         self.attachments_icon = Image.open(os.path.abspath(os.path.join('pics', 'attachments.png'))) \
             .resize((20, 20))
         self.attachments_icon_pil = ImageTk.PhotoImage(self.attachments_icon)
+        self.loupe_icon = Image.open(os.path.abspath(os.path.join('pics', 'loupe.png'))) \
+            .resize((20, 20))
+        self.loupe_icon_pil = ImageTk.PhotoImage(self.loupe_icon)
         # Объявление переменных будущих контейнеров для хранения виджетов
         self.tree = ttk.Treeview()
         self.frame_header = None
@@ -197,43 +200,59 @@ class App(Frame):
         """
         # Открытие диалогового окна для выбора файла пользователем с локальной директории компьютера,
         # c дальнейшим извлечением пути к выбранному файлу в виде строки
-        try:
-            file_path = filedialog.askopenfile(
-                filetypes=(('XLSX files', '*.xlsx'),)
-            ).name
-        except AttributeError:
-            pass
-        else:
-            # Получение имени файла
-            file_path_list = file_path.split('/')
-            file_name = file_path_list[-1]
-            # Копирование и вставка файла в директорию приложения
-            define_path: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number, file_name) \
-                if not part_number \
-                else (
-                os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number, file_name)
-                if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', part_number,
-                                                file_name))
+        if not self.mold_number:
+            self.mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
+        if self.mold_number:
             try:
-                shutil.copy2(file_path, os.path.abspath(define_path()))
-            except IOError:
+                file_path = filedialog.askopenfile().name
+            except AttributeError:
+                pass
+            else:
+                # Получение имени файла
+                file_path_list = file_path.split('/')
+                file_name = file_path_list[-1]
+                # Создание нужной директории где будет размещён файл если она ещё не была создана
                 define_folder: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number) \
                     if not part_number \
                     else (
                     os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number)
                     if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts',
                                                     part_number))
-                os.mkdir(define_folder())
+                try:
+                    os.mkdir(os.path.join('savings', 'attachments', self.mold_number))
+                except FileExistsError:
+                    pass
+                try:
+                    os.mkdir(os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts'))
+                    os.mkdir(os.path.join('savings', 'attachments', self.mold_number, 'mold_parts'))
+                except FileExistsError:
+                    pass
+                if part_number:
+                    try:
+                        os.mkdir(define_folder())
+                    except FileExistsError:
+                        pass
+
+                # Копирование и вставка файла в директорию приложения
+                define_path: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number, file_name) \
+                    if not part_number \
+                    else (
+                    os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number, file_name)
+                    if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts',
+                                                    part_number, file_name))
                 try:
                     shutil.copy2(file_path, os.path.abspath(define_path()))
                 except IOError:
-                    error_message = error_messages.get('not_downloaded_bom').get('message_body')
-                    messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
-                                         message=error_message.format(mold_number=self.mold_number))
-            else:
-                self.render_typical_additional_window(called_class=lambda: Attachment(
-                    mold_number=self.mold_number, part_number=part_number, hot_runner=hot_runner),
-                                                      window_name='Attachments')
+                    messagebox.showerror(title='Ошибка',
+                                         message='Файл не удалось прикрепить. Обратитесь к администратору.')
+                else:
+                    messagebox.showinfo(title='Уведомление', message='Файл успешно прикреплён')
+                    self.render_typical_additional_window(called_class=lambda: Attachment(
+                        mold_number=self.mold_number, part_number=part_number, hot_runner=hot_runner),
+                                                          window_name='Attachments')
+        else:
+            messagebox.showerror(title='Ошибка',
+                                 message='Чтобы прикрепить файл выберите элемент из таблицы')
 
     def save_excel_table(self):
         """
@@ -294,6 +313,8 @@ class App(Frame):
         frame_toolbar_table.pack(side=LEFT, padx=0)
         frame_toolbar_attachments = Frame(self.frame_toolbar, relief=RIDGE)
         frame_toolbar_attachments.pack(side=LEFT, padx=0)
+        frame_toolbar_searching = Frame(self.frame_toolbar, relief=RIDGE)
+        frame_toolbar_searching.pack(side=LEFT, padx=0)
         frame_toolbar_picture = Frame(self.frame_toolbar, relief=RIDGE)
         frame_toolbar_picture.pack(side=LEFT, padx=0)
         frame_toolbar_info = Frame(self.frame_toolbar, relief=RIDGE)
@@ -326,13 +347,21 @@ class App(Frame):
 
         ttk.Label(frame_toolbar_attachments, text=f'Вложения', style='Toolbar.TLabel').pack(side=TOP, padx=2, pady=2)
         new_attachment_button = ttk.Button(frame_toolbar_attachments, image=self.new_attachment_icon_pil,
-                                           command=self.open_main_menu)
+                                           command=new_attachment_func)
         new_attachment_button.pack(side=LEFT, padx=3, pady=4)
         Hovertip(anchor_widget=new_attachment_button, text='Прикрепить изображение / документ', hover_delay=400)
         open_attacments_button = ttk.Button(frame_toolbar_attachments, image=self.attachments_icon_pil,
-                                            command=self.open_main_menu)
+                                            command=looking_attachments_func)
         open_attacments_button.pack(side=LEFT, padx=3, pady=4)
         Hovertip(anchor_widget=open_attacments_button, text='Просмотреть вложения', hover_delay=400)
+
+        ttk.Label(frame_toolbar_searching, text=f'Поиск', style='Toolbar.TLabel').pack(side=TOP, padx=2, pady=2)
+        searching_button = ttk.Button(frame_toolbar_searching, image=self.loupe_icon_pil,
+                                      command=lambda: self.render_typical_additional_window(
+                                          called_class=Searcher,
+                                          window_name='Spare Parts Searching'))
+        searching_button.pack(side=LEFT, padx=3, pady=4)
+        Hovertip(anchor_widget=searching_button, text='Выполнить поиск какой либо запчасти', hover_delay=400)
 
         ttk.Label(frame_toolbar_info, text=f'Справка', style='Toolbar.TLabel').pack(side=TOP, padx=2, pady=2)
         ttk.Button(frame_toolbar_info, image=self.info_icon_pil,
@@ -427,8 +456,11 @@ class App(Frame):
             called_class=EditedMold, window_name='New Mold Information', access=molds_data_editing_access, called_function=self.get_molds_data),
                             edit_row_func=self.render_mold_edition_window,
                             delete_row_func=lambda: self.delete_selected_table_row('All_molds_data', 'MOLD_NUMBER'),
+                            new_attachment_func=self.upload_attachment,
                             looking_attachments_func=lambda: self.render_typical_additional_window(
-                                called_class=lambda: Attachment(mold_number=self.mold_number), window_name='Attachments'))
+                                called_class=lambda: Attachment(
+                                    mold_number=self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')),
+                                window_name='Attachments'))
         # Объявление основного и вложенных контейнеров для виджетов
         self.frame_main_widgets = Frame(self, relief=RIDGE)
         self.frame_main_widgets.pack(fill=X, expand=True)
@@ -609,6 +641,7 @@ class App(Frame):
                                     self.mold_number)),
                             edit_row_func=self.render_bom_edition_window,
                             delete_row_func=lambda: self.delete_selected_table_row(f'BOM_{self.mold_number}', 'NUMBER'),
+                            new_attachment_func=lambda: self.upload_attachment(part_number='', hot_runner=self.hot_runner_bom),
                             looking_attachments_func=self.render_attachments_window)
         # Объявление основного и вложенных контейнеров для виджетов
         self.frame_main_widgets = Frame(self, relief=RIDGE)
@@ -926,8 +959,8 @@ class App(Frame):
         """
         Получение определенного значения (например: номер пресс-формы или номер элемента в BOM) из 
         выделенной строки таблицы пользователем (table_row_number) в окне приложения
+        :param column_name: Имя столбца / параметра по которому будет искаться строка
         :param table_name: Имя таблицы из базы данных
-        :param: column_name: Имя столбца / параметра по которому будет искаться строка
         """
         # Получения номера выделенной строки
         table_row_number = self.get_row_number_in_table()
