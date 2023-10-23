@@ -58,7 +58,7 @@ class Attachment(tkinter.Toplevel):
         ttk.Label(self.frame_body, text=text, style='Regular.TLabel').grid(column=1, row=row, padx=5, pady=5)
         ttk.Button(
             self.frame_body, text='Загрузить', style='Regular.TButton',
-            command=lambda: self.download_file(filename=text)
+            command=lambda: self.download_file(filename=text, root=root)
         ).grid(padx=10, pady=10, column=2, row=row)
         ttk.Button(
             self.frame_body, text='Предпросмотр', style='Regular.TButton',
@@ -66,7 +66,7 @@ class Attachment(tkinter.Toplevel):
         ).grid(padx=10, pady=10, column=3, row=row)
         ttk.Button(
             self.frame_body, text='Удалить вложение', style='Regular.TButton',
-            width=20, command=lambda: self.delete_file(filename=text)
+            width=20, command=lambda: self.delete_file(filename=text, root=root)
         ).grid(padx=10, pady=10, column=4, row=row)
 
     def render_widgets(self):
@@ -86,8 +86,28 @@ class Attachment(tkinter.Toplevel):
         # Запуск работы окна приложения
         self.mainloop()
 
-    def download_file(self, filename: str):
-        pass
+    def download_file(self, filename: str, root: str):
+        """
+        Функция загрузки вложения (какого либо файла) в директорию выбранную пользователем
+        :param part_number: ID номер элемента BOM относящегося к определённой пресс-форме
+        :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
+        """
+        # Открытие диалогового окна для выбора пользователем локальной директории для сохранения файла,
+        # c дальнейшим извлечением пути в виде строки
+        try:
+            local_file_path = filedialog.asksaveasfilename(
+            # filetypes=(('XLSX files', '*.xlsx'),)
+        )
+        except AttributeError:
+            pass
+        else:
+            try:
+                shutil.copy2(os.path.join(root, filename), local_file_path)
+            except IOError:
+                messagebox.showerror(title='Ошибка',
+                                     message='Файл не удалось загрузить. Обратитесь к администратору.')
+            else:
+                messagebox.showinfo(title='Уведомление', message='Файл успешно загружен')
 
     def open_additional_preview_window(self, filename: str, root: str):
         self.image = Image.open(os.path.join(root, filename)).resize((1024, 768))
@@ -114,5 +134,20 @@ class Attachment(tkinter.Toplevel):
         elif picture_type:
             self.open_additional_preview_window(filename, root)
 
-    def delete_file(self, filename: str):
-        pass
+    def delete_file(self, filename: str, root: str):
+        if user_data.get('user_name'):
+            if messagebox.askyesno(title='Подтверждение', message=f'Вы уверены, что хотите удалить файл {filename}?', parent=self):
+                
+                try:
+                    os.remove(os.path.join(root, filename))
+                except AttributeError:
+                    messagebox.showerror(title='Ошибка',
+                                     message='Файл не удалось загрузить. Обратитесь к администратору.')
+                else:
+                    messagebox.showinfo(title='Уведомление', message='Файл успешно удалён')
+                    self.destroy()
+                    attachments =  Attachment(self.mold_number, self.part_number, self.hot_runner)
+                    attachments.render_widgets()
+        else:
+            messagebox.showerror('Ошибка',
+                     'У Вас нет доступа. Для его предоставления обратитесь к администратору')
