@@ -636,7 +636,7 @@ class App(Frame):
         self.render_toolbar(back_func=self.get_molds_data,
                             add_row_func=lambda: self.render_typical_additional_window(
                                 called_class=lambda: EditedBOM(self.mold_number, define_table_name()),
-                                window_name='New Spare Part Information',
+                                window_name='New Spare Part Information', access=user_data.get('molds_and_boms_data_changing'),
                                 called_function=lambda: self.open_bom(
                                     self.mold_number)),
                             edit_row_func=self.render_bom_edition_window,
