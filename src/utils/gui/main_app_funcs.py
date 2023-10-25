@@ -1113,20 +1113,19 @@ class App(Frame):
         """
         window = tkinter.Toplevel()
         window.title('New BOM uploading')
-        window.geometry('300x220')
         window.resizable(False, False)
         window.focus_set()
         window.grab_set()
         (ttk.Label(window, text='Выберите тип загружаемого BOM', font=('Times', '11', 'normal'))
          .pack(side=TOP, pady=5))
         ttk.Button(
-            window, text='Пресс-форма', background='white',
-            width=20, font=('Times', '10'),
+            window, text='Пресс-форма', style='Regular.TButton',
+            width=20,
             command=lambda: self.open_file_and_download(window)
         ).pack(side=LEFT, padx=5, pady=5)
         ttk.Button(
-            window, text='Горячий канал', background='white',
-            width=20, font=('Times', '10'),
+            window, text='Горячий канал', style='Regular.TButton',
+            width=20,
             command=lambda: self.open_file_and_download(window, hot_runner=True)
         ).pack(side=LEFT, padx=5, pady=5)
         window.mainloop()
