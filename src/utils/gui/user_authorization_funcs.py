@@ -52,22 +52,27 @@ class LogInApp(Frame):
         """
         # Окно авторизации закрывается если пароль введён правильно
         user_name = self.login_entry_field.get()
-        if users.get(user_name).get('password') == self.password_entry_field.get():
-            # Сохранение информации о пользователе в глобальную переменную
-            user_data['user_name'] = user_name
-            user_data['access'] = True
-            user_data['stock_changing'] = users.get(user_name).get('stock_changing')
-            user_data['mold_status_changing'] = users.get(user_name).get('mold_status_changing')
-            user_data['molds_and_boms_data_changing'] = users.get(user_name).get('molds_and_boms_data_changing')
-            self.window.destroy()
-            get_info_log(user=user_name, message='Successful login', func_name=self.check_entry_user_data.__name__,
-                         func_path=abspath(__file__))
-            time.sleep(0.3)
-        # Если данные введены некорректно пользователь получит уведомление об ошибке
+        try:
+            users.get(user_name).get('password')
+        except AttributeError:
+            messagebox.showerror('Ошибка', 'Не верный логин!')
         else:
-            messagebox.showerror('Уведомление об ошибке', 'Не верный пароль!')
-            self.login_entry_field.delete(0, END)
-            self.password_entry_field.delete(0, END)
+            if users.get(user_name).get('password') == self.password_entry_field.get():
+                # Сохранение информации о пользователе в глобальную переменную
+                user_data['user_name'] = user_name
+                user_data['access'] = True
+                user_data['stock_changing'] = users.get(user_name).get('stock_changing')
+                user_data['mold_status_changing'] = users.get(user_name).get('mold_status_changing')
+                user_data['molds_and_boms_data_changing'] = users.get(user_name).get('molds_and_boms_data_changing')
+                self.window.destroy()
+                get_info_log(user=user_name, message='Successful login', func_name=self.check_entry_user_data.__name__,
+                             func_path=abspath(__file__))
+                time.sleep(0.3)
+            # Если данные введены некорректно пользователь получит уведомление об ошибке
+            else:
+                messagebox.showerror('Ошибка', 'Не верный пароль!')
+                self.login_entry_field.delete(0, END)
+                self.password_entry_field.delete(0, END)
 
     def on_pressed_key(self, event):
         """

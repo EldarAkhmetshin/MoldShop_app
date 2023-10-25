@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
 import os
+import re
+import shutil
 import sqlite3
 import tkinter
 from tkinter import *
-from tkinter import messagebox, ttk
+from tkinter import messagebox, ttk, filedialog
 from tkinter.ttk import Frame
 from typing import Callable
 from PIL import ImageTk, Image
@@ -73,9 +75,18 @@ class Attachment(tkinter.Toplevel):
         """
         Функция рендера всех виджетов окна ввода информации
         """
+        if self.part_number:
+            define_path: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts',
+                                                         self.part_number) \
+                if self.hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts',
+                                                     self.part_number)
+            path = define_path()
+        else:
+            path = os.path.join('savings', 'attachments', self.mold_number)
+
         ttk.Label(self.frame_header, text='Просмотр вложенных файлов', style='Title.TLabel').pack(side=TOP, pady=15)
         row_num = 1
-        for root, dirs, files in os.walk(os.path.join('savings', 'attachments', self.mold_number)):
+        for root, dirs, files in os.walk(path):
             for file in files:
                 if os.path.join(root, file):
                     self.get_label_and_entry_widgets_in_row(text=file, row=row_num, root=root)
@@ -89,23 +100,21 @@ class Attachment(tkinter.Toplevel):
     def download_file(self, filename: str, root: str):
         """
         Функция загрузки вложения (какого либо файла) в директорию выбранную пользователем
-        :param part_number: ID номер элемента BOM относящегося к определённой пресс-форме
-        :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
+        :param root: Путь к файлу
+        :param filename: Имя файла
         """
+        filetype = re.search(r'\.\w+', filename).group(0)
         # Открытие диалогового окна для выбора пользователем локальной директории для сохранения файла,
         # c дальнейшим извлечением пути в виде строки
-        try:
-            local_file_path = filedialog.asksaveasfilename(
-            # filetypes=(('XLSX files', '*.xlsx'),)
+
+        local_file_path = filedialog.asksaveasfilename(
+            filetypes=((f'{filetype.upper()} files', f'*{filetype}'),)
         )
-        except AttributeError:
-            pass
-        else:
+        if local_file_path:
             try:
-                shutil.copy2(os.path.join(root, filename), local_file_path)
+                shutil.copy2(os.path.join(root, filename), f'{local_file_path}{filetype}')
             except IOError:
-                messagebox.showerror(title='Ошибка',
-                                     message='Файл не удалось загрузить. Обратитесь к администратору.')
+                pass
             else:
                 messagebox.showinfo(title='Уведомление', message='Файл успешно загружен')
 
@@ -125,24 +134,24 @@ class Attachment(tkinter.Toplevel):
             if filetype in filename:
                 picture_type = True
         if '.pdf' in filename:
-            pages = convert_from_path(os.path.abspath(os.path.join('..', 'pics', filename)))
+            pages = convert_from_path(os.path.abspath(os.path.join(root, filename)))
             for i in range(len(pages)):
                 page_name = f'page{i}.jpg'
                 pages[i].save(page_name, 'JPEG')
-                self.open_additional_preview_window(page_name)
-                os.remove(os.path.abspath(os.path.join('..', 'pics', page_name)))
+                self.open_additional_preview_window(page_name, root)
+                os.remove(os.path.abspath(os.path.join(root, page_name)))
         elif picture_type:
             self.open_additional_preview_window(filename, root)
 
     def delete_file(self, filename: str, root: str):
-        if user_data.get('user_name'):
+        if user_data.get('user_name') == 'admin':
             if messagebox.askyesno(title='Подтверждение', message=f'Вы уверены, что хотите удалить файл {filename}?', parent=self):
-                
+
                 try:
                     os.remove(os.path.join(root, filename))
                 except AttributeError:
                     messagebox.showerror(title='Ошибка',
-                                     message='Файл не удалось загрузить. Обратитесь к администратору.')
+                                         message='Файл не удалось загрузить. Обратитесь к администратору.')
                 else:
                     messagebox.showinfo(title='Уведомление', message='Файл успешно удалён')
                     self.destroy()
@@ -150,4 +159,4 @@ class Attachment(tkinter.Toplevel):
                     attachments.render_widgets()
         else:
             messagebox.showerror('Ошибка',
-                     'У Вас нет доступа. Для его предоставления обратитесь к администратору')
+                                 'У Вас нет доступа. Для его предоставления обратитесь к администратору')

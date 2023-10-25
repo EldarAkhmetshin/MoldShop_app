@@ -192,7 +192,7 @@ class App(Frame):
                 messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
                                      message=error_message.format(mold_number=mold_number))
 
-    def upload_attachment(self, part_number: str = None, hot_runner: bool = None):
+    def upload_attachment(self, bom_part: bool = None, hot_runner: bool = None):
         """
         Функция загрузки вложения (какого либо файла) в директорию приложения для дальнейшего использования
         :param part_number: ID номер элемента BOM относящегося к определённой пресс-форме
@@ -200,6 +200,10 @@ class App(Frame):
         """
         # Открытие диалогового окна для выбора файла пользователем с локальной директории компьютера,
         # c дальнейшим извлечением пути к выбранному файлу в виде строки
+        if bom_part:
+            define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
+            part_number = self.get_value_by_selected_row(define_table_name(), 'NUMBER')
+
         if not self.mold_number:
             self.mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
         if self.mold_number:
@@ -227,7 +231,7 @@ class App(Frame):
                     os.mkdir(os.path.join('savings', 'attachments', self.mold_number, 'mold_parts'))
                 except FileExistsError:
                     pass
-                if part_number:
+                if bom_part:
                     try:
                         os.mkdir(define_folder())
                     except FileExistsError:
@@ -235,7 +239,7 @@ class App(Frame):
 
                 # Копирование и вставка файла в директорию приложения
                 define_path: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number, file_name) \
-                    if not part_number \
+                    if not bom_part \
                     else (
                     os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number, file_name)
                     if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts',
@@ -632,6 +636,7 @@ class App(Frame):
         Функция рендера всех виджетов окна приложения в режиме просмотра BOM (спецификации) пресс-формы
         """
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
+        part_number = self.get_value_by_selected_row(define_table_name(), 'NUMBER')
         # Рендер панели инструментов
         self.render_toolbar(back_func=self.get_molds_data,
                             add_row_func=lambda: self.render_typical_additional_window(
@@ -641,7 +646,7 @@ class App(Frame):
                                     self.mold_number)),
                             edit_row_func=self.render_bom_edition_window,
                             delete_row_func=lambda: self.delete_selected_table_row(f'BOM_{self.mold_number}', 'NUMBER'),
-                            new_attachment_func=lambda: self.upload_attachment(part_number='', hot_runner=self.hot_runner_bom),
+                            new_attachment_func=lambda: self.upload_attachment(bom_part=True),
                             looking_attachments_func=self.render_attachments_window)
         # Объявление основного и вложенных контейнеров для виджетов
         self.frame_main_widgets = Frame(self, relief=RIDGE)
@@ -1100,7 +1105,7 @@ class App(Frame):
                     called_function()
         else:
             messagebox.showerror('Ошибка доступа',
-                     'У Вас нет доступа. Для его предоставления обратитесь к администратору')
+                                 'У Вас нет доступа. Для его предоставления обратитесь к администратору')
 
     def render_upload_bom_window(self):
         """
@@ -1187,8 +1192,10 @@ class App(Frame):
         part_number = self.get_value_by_selected_row(table_name, 'NUMBER')
         # Если получен номер елемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
         if part_number:
-            self.render_typical_additional_window(called_class=lambda: Attachment(mold_number=self.mold_number, part_number=part_number),
-                window_name='Attachments')
+            self.render_typical_additional_window(called_class=lambda: Attachment(mold_number=self.mold_number,
+                                                                                  part_number=part_number,
+                                                                                  hot_runner=self.hot_runner_bom),
+                                                  window_name='Attachments')
 
     def open_parts_quantity_changing_window(self, consumption: bool = None):
         """
