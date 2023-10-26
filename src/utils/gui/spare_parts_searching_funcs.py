@@ -86,6 +86,9 @@ class Searcher(tkinter.Toplevel):
         self.mainloop()
 
     def render_results(self):
+        """
+        Функция рендера результатов поиска в табличном виде в дополнительном окне
+        """
         if len(self.results) == 0:
             self.input_error_label = Label(self.frame_bottom, text='По вашему запросу ничего не найдено', foreground='Red')
             self.input_error_label.pack(side=TOP, padx=5, pady=5)
@@ -110,8 +113,14 @@ class Searcher(tkinter.Toplevel):
             for row in self.results:
                 self.tree.insert("", END, values=row)
             self.results = []
+            get_info_log(user=user_data.get('user_name'), message='Results of searching were rendered',
+                                     func_name=self.render_results.__name__, func_path=abspath(__file__))
 
     def sort_table(self, table_name):
+        """
+        Функция сортировки данных в таблице базы данных по введённым ранее параметрам, а также запись полученных данных в массив с результатами поискоаого запроса
+        :param table_name: Имя таблицы, в которой осуществляется поиск
+        """
         define_mold_type: Callable = lambda: 'Горячий канал' if 'HOT_RUNNER' in table_name else 'Пресс-форма'
         bom = TableInDb(table_name, 'Database')
         table_list = bom.get_table(type_returned_data='dict', first_param='PART_NAME',
@@ -135,6 +144,8 @@ class Searcher(tkinter.Toplevel):
         """
         Функция проведения поиска запчастей по введённым ранее параметрам
         """
+        get_info_log(user=user_data.get('user_name'), message='Searching is run',
+                                     func_name=self.start_search.__name__, func_path=abspath(__file__))
         if self.input_error_label:
             self.input_error_label.destroy()
         # Получение всех наименований доступных таблиц для поиска по ним
