@@ -64,13 +64,7 @@ class QRWindow(tkinter.Toplevel):
                                       textvariable=self.tracked_variable)
         self.code_entry_field.pack(side=TOP, pady=10, padx=10)
         self.code_entry_field.focus_set()
-
-        # Button(
-        #        self.frame, text='Применить', background='white',
-        #        width=20, font=('Times', '10'),
-        #        command=self.validate_and_save_new_part_data
-        # ).grid(padx=10, pady=10, column=2, row=14)
-        # Запуск работы окна приложения
+        # Запуск работы виджетов окна приложения
         self.mainloop()
 
     def validate_and_save_edited_data(self):
