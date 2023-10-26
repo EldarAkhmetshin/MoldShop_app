@@ -53,7 +53,7 @@ class Attachment(tkinter.Toplevel):
     def get_label_and_entry_widgets_in_row(self, text: str, row: int, root: str):
         """
         Рендер виджетов окна расположенных в одной строке
-        :param root:
+        :param root: Путь к файлу
         :param text: Текст надписи
         :param row: Номер строки в окне
         """
@@ -119,6 +119,11 @@ class Attachment(tkinter.Toplevel):
                 messagebox.showinfo(title='Уведомление', message='Файл успешно загружен')
 
     def open_additional_preview_window(self, filename: str, root: str):
+        """
+        Функция  для рендера доп. окна предпросмотра выбранного изображения
+        :param root: Путь к файлу
+        :param filename: Имя файла
+        """
         self.image = Image.open(os.path.join(root, filename)).resize((1024, 768))
         self.image_pil = ImageTk.PhotoImage(self.image)
         window = tkinter.Toplevel()
@@ -129,6 +134,11 @@ class Attachment(tkinter.Toplevel):
          .pack(side=TOP, pady=5))
 
     def preview_file(self, filename: str, root: str):
+        """
+        Функция проверки возможности предпросмотра изображений / PDF файлов и вызова функции для рендера доп. окна 
+        :param root: Путь к файлу
+        :param filename: Имя файла
+        """
         picture_type = None
         for filetype in ('.jpg' or '.jpeg' or '.png' or '.JPG' or '.JPEG'):
             if filetype in filename:
@@ -144,7 +154,12 @@ class Attachment(tkinter.Toplevel):
             self.open_additional_preview_window(filename, root)
 
     def delete_file(self, filename: str, root: str):
-        if user_data.get('user_name') == 'admin':
+        """
+        Функция  для удаления вложенного файла
+        :param root: Путь к файлу
+        :param filename: Имя файла
+        """
+        if user_data.get('attachments_changing'):
             if messagebox.askyesno(title='Подтверждение', message=f'Вы уверены, что хотите удалить файл {filename}?', parent=self):
 
                 try:
@@ -158,5 +173,5 @@ class Attachment(tkinter.Toplevel):
                     attachments =  Attachment(self.mold_number, self.part_number, self.hot_runner)
                     attachments.render_widgets()
         else:
-            messagebox.showerror('Ошибка',
-                                 'У Вас нет доступа. Для его предоставления обратитесь к администратору')
+            messagebox.showerror(error_messages.get('access_denied').get('message_name'),
+                                 error_messages.get('access_denied').get('message_body'))
