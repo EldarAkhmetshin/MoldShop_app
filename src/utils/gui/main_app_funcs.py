@@ -49,7 +49,7 @@ class App(Frame):
         self.tracked_variable: Переменная для отслеживания записываемых данных в поле ввода
         self.hot_runner_bom: Булево значение, которое становится True когда выбирается пользователем таблица горячего канала
         self.sorted_bom_tuple: Словарь, содержащий данные (BOM выбранной пресс-формы) в кортежах для вывода отсортированной информации по разным признакам
-        self.all_molds_table_dict:
+        self.all_molds_table_dict: Словарь, содержащий данные (общий перечень пресс-форм) в словарях
         self.mold_number: Текстовое значение параметра "MOLD_NUMBER" из таблицы базы данных. Принимает значение выбранной пресс-формы пользователем в данный момент
         self.mold_number_entry_field: Поле ввода для открытия BOM по номеру пресс-формы
         self.current_table: Массив состоящий из кортежей с данными для вывода таблицы в окне приложения
@@ -57,7 +57,7 @@ class App(Frame):
         self.sort_status: Значение характеризующее выбранный параметр сортировки для вывода табличных данных
         self.sorted_molds_data_tuple: Словарь, содержащий данные (общий перечень пресс-форм) в кортежах для вывода отсортированной информации по разным признакам
         self.sorted_molds_data_dict: Словарь, содержащий данные (общий перечень пресс-форм) в словарях для вывода отсортированной информации по разным признакам
-        self.molds_list_data:
+        self.molds_list_data: Словарь, содержащий данные (общий перечень пресс-форм) в кортежах
         """
         super().__init__()
         self.hot_runner_bom = None
@@ -130,7 +130,7 @@ class App(Frame):
         self.sorted_molds_data_tuple = None
         self.sorted_molds_data_dict = None
         self.molds_list_data = None
-
+        # Объявление переменных, в которых будут вызываться определенные функции при нажитии клавиши
         self.key_two_func = None
         self.key_three_func = None
         self.key_four_func = None
@@ -200,63 +200,69 @@ class App(Frame):
         """
         # Открытие диалогового окна для выбора файла пользователем с локальной директории компьютера,
         # c дальнейшим извлечением пути к выбранному файлу в виде строки
-        if bom_part:
-            define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
-            part_number = self.get_value_by_selected_row(define_table_name(), 'NUMBER')
-
-        if not self.mold_number:
-            self.mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
-        if self.mold_number:
-            try:
-                file_path = filedialog.askopenfile().name
-            except AttributeError:
-                pass
-            else:
-                # Получение имени файла
-                file_path_list = file_path.split('/')
-                file_name = file_path_list[-1]
-                # Создание нужной директории где будет размещён файл если она ещё не была создана
-                define_folder: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number) \
-                    if not part_number \
-                    else (
-                    os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number)
-                    if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts',
-                                                    part_number))
+        if user_data.get('attachments_changing'):
+            if bom_part:
+                define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
+                part_number = self.get_value_by_selected_row(define_table_name(), 'NUMBER')
+    
+            if not self.mold_number:
+                self.mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
+            if self.mold_number:
                 try:
-                    os.mkdir(os.path.join('savings', 'attachments', self.mold_number))
-                except FileExistsError:
+                    file_path = filedialog.askopenfile().name
+                except AttributeError:
                     pass
-                try:
-                    os.mkdir(os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts'))
-                    os.mkdir(os.path.join('savings', 'attachments', self.mold_number, 'mold_parts'))
-                except FileExistsError:
-                    pass
-                if bom_part:
+                else:
+                    # Получение имени файла
+                    file_path_list = file_path.split('/')
+                    file_name = file_path_list[-1]
+                    # Создание нужной директории где будет размещён файл если она ещё не была создана
+                    define_folder: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number) \
+                        if not part_number \
+                        else (
+                        os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number)
+                        if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts',
+                                                        part_number))
                     try:
-                        os.mkdir(define_folder())
+                        os.mkdir(os.path.join('savings', 'attachments', self.mold_number))
                     except FileExistsError:
                         pass
-
-                # Копирование и вставка файла в директорию приложения
-                define_path: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number, file_name) \
-                    if not bom_part \
-                    else (
-                    os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number, file_name)
-                    if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts',
-                                                    part_number, file_name))
-                try:
-                    shutil.copy2(file_path, os.path.abspath(define_path()))
-                except IOError:
-                    messagebox.showerror(title='Ошибка',
-                                         message='Файл не удалось прикрепить. Обратитесь к администратору.')
-                else:
-                    messagebox.showinfo(title='Уведомление', message='Файл успешно прикреплён')
-                    self.render_typical_additional_window(called_class=lambda: Attachment(
-                        mold_number=self.mold_number, part_number=part_number, hot_runner=hot_runner),
-                                                          window_name='Attachments')
+                    try:
+                        os.mkdir(os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts'))
+                        os.mkdir(os.path.join('savings', 'attachments', self.mold_number, 'mold_parts'))
+                    except FileExistsError:
+                        pass
+                    if bom_part:
+                        try:
+                            os.mkdir(define_folder())
+                        except FileExistsError:
+                            pass
+    
+                    # Копирование и вставка файла в директорию приложения
+                    define_path: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number, file_name) \
+                        if not bom_part \
+                        else (
+                        os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number, file_name)
+                        if hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts',
+                                                        part_number, file_name))
+                    try:
+                        shutil.copy2(file_path, os.path.abspath(define_path()))
+                    except IOError:
+                        messagebox.showerror(title='Ошибка',
+                                             message='Файл не удалось прикрепить. Обратитесь к администратору.')
+                        get_warning_log(user=user_data.get('user_name'), message='File wasnt attached because of IOError',
+                                func_name=self.upload_attachment.__name__, func_path=abspath(__file__))
+                    else:
+                        messagebox.showinfo(title='Уведомление', message='Файл успешно прикреплён')
+                        self.render_typical_additional_window(called_class=lambda: Attachment(
+                            mold_number=self.mold_number, part_number=part_number, hot_runner=hot_runner),
+                                                              window_name='Attachments')
+            else:
+                messagebox.showerror(title='Ошибка',
+                                     message='Чтобы прикрепить файл выберите элемент из таблицы')
         else:
-            messagebox.showerror(title='Ошибка',
-                                 message='Чтобы прикрепить файл выберите элемент из таблицы')
+            messagebox.showerror(error_messages.get('access_denied').get('message_name'),
+                                 error_messages.get('access_denied').get('message_body'))
 
     def save_excel_table(self):
         """
@@ -293,8 +299,59 @@ class App(Frame):
             except Exception:
                 messagebox.showerror(title='Уведомление об ошибке',
                                      message='Ошибка в записи файла.\nПовторите ещё раз, либо братитесь к администратору')
+                get_warning_log(user=user_data.get('user_name'), message='Table wasnt saved in Excel file',
+                                func_name=self.save_excel_table.__name__, func_path=abspath(__file__))
             else:
                 messagebox.showinfo(title='Уведомление', message='Таблица успешно сохранена на Ваш компьютер')
+
+    def save_bom_parts_template(self, window: tkinter, hot_runner_bom: bool = None):
+        """
+        Функция сохранения шаблона формирования BOM в Иксель файл формата xlsx
+        :param window: Открытое дополнительное окно приложения для выбора типа пресс-формы
+        :param hot_runner_bom: Булево значение, которое становится True когда выбирается пользователем таблица горячего канала
+        """
+        # Открытие диалогового окна для сохранения файла пользователем в локальной директории компьютера,
+        # c дальнейшим извлечением пути к выбранному файлу в виде строки
+        import openpyxl
+        from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
+        from openpyxl.utils import get_column_letter
+
+        try:
+            window.quit()
+            window.destroy()
+            file_path = filedialog.asksaveasfilename(
+                filetypes=(('XLSX files', '*.xlsx'),)
+            )
+        except  AttributeError:
+            pass
+        else:
+            if file_path:
+                file_path = file_path.replace('.xlsx', '')
+                # Формирование Иксель файла типа xlsx
+                table_length = len(columns_bom_parts_table)
+                saved_table = {}
+                for num, column_name in enumerate(columns_bom_parts_table):
+                    saved_table[column_name] = tuple()
+                try:
+                    define_sheet_name: Callable = lambda: 'HOT RUNNER' if hot_runner_bom else 'MOLD'
+                    df = DataFrame(saved_table)
+                    df.to_excel(excel_writer=f'{file_path}.xlsx', sheet_name='Table', index=False)
+                    wb = openpyxl.load_workbook(f'{file_path}.xlsx')
+                    ws = wb[define_sheet_name()]
+                    dim_holder = DimensionHolder(worksheet=ws)
+    
+                    for col in range(ws.min_column, ws.max_column + 1):
+                        dim_holder[get_column_letter(col)] = ColumnDimension(ws, min=col, max=col, width=20)
+    
+                    ws.column_dimensions = dim_holder
+                    wb.save(f'{file_path}.xlsx')
+                except Exception:
+                    messagebox.showerror(title='Уведомление об ошибке',
+                                         message='Ошибка в записи файла.\nПовторите ещё раз, либо братитесь к администратору')
+                    get_warning_log(user=user_data.get('user_name'), message='Template wasnt saved in Excel file',
+                                    func_name=self.save_bom_parts_template.__name__, func_path=abspath(__file__))
+                else:
+                    messagebox.showinfo(title='Уведомление', message='BOM шаблон успешно сохранен на Ваш компьютер')
 
     def render_toolbar(self, back_func: Callable, add_row_func: Callable = None, edit_row_func: Callable = None,
                        delete_row_func: Callable = None, new_attachment_func: Callable = None,
@@ -372,6 +429,8 @@ class App(Frame):
                    command=self.open_main_menu).pack(side=LEFT, padx=3, pady=4)
         ttk.Button(frame_toolbar_info, image=self.help_icon_pil, command=self.open_main_menu).pack(side=LEFT, padx=3,
                                                                                                    pady=4)
+        get_info_log(user=user_data.get('user_name'), message='Toolbar widgets were rendered',
+                                func_name=self.render_toolbar.__name__, func_path=abspath(__file__))
 
     def render_widgets_main_menu(self):
         """
@@ -418,6 +477,8 @@ class App(Frame):
         ).grid(padx=30, pady=15, column=9, row=3)
 
         ttk.Label(self.frame_body, image=self.image_body_pil).pack(side=RIGHT, pady=27)
+        get_info_log(user=user_data.get('user_name'), message='Main menu widgets were rendered',
+                                func_name=self.render_widgets_main_menu.__name__, func_path=abspath(__file__))
 
     def clean_frames(self):
         """
@@ -496,17 +557,25 @@ class App(Frame):
         )
         btn_bom.pack(side=LEFT, padx=6, pady=5)
 
-        btn_download_bom = ttk.Button(
+        btn_upload_bom = ttk.Button(
             bom_frame, text='Загрузить', style='Regular.TButton',
             command=self.render_upload_bom_window
         )
-        btn_download_bom.pack(padx=6, pady=5, side=LEFT)
-        Hovertip(anchor_widget=btn_download_bom,
-                 text='Для загрузки в систему нового BOM (спецификации) используйте шаблон таблицы "mold_bom_template.xlsx" '
-                      '\nиз папки "templates". '
+        btn_upload_bom.pack(padx=6, pady=5, side=LEFT)
+        Hovertip(anchor_widget=btn_upload_bom,
+                 text='Для загрузки в систему нового BOM (спецификации) используйте шаблон таблицы, который можно скачать.
                       '\nЧтобы загрузка произошла успешно убедитесь, что пресс-форма под таким номером уже имеется в общем '
                       '\nперечне и название файла полностью совпадает с номером пресс-формы. Например: название файла'
                       '\n"1981-A.xlsx" и номер пресс-формы "1981-A"',
+                 hover_delay=400)
+        
+        btn_bom_template_download = ttk.Button(
+            bom_frame, text='Скачать шаблон', style='Regular.TButton',
+            command=lambda: self.render_upload_or_download_bom_window(window_title='BOM Template Downloading', called_func=self.save_bom_parts_template)
+        )
+        btn_bom_template_download.pack(padx=6, pady=5, side=LEFT)
+        Hovertip(anchor_widget=btn_bom_template_download,
+                 text='Загрузка шаблонной таблицы для формирования BOM для последующей её загрузке в приложение',
                  hover_delay=400)
 
         btn_delete_bom = ttk.Button(
@@ -587,7 +656,7 @@ class App(Frame):
         ttk.Label(picture_subframe, image=self.image_scanner_pil).pack(side=RIGHT, pady=1)
 
         get_info_log(user=user_data.get('user_name'), message='Mold scaning mode widgets were rendered',
-                     func_name=self.render_widgets_molds_list.__name__, func_path=abspath(__file__))
+                     func_name=self.render_widgets_mold_scanning_mode.__name__, func_path=abspath(__file__))
 
     def render_widgets_warehouse_mode(self, consumption: bool = None):
         """
@@ -1021,10 +1090,7 @@ class App(Frame):
                                        self.mold_number)),
                                funk_four=self.render_bom_edition_window)
             self.render_widgets_selected_bom()
-            # Определение размера столбцов таблицы
-            columns_sizes = {'#1': 5, '#2': 10, '#3': 35, '#4': 25, '#5': 10, '#6': 10, '#7': 20, '#8': 20, '#9': 20,
-                             '#10': 20, '#11': 20, '#12': 20, }
-            self.render_table(columns_sizes=columns_sizes)
+            self.render_table(columns_sizes=columns_sizes_bom_parts_table)
 
     def open_mold_scanning_window(self):
         """
@@ -1104,8 +1170,8 @@ class App(Frame):
                 if called_function:
                     called_function()
         else:
-            messagebox.showerror('Ошибка доступа',
-                                 'У Вас нет доступа. Для его предоставления обратитесь к администратору')
+            messagebox.showerror(error_messages.get('access_denied').get('message_name'),
+                                 error_messages.get('access_denied').get('message_body'))
 
     def render_upload_bom_window(self):
         """
@@ -1127,6 +1193,31 @@ class App(Frame):
             window, text='Горячий канал', style='Regular.TButton',
             width=20,
             command=lambda: self.open_file_and_download(window, hot_runner=True)
+        ).pack(side=LEFT, padx=5, pady=5)
+        window.mainloop()
+
+    def render_upload_or_download_bom_window(self, window_title: str, called_func: Callable):
+        """
+        Рендер окна для выбора типа BOM для его загрузки в систему приложения, либо для скачиваемого пустого шаблона BOM (пресс-форма или горячий канал)
+        :param window_title: Имя доп. окна
+        :param called_func: Вызываемая функция при нажатии на кнопку
+        """
+        window = tkinter.Toplevel()
+        window.title(window_title)
+        window.resizable(False, False)
+        window.focus_set()
+        window.grab_set()
+        (ttk.Label(window, text='Выберите тип BOM', font=('Times', '11', 'normal'))
+         .pack(side=TOP, pady=5))
+        ttk.Button(
+            window, text='Пресс-форма', style='Regular.TButton',
+            width=20,
+            command=lambda: self.called_func(window)
+        ).pack(side=LEFT, padx=5, pady=5)
+        ttk.Button(
+            window, text='Горячий канал', style='Regular.TButton',
+            width=20,
+            command=lambda: self.called_func(window, hot_runner=True)
         ).pack(side=LEFT, padx=5, pady=5)
         window.mainloop()
 
@@ -1259,6 +1350,9 @@ class App(Frame):
                     else:
                         self.tree.pack_forget()
                         self.open_bom(self.mold_number)
+        else:
+            messagebox.showerror(error_messages.get('access_denied').get('message_name'),
+                                 error_messages.get('access_denied').get('message_body'))
 
     def delete_selected_bom(self):
         """
@@ -1290,6 +1384,9 @@ class App(Frame):
                         messagebox.showinfo('Уведомление', 'Удаление BOM успешно произведено!')
                         get_info_log(user=user_data.get('user_name'), message='Row was deleted from table',
                                      func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
+        else:
+            messagebox.showerror(error_messages.get('access_denied').get('message_name'),
+                                 error_messages.get('access_denied').get('message_body'))
 
     def confirm_delete(self):
         """
