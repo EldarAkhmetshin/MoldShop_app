@@ -142,9 +142,10 @@ class App(Frame):
         """
         Инициация окна приложения, а также основных контейнеров
         """
+        self.iconbitmap(os.path.join('pics', 'artpack.ico'))
         self.master.title('MoldShop Management')
         self.pack(fill=BOTH)
-
+        
         self.frame_header = Frame(self, relief=RAISED)
         self.frame_header.pack(fill=BOTH, expand=True)
         self.frame_main_widgets = Frame(self)
@@ -426,8 +427,12 @@ class App(Frame):
 
         ttk.Label(frame_toolbar_info, text=f'Справка', style='Toolbar.TLabel').pack(side=TOP, padx=2, pady=2)
         ttk.Button(frame_toolbar_info, image=self.info_icon_pil,
-                   command=self.open_main_menu).pack(side=LEFT, padx=3, pady=4)
-        ttk.Button(frame_toolbar_info, image=self.help_icon_pil, command=self.open_main_menu).pack(side=LEFT, padx=3,
+                   command=lambda: self.render_typical_additional_window(
+                                          called_class=lambda: ReferenceInfo(app_info=True),
+                                          window_name='App Info')).pack(side=LEFT, padx=3, pady=4)
+        ttk.Button(frame_toolbar_info, image=self.help_icon_pil, command=lambda: self.render_typical_additional_window(
+                                          called_class=ReferenceInfo,
+                                          window_name='Reference Information')).pack(side=LEFT, padx=3,
                                                                                                    pady=4)
         get_info_log(user=user_data.get('user_name'), message='Toolbar widgets were rendered',
                                 func_name=self.render_toolbar.__name__, func_path=abspath(__file__))
@@ -904,7 +909,7 @@ class App(Frame):
                 row_id = int(f'{cycle_number + 1}{letter_values.get(indicated_letter)}') - 1
 
             return row_id + cycle_number * 6
-
+    
     def get_molds_data(self, sort_status: str | bool = None):
         """
         Функция вывода перечня всех пресс-форм в табличном виде в окне приложения
