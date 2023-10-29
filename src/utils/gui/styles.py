@@ -35,34 +35,34 @@ def define_styles():
                     anchor=N,
                     font=('Arial', '12', 'normal'))
 
-    style.configure(style='Regular.TButton',
+    style.configure(style='Regular.TButton', width=10,
                     foreground='grey20',
                     anchor=N,
                     font=('Arial', '10', 'normal'))
 
     style.configure(style='Green.TButton',
-                    width=12,
+                    width=11,
                     background='darkseagreen',
                     foreground='grey20',
                     anchor=N,
                     font=('Arial', '10', 'normal'))
 
     style.configure(style='Yellow.TButton',
-                    width=12,
+                    width=11,
                     background='chartreuse',
                     foreground='grey20',
                     anchor=N,
                     font=('Arial', '10', 'normal'))
 
     style.configure(style='Coral.TButton',
-                    width=14,
+                    width=11,
                     background='coral',
                     foreground='grey20',
                     anchor=N,
                     font=('Arial', '10', 'normal'))
 
     style.configure(style='Gold.TButton',
-                    width=14,
+                    width=13,
                     background='gold',
                     foreground='grey20',
                     anchor=N,

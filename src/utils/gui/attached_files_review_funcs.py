@@ -3,7 +3,6 @@
 import os
 import re
 import shutil
-import sqlite3
 import tkinter
 from tkinter import *
 from tkinter import messagebox, ttk, filedialog
@@ -11,10 +10,10 @@ from tkinter.ttk import Frame
 from typing import Callable
 from PIL import ImageTk, Image
 from pdf2image import convert_from_path
+from tkhtmlview import HTMLLabel
 
-from src.config_data.config import passwords
+from src.data import error_messages
 from src.global_values import user_data
-from src.utils.sql_database import table_funcs
 
 
 class Attachment(tkinter.Toplevel):
@@ -57,19 +56,25 @@ class Attachment(tkinter.Toplevel):
         :param text: Текст надписи
         :param row: Номер строки в окне
         """
-        ttk.Label(self.frame_body, text=text, style='Regular.TLabel').grid(column=1, row=row, padx=5, pady=5)
+        HTMLLabel(self.frame_body, html=f"""
+                                <a href="{os.path.abspath(os.path.join(root, text))}">{text}</a>
+                                """, width=60, height=2).grid(padx=10, pady=10, column=1, row=row)
+        # ttk.Label(self.frame_body, text=text, style='Regular.TLabel').grid(column=1, row=row, padx=5, pady=5)
         ttk.Button(
-            self.frame_body, text='Загрузить', style='Regular.TButton',
+            self.frame_body, text='Загрузить', style='Regular.TButton', width=10,
             command=lambda: self.download_file(filename=text, root=root)
         ).grid(padx=10, pady=10, column=2, row=row)
-        ttk.Button(
-            self.frame_body, text='Предпросмотр', style='Regular.TButton',
-            command=lambda: self.preview_file(filename=text, root=root)
-        ).grid(padx=10, pady=10, column=3, row=row)
+        # ttk.Button(
+        #     self.frame_body, text='Предпросмотр', style='Regular.TButton',
+        #     command=lambda: self.preview_file(filename=text, root=root)
+        # ).grid(padx=10, pady=10, column=3, row=row)
         ttk.Button(
             self.frame_body, text='Удалить вложение', style='Regular.TButton',
             width=20, command=lambda: self.delete_file(filename=text, root=root)
-        ).grid(padx=10, pady=10, column=4, row=row)
+        ).grid(padx=10, pady=10, column=3, row=row)
+        # HTMLLabel(self.frame_body, html=f"""
+        #                         <a href="{os.path.abspath(os.path.join(root, text))}">Просмотр</a>
+        #                         """, width=15, height=2).grid(padx=10, pady=10, column=4, row=row)
 
     def render_widgets(self):
         """
@@ -127,6 +132,7 @@ class Attachment(tkinter.Toplevel):
         self.image = Image.open(os.path.join(root, filename)).resize((1024, 768))
         self.image_pil = ImageTk.PhotoImage(self.image)
         window = tkinter.Toplevel()
+        window.iconbitmap(os.path.join('pics', 'artpack.ico'))
         window.title('Preview')
         window.geometry('1024x768')
         window.focus_set()
@@ -170,7 +176,7 @@ class Attachment(tkinter.Toplevel):
                 else:
                     messagebox.showinfo(title='Уведомление', message='Файл успешно удалён')
                     self.destroy()
-                    attachments =  Attachment(self.mold_number, self.part_number, self.hot_runner)
+                    attachments = Attachment(self.mold_number, self.part_number, self.hot_runner)
                     attachments.render_widgets()
         else:
             messagebox.showerror(error_messages.get('access_denied').get('message_name'),

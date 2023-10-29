@@ -1,4 +1,6 @@
 import os
+from tkinter import messagebox
+
 from openpyxl import load_workbook
 
 from src.utils.sql_database import table_funcs
@@ -15,19 +17,23 @@ def get_data_from_excel_file(file_path: str, work_sheet_name: str):
     rows_data = []
 
     work_book = load_workbook(file_path)
-    work_sheet = work_book[f'{work_sheet_name}']
+    try:
+        work_sheet = work_book[f'{work_sheet_name}']
+    except KeyError:
+        messagebox.showerror('Уведомление об ошибке',
+                             'Название листа не соотвествует. Убедитесь, что вы используете правильный файл шаблона')
+    else:
+        for count, row in enumerate(work_sheet.values):
+            if not row[0]:
+                break
 
-    for count, row in enumerate(work_sheet.values):
-        if not row[0]:
-            break
+            if count == 0:
+                column_names = row
+                rows_data.append(row)
+            else:
+                rows_data.append(row)
 
-        if count == 0:
-            column_names = row
-            rows_data.append(row)
-        else:
-            rows_data.append(row)
-
-    return column_names, rows_data
+        return column_names, rows_data
 
 
 def save_new_molds_list():

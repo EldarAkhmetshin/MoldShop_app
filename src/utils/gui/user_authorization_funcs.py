@@ -11,7 +11,7 @@ from tkinter import ttk
 from tkinter import messagebox, ttk
 #from tkinter.ttk import Frame
 
-from src.config_data.config import passwords, users
+from src.config_data.config import users
 from src.global_values import user_data
 from src.utils.logger.logs import get_info_log
 
@@ -64,6 +64,7 @@ class LogInApp(Frame):
                 user_data['stock_changing'] = users.get(user_name).get('stock_changing')
                 user_data['mold_status_changing'] = users.get(user_name).get('mold_status_changing')
                 user_data['molds_and_boms_data_changing'] = users.get(user_name).get('molds_and_boms_data_changing')
+                user_data['attachments_changing'] = users.get(user_name).get('attachments_changing')
                 self.window.destroy()
                 get_info_log(user=user_name, message='Successful login', func_name=self.check_entry_user_data.__name__,
                              func_path=abspath(__file__))

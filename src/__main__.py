@@ -1,4 +1,4 @@
-import tkinter.ttk
+import os
 from tkinter import Tk, Menu
 from ttkthemes import ThemedStyle
 from loguru import logger
@@ -6,7 +6,7 @@ from loguru import logger
 from src.utils.gui.styles import define_styles
 from src.utils.sql_database.new_tables import create_tables_in_db
 from src.utils.logger.logs import logger_add
-from src.utils.gui.main_app_funcs import App
+from src.main_app_funcs import App
 from src.utils.gui.user_authorization_funcs import LogInApp
 from src.global_values import user_data
 
@@ -17,9 +17,10 @@ def render_main_window():
     """
     # Создание окна приложения
     window = Tk()
-    window.geometry('700x75')
+    window.geometry('1920x1080')
     style = ThemedStyle(window)
     style.set_theme('radiance')
+    window.iconbitmap(os.path.join('pics', 'artpack.ico'))
     define_styles()
     # Создание виджета с выпадающими списками команд, который находится под строкой заголовка вверху
     menu = Menu(window)
@@ -40,6 +41,7 @@ def log_in_app():
     Рендер окна для авторизации пользователя
     """
     window = Tk()
+    window.iconbitmap(os.path.join('pics', 'artpack.ico'))
     style = ThemedStyle(window)
     style.set_theme('radiance')
     define_styles()

@@ -1,16 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
-import time
+import os
 import tkinter
 from os.path import abspath
 from tkinter import *
-from tkinter import ttk
 from tkhtmlview import HTMLLabel
-from tkinter import messagebox, ttk
+from tkinter import ttk
+from PIL import Image, ImageTk
+from typing import Callable
 
-from src.config_data.config import passwords, users
 from src.global_values import user_data
 from src.utils.logger.logs import get_info_log
+from src.data import user_rights
+
+
+def check_user_rigths() -> str:
+    define_answer: Callable = lambda: 'Да' if user_data.get(name) == 'True' else 'Нет'
+    result = ''
+    for name, description in user_rights.items():
+        result = f'{result}\n\t{description}: {define_answer()}'
+    return result
 
 
 class ReferenceInfo(tkinter.Toplevel):
@@ -23,6 +32,7 @@ class ReferenceInfo(tkinter.Toplevel):
         Создание переменных
         :param app_info: Булево значение, принимающее значение True, когда необходимо вывести инфо о приложении
         """
+        self.frame_additional = None
         self.app_info = app_info
         self.frame_header = None
         self.frame_body = None
@@ -38,11 +48,12 @@ class ReferenceInfo(tkinter.Toplevel):
         Инициация окна приложения и контенера для размещения виджетов
         """
         self.focus_set()
-        self.pack(fill=BOTH, expand=True)
-        self.frame_header = Frame(self)
-        self.frame_header.pack(fill=BOTH, expand=True)
+        self.frame_header = Frame(self, relief=RIDGE)
+        self.frame_header.pack(side=TOP, padx=0)
         self.frame_body = Frame(self)
         self.frame_body.pack(fill=BOTH, expand=True)
+        self.frame_additional = Frame(self)
+        self.frame_additional.pack(fill=BOTH, expand=True)
         self.frame_bottom = Frame(self)
         self.frame_bottom.pack(fill=BOTH, expand=True)
 
@@ -50,24 +61,25 @@ class ReferenceInfo(tkinter.Toplevel):
         """
         Функция рендера всех виджетов окна авторизации пользователя
         """
-        if app_info:
+        if self.app_info:
             ttk.Label(self.frame_header, image=self.image_logo_pil).pack(side=TOP, padx=5, pady=5)
-            ttk.Label(self.frame_body, text='
-                    '\nПриложение: ArtPack MoldShop Manadgment'
-                    '\nВерсия: 1.0.0'
-                    f'\nПользователь: {user_data.get('user_name')}'
-                    ', style='Regular.TLabel').pack(side=LEFT, padx=5, pady=5)
+            ttk.Label(self.frame_body, text='\nПриложение: ArtPack MoldShop Manadgment'
+                                            '\nВерсия: 1.0.0 от 08.11.23'
+                                            f'\nПользователь: {user_data.get("user_name")}'
+                                            f'\nПрава пользователя:'
+                                            f'{check_user_rigths()}',
+                      style='Regular.TLabel').pack(side=LEFT, padx=5, pady=5)
         else:
-            HTMLLabel(root, html="""
+            HTMLLabel(self.frame_body, html=f"""
                         <h2>Справочная информация</h2>
                         <h3>Содержание</h3>
                         
                         <ul>
-                          <li><a href="#section1">Загрузка нового BOM</a></li>
-                          <li><a href="#section2">Взаимодействие со складом</a></li>
+                          <li><a href='#section'>Загрузка нового BOM</a></li>
+                          <li><a href="{os.path.abspath(os.path.join('pics', 'company_logo.png'))}">Взаимодействие со складом</a></li>
                         </ul>
                         <p>  **********  </p>
-                        <h3 id="section1">Загрузка нового BOM</h3>
+                        <h3 id='section'>Загрузка нового BOM</h3>
                         <p>
                           Чтобы привязать новый BOM к какой либо пресс-форме необходимо выполнить следующие действия:
                         </p>
@@ -93,4 +105,4 @@ class ReferenceInfo(tkinter.Toplevel):
         get_info_log(user='-', message='Reference info widgets were rendered', func_name=self.render_widgets.__name__,
                      func_path=abspath(__file__))
         # Запуск работы окна приложения
-        self.window.mainloop()
+        self.mainloop()

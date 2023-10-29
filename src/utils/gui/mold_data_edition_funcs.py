@@ -7,10 +7,8 @@ from tkinter import *
 from tkinter import messagebox, ttk
 from tkinter.ttk import Frame, Combobox
 from typing import Callable
-
 from ttkthemes.themed_style import ThemedStyle
 
-from src.config_data.config import passwords
 from src.global_values import user_data
 from src.utils.logger.logs import get_info_log
 from src.utils.sql_database import table_funcs
