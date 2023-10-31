@@ -11,7 +11,7 @@ from typing import Callable
 
 from src.global_values import user_data
 from src.utils.logger.logs import get_info_log
-from src.data import user_rights
+from src.data import user_rights, instructions
 
 
 def check_user_rigths() -> str:
@@ -57,6 +57,15 @@ class ReferenceInfo(tkinter.Toplevel):
         self.frame_bottom = Frame(self)
         self.frame_bottom.pack(fill=BOTH, expand=True)
 
+    def show_instruction(self, instruction: str):
+        self.frame_header.pack_forget()
+        self.frame_body.pack_forget()
+        self.frame_header = Frame(self, relief=RIDGE)
+        self.frame_header.pack(side=TOP, padx=0)
+        self.frame_body = Frame(self)
+        self.frame_body.pack(fill=BOTH, expand=True)
+        HTMLLabel(self.frame_body, html=instruction).pack(side=TOP, padx=5, pady=5)
+
     def render_widgets(self):
         """
         Функция рендера всех виджетов окна авторизации пользователя
@@ -70,37 +79,10 @@ class ReferenceInfo(tkinter.Toplevel):
                                             f'{check_user_rigths()}',
                       style='Regular.TLabel').pack(side=LEFT, padx=5, pady=5)
         else:
-            HTMLLabel(self.frame_body, html=f"""
-                        <h2>Справочная информация</h2>
-                        <h3>Содержание</h3>
-                        
-                        <ul>
-                          <li><a href='#section'>Загрузка нового BOM</a></li>
-                          <li><a href="{os.path.abspath(os.path.join('pics', 'company_logo.png'))}">Взаимодействие со складом</a></li>
-                        </ul>
-                        <p>  **********  </p>
-                        <h3 id='section'>Загрузка нового BOM</h3>
-                        <p>
-                          Чтобы привязать новый BOM к какой либо пресс-форме необходимо выполнить следующие действия:
-                        </p>
-                        <ul>
-                          <li>1. Во вкладке "Перечень пресс-форм" нажать кнопку "Скачать шаблон";</li>
-                          <li>2. В открывшемся окне выбрать нужный тип BOM (пресс-форма или горячий канал);</li>
-                          <li>3. Cкачать актуальный шаблон Excel файла для заполнения информации;</li>
-                          <li>4. Добавить информацию в скаченный Excel файл;</li>
-                          <li>5. Сохранить файл в директорию своего компьютера, указав в его имени только номер пресс-формы. Чтобы загрузка произошла успешно необходимо убедиться, что пресс-форма под таким номером уже имеется в общем '
-                                'перечне и название файла полностью совпадает с номером пресс-формы. <span>Например: название файла "1981-A.xlsx", а номер пресс-формы "1981-A"</span>;</li>
-                          <li>6. Во вкладке "Перечень пресс-форм" нажать кнопку "Загрузить";</li>
-                          <li>7. В открывшемся окне выбрать нужный тип BOM (пресс-форма или горячий канал);</li>
-                          <li>8. При успешной загрузке данных откроется таблица в окне приложения</li>
-                        <p>
-                          После привязки нового BOM к пресс-форме. Excel файл больше не нужен. Вся информация будет хранится и обрабатываться в таблице базы данных.
-                        </p>
-                        <p>
-                          Если нужно повторно загрузить BOM из Excel файла, в таком случае необходимо удалить старый BOM, нажав на кнопку "Удалить".
-                        </p> 
-                        </ul>              
-            """).pack(pady=10, padx=10)
+            ttk.Label(self.frame_header, text='Справочная информация', style='Title.TLabel').pack(side=TOP, padx=5, pady=5)
+            ttk.Button(self.frame_body, text='Взаимодействие со складом',
+                       command=lambda: self.show_instruction(f'{instructions.get("warehouse_operations")}'),
+                       style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
 
         get_info_log(user='-', message='Reference info widgets were rendered', func_name=self.render_widgets.__name__,
                      func_path=abspath(__file__))
