@@ -60,10 +60,7 @@ class ReferenceInfo(tkinter.Toplevel):
     def show_instruction(self, instruction: str):
         self.frame_header.pack_forget()
         self.frame_body.pack_forget()
-        self.frame_header = Frame(self, relief=RIDGE)
-        self.frame_header.pack(side=TOP, padx=0)
-        self.frame_body = Frame(self)
-        self.frame_body.pack(fill=BOTH, expand=True)
+        self.init_gui()
         HTMLLabel(self.frame_body, html=instruction).pack(side=TOP, padx=5, pady=5)
 
     def render_widgets(self):
@@ -82,7 +79,13 @@ class ReferenceInfo(tkinter.Toplevel):
             ttk.Label(self.frame_header, text='Справочная информация', style='Title.TLabel').pack(side=TOP, padx=5, pady=5)
             ttk.Button(self.frame_body, text='Взаимодействие со складом',
                        command=lambda: self.show_instruction(f'{instructions.get("warehouse_operations")}'),
-                       style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+                       width=20, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+            ttk.Button(self.frame_body, text='Взаимодействие со складом',
+                       command=lambda: self.show_instruction(f'{instructions.get("warehouse_operations")}'),
+                       width=20, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+            ttk.Button(self.frame_body, text='Взаимодействие со складом',
+                       command=lambda: self.show_instruction(f'{instructions.get("warehouse_operations")}'),
+                       width=20, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
 
         get_info_log(user='-', message='Reference info widgets were rendered', func_name=self.render_widgets.__name__,
                      func_path=abspath(__file__))
