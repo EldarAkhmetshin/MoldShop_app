@@ -203,7 +203,7 @@ class App(Frame):
                 file_path = file_path.split('/')
                 mold_number = file_path[-1].replace('.xlsx', '')
                 # Поиск соответствия по номеру пресс-формы в общем перечне
-                if check_mold_number(mold_number):
+                if check_mold_number(mold_number, hot_runner):
                     # Сохранение информации в базе данных
                     new_tables.create_bom_for_new_mold(mold_number=mold_number, rows_data=rows_data, hot_runner=hot_runner)
                     # Рендер окна приложения с новой загруженной информацией
