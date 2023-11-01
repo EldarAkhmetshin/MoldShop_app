@@ -46,10 +46,12 @@ def save_new_molds_list():
         molds_data.insert_data(row)
 
 
-def check_mold_number(mold_number: str, hot_runner: bool = None) -> bool:
+def check_mold_number(mold_number: str, column_names, hot_runner: bool = None) -> bool:
     """
-    Функция проверки наличия номера пресс-формы в общем перечне всех п/ф и проверки на наличие уже созданного ранее BOM с таким номером п/ф
+    Функция проверки наличия номера пресс-формы в общем перечне всех п/ф, проверки на наличие уже созданного ранее BOM с таким номером п/ф,
+    а также проверки на соотвествие названий столбцов таблицы из нового BOM
     :param mold_number: Номер пресс-формы
+    :param column_names: Наименования столбцов нового BOM
     :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
     :return: True - если номер п/ф существует в перечне и такой BOM не создавался ранее 
     """
@@ -62,11 +64,14 @@ def check_mold_number(mold_number: str, hot_runner: bool = None) -> bool:
         if mold_info[0] == mold_number:
             db = table_funcs.DataBase('Database')
             tables = db.get_all_tables()
-            print(tables)
             # Проверка базы данных на наличие схожей таблицы по названию
             new_table = define_table_name()
             for table in tables:
                 if table[0] == new_table:
+                    return False
+            # Проверка названий столбцов нового бома на корректность
+            for num, name in enumerate(columns_bom_parts_table):
+                if name != column_names[num]:
                     return False
             return True
     return False
