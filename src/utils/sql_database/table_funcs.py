@@ -79,6 +79,17 @@ class DataBase():
         self.cursor.close()
         return tables
 
+    def rename_table(self, old_name: str, new_name: str):
+        """
+        Функция переименовывает таблицу в базе данных
+        :param old_name: Старое имя таблицы
+        :param new_name: Новое имя таблицы
+        """
+        self.connect_db()
+        self.cursor.execute(''' ALTER TABLE old_name RENAME TO new_name''' )
+        self.connection.commit()
+        self.cursor.close()
+
 
 class TableInDb(DataBase):
 
