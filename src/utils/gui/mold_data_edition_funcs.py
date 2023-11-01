@@ -196,6 +196,24 @@ class EditedMold(tkinter.Toplevel):
                                                text='Не корректный ввод данных', foreground='Red')
                 self.input_error_label.grid(column=1, row=12)
 
+    def change_table_names_and_paths(self, new_mold_number):
+        """
+        Функция переименования папок для хранения прикреплённых файлов к пресс-форме в случае изменения номера элемента, а также наименований таблиц в БД привязанных к данному номеру
+        :param new_mold_number: Новый номер пресс-формы
+        """
+        os.rename(os.path.join('savings', 'attachments', self.mold_number), os.path.join('savings', 'attachments', new_mold_number))
+        db = DataBase('Database')
+        try:
+            db.rename_table(old_name=f'BOM_{self.mold_number}', new_name=f'BOM_{new_mold_number}')
+        except Exception:
+            pass
+        try:
+            db.rename_table(old_name=f'BOM_HOT_RUNNER_{self.mold_number}', new_name=f'BOM_HOT_RUNNER_{new_mold_number}')
+        except Exception:
+            pass
+            
+        
+    
     def validate_and_save_edited_mold_data(self):
         """
         Фнкция проверки введённых данных пользователем
@@ -243,6 +261,9 @@ class EditedMold(tkinter.Toplevel):
                                                                  new_data=self.status_entry_field.get()),
                                            'LOCATION': define_data(old_data=self.location,
                                                                    new_data=self.location_entry_field.get())})
+                new_mold_number = self.mold_num_entry_field.get()
+                if new_mold_number:
+                    self.change_table_names_and_paths(new_mold_number)
             except sqlite3.ProgrammingError:
                 self.input_error_label = ttk.Label(self.frame,
                                                    text='Ошибка записи данных! Обратитесь к администратору',
