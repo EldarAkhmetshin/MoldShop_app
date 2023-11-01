@@ -147,6 +147,14 @@ class EditedBOM(tkinter.Toplevel):
         # Запуск работы окна приложения
         self.mainloop()
 
+    def change_paths(self, new_part_number: str):
+        """
+        Функция переименования папок для хранения прикреплённых файлов к элементу открытого BOM в случае изменения номера элемента
+        :param new_part_number: Новый номер элемента
+        """
+        os.rename(os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', self.number), os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', new_part_number))
+        os.rename(os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', self.number), os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', new_part_number))
+    
     def validate_and_save_new_part_data(self):
         """
         Фнкция проверки введённых данных пользователем
@@ -234,6 +242,9 @@ class EditedBOM(tkinter.Toplevel):
                                     'MIN_PERCENT': define_data(old_data=self.min_percent,
                                                                new_data=self.min_percent_entry_field.get())
                                 })
+                new_part_number = self.number_entry_field.get()
+                if new_part_number:
+                    self.change_paths(new_part_number)
             except (sqlite3.ProgrammingError, sqlite3.OperationalError):
                 self.input_error_label = Label(self.frame,
                                                text='Ошибка записи данных! Обратитесь к администратору',
