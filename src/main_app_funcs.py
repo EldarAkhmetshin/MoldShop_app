@@ -165,7 +165,7 @@ class App(Frame):
         """
         Инициация окна приложения, а также основных контейнеров
         """
-        self.master.title('MoldShop Management')
+        self.master.title(f'MoldShop Management ({user_data.get(user_name)})')
         self.pack(fill=BOTH)
         self.frame_header = Frame(self, relief=RAISED)
         self.frame_header.pack(fill=BOTH, expand=True)
@@ -199,11 +199,11 @@ class App(Frame):
             except TypeError:
                 get_warning_log(user=user_data.get('user_name'), message='New BOM wasnt uploaded',
                                 func_name=self.upload_new_bom.__name__, func_path=abspath(__file__))
-            else:
+            else: 
                 file_path = file_path.split('/')
                 mold_number = file_path[-1].replace('.xlsx', '')
                 # Поиск соответствия по номеру пресс-формы в общем перечне
-                if check_mold_number(mold_number, hot_runner):
+                if check_mold_number(mold_number, hot_runner, column_names):
                     # Сохранение информации в базе данных
                     new_tables.create_bom_for_new_mold(mold_number=mold_number, rows_data=rows_data, hot_runner=hot_runner)
                     # Рендер окна приложения с новой загруженной информацией
@@ -661,6 +661,8 @@ class App(Frame):
         description_frame.pack(fill=BOTH, expand=True)
         status_frame = ttk.LabelFrame(main_sub_frame, text='Статус пресс-формы', relief=RIDGE)
         status_frame.pack(side=LEFT, padx=4, pady=2)
+        label_frame = Frame(main_sub_frame)
+        label_frame.pack(side=LEFT, padx=25, pady=2)
         # Рендер виджетов
         (ttk.Label(title_frame, text='Перемещение пресс-форм', style='Title.TLabel')
          .pack(side=LEFT, padx=8, pady=2))
@@ -683,6 +685,7 @@ class App(Frame):
             command=lambda: self.open_qr_window(next_status='OUT')
         ).pack(side=LEFT, padx=3, pady=3)
 
+        ttk.Label(label_frame, text='"IN" - П/Ф в производстве; "IN SERVICE" - П/Ф на обслуживании; "OUT" - П/Ф на хранении').pack(side=LEFT, padx=5)
         ttk.Label(picture_subframe, image=self.image_scanner_pil).pack(side=RIGHT, pady=1)
 
         get_info_log(user=user_data.get('user_name'), message='Mold scaning mode widgets were rendered',
