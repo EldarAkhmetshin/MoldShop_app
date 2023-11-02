@@ -55,50 +55,63 @@ class ReferenceInfo(tkinter.Toplevel):
         self.frame_header.pack(side=TOP, padx=0)
         self.frame_body = Frame(self)
         self.frame_body.pack(fill=BOTH, expand=True)
-        self.frame_additional = Frame(self)
-        self.frame_additional.pack(fill=BOTH, expand=True)
         self.frame_bottom = Frame(self)
         self.frame_bottom.pack(fill=BOTH, expand=True)
+
+    def clear_frames(self):
+        for widget in self.frame_header.winfo_children():
+            widget.destroy()
+        for widget in self.frame_body.winfo_children():
+            widget.destroy()
+        for widget in self.frame_bottom.winfo_children():
+            widget.destroy()
+        self.frame_header.pack_forget()
+        self.frame_body.pack_forget()
+        self.frame_bottom.pack_forget()
+        self.init_gui()
 
     def show_instruction(self, instruction: str):
         """
         Функция для отображения инструкции в HTML виде
         :param instruction: Инструкция для пользователя обёрнутая в HTML разметку
         """
-        self.frame_header.pack_forget()
-        self.frame_body.pack_forget()
-        self.init_gui()
+        self.clear_frames()
         HTMLLabel(self.frame_body, html=instruction).pack(side=TOP, padx=5, pady=5)
         ttk.Button(self.frame_bottom, image=self.back_icon_pil,
-                                 command=self.render_widgets()).pack(side=LEFT, padx=5, pady=2)
+                   command=self.render_widgets()).pack(side=LEFT, padx=5, pady=2)
+
+    def back_to_main_page(self):
+        """
+        Функция для рендера главной странницы справки когда пользователь нажал Назад
+        """
+        self.clear_frames()
+        self.render_widgets()
 
     def render_widgets(self):
         """
         Функция рендера всех виджетов окна авторизации пользователя
         """
-        self.frame_header.pack_forget()
-        self.frame_body.pack_forget()
-        self.frame_bottom.pack_forget()
         if self.app_info:
             ttk.Label(self.frame_header, image=self.image_logo_pil).pack(side=TOP, padx=5, pady=5)
             ttk.Label(self.frame_body, text='\nПриложение: ArtPack MoldShop Manadgment'
-                                            '\nВерсия: 1.0.0 от 08.11.23
+                                            '\nВерсия: 1.0.0 от 08.11.23'
                                             '\nТребования: ОС Windows; 64-bit'
                                             f'\nПользователь: {user_data.get("user_name")}'
                                             f'\nПрава пользователя:'
                                             f'{check_user_rigths()}',
                       style='Regular.TLabel').pack(side=LEFT, padx=5, pady=5)
         else:
-            ttk.Label(self.frame_header, text='Справочная информация', style='Title.TLabel').pack(side=TOP, padx=5, pady=5)
+            ttk.Label(self.frame_header, text='Справочная информация', style='Title.TLabel').pack(side=TOP, padx=5,
+                                                                                                  pady=5)
             ttk.Button(self.frame_body, text='Взаимодействие со складом',
                        command=lambda: self.show_instruction(f'{instructions.get("warehouse_operations")}'),
-                       width=20, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+                       width=25, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
             ttk.Button(self.frame_body, text='Перемещение пресс-форм',
                        command=lambda: self.show_instruction(f'{instructions.get("molds_moving")}'),
-                       width=20, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+                       width=25, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
             ttk.Button(self.frame_body, text='Загрузка нового BOM',
                        command=lambda: self.show_instruction(f'{instructions.get("new_bom_uploading")}'),
-                       width=20, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+                       width=25, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
 
         get_info_log(user='-', message='Reference info widgets were rendered', func_name=self.render_widgets.__name__,
                      func_path=abspath(__file__))

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
+import os
 import sqlite3
 import tkinter
 from os.path import abspath
@@ -154,7 +155,7 @@ class EditedBOM(tkinter.Toplevel):
         """
         os.rename(os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', self.number), os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', new_part_number))
         os.rename(os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', self.number), os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', new_part_number))
-    
+
     def validate_and_save_new_part_data(self):
         """
         Фнкция проверки введённых данных пользователем

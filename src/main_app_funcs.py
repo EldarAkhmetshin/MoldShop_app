@@ -165,7 +165,7 @@ class App(Frame):
         """
         Инициация окна приложения, а также основных контейнеров
         """
-        self.master.title(f'MoldShop Management ({user_data.get(user_name)})')
+        self.master.title(f'MoldShop Management ({user_data.get("user_name")})')
         self.pack(fill=BOTH)
         self.frame_header = Frame(self, relief=RAISED)
         self.frame_header.pack(fill=BOTH, expand=True)
@@ -1105,8 +1105,6 @@ class App(Frame):
         if not mold_number:
             mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
         try:
-            # Очистка области в окне приложения перед выводом новой таблицы
-            self.clean_frames()
             # Выгрузка информации из базы данных
             if sort_status:
                 self.sort_status = sort_status
@@ -1120,6 +1118,8 @@ class App(Frame):
         except sqlite3.OperationalError:
             messagebox.showerror('Уведомление об ошибке', f'Спецификации по номеру "{mold_number}" не имеется')
         else:
+            # Очистка области в окне приложения перед выводом новой таблицы
+            self.clean_frames()
             # Обновление обработчиков событий
             self.remove_listeners()
             self.add_listeners(funk_two=self.get_molds_data,

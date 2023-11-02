@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
+import os
 import sqlite3
 import tkinter
 from os.path import abspath
 from tkinter import *
 from tkinter import messagebox, ttk
-from tkinter.ttk import Frame, Combobox
+from tkinter.ttk import Frame
 from typing import Callable
-from ttkthemes.themed_style import ThemedStyle
 
 from src.global_values import user_data
 from src.utils.logger.logs import get_info_log
 from src.utils.sql_database import table_funcs
 from src.data import mold_statuses_list
+from src.utils.sql_database.table_funcs import DataBase
 
 
 class EditedMold(tkinter.Toplevel):
@@ -189,7 +190,7 @@ class EditedMold(tkinter.Toplevel):
                                         'Информация о новой пресс-форме успешно добавлена в общий перечень')
                     self.changed_data = True
                     get_info_log(user=user_data.get('user_name'), message='New data was successfully added',
-                                 func_name=self.validate_and_save_new_part_data.__name__, func_path=abspath(__file__))
+                                 func_name=self.validate_and_save_new_mold_data.__name__, func_path=abspath(__file__))
             # Если данные введены некорректно пользователь получит уведомление об ошибке
             else:
                 self.input_error_label = Label(self.frame,
@@ -201,19 +202,20 @@ class EditedMold(tkinter.Toplevel):
         Функция переименования папок для хранения прикреплённых файлов к пресс-форме в случае изменения номера элемента, а также наименований таблиц в БД привязанных к данному номеру
         :param new_mold_number: Новый номер пресс-формы
         """
-        os.rename(os.path.join('savings', 'attachments', self.mold_number), os.path.join('savings', 'attachments', new_mold_number))
+        try:
+            os.rename(os.path.join('savings', 'attachments', self.mold_number), os.path.join('savings', 'attachments', new_mold_number))
+        except FileNotFoundError:
+            pass
         db = DataBase('Database')
         try:
             db.rename_table(old_name=f'BOM_{self.mold_number}', new_name=f'BOM_{new_mold_number}')
-        except Exception:
+        except sqlite3.OperationalError:
             pass
         try:
             db.rename_table(old_name=f'BOM_HOT_RUNNER_{self.mold_number}', new_name=f'BOM_HOT_RUNNER_{new_mold_number}')
-        except Exception:
+        except sqlite3.OperationalError:
             pass
-            
-        
-    
+
     def validate_and_save_edited_mold_data(self):
         """
         Фнкция проверки введённых данных пользователем
@@ -275,7 +277,7 @@ class EditedMold(tkinter.Toplevel):
                 messagebox.showinfo('Уведомление', 'Информация о пресс-форме успешно изменена')
                 self.changed_data = True
                 get_info_log(user=user_data.get('user_name'), message='Data was successfully changed',
-                             func_name=self.validate_and_save_edited_part_data.__name__, func_path=abspath(__file__))
+                             func_name=self.validate_and_save_edited_mold_data.__name__, func_path=abspath(__file__))
 
     def confirm_delete(self):
         """
