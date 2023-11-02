@@ -62,8 +62,12 @@ class EditedMold(tkinter.Toplevel):
         """Инициация окна приложения и контейнера для размещения виджетов"""
         self.focus_set()
         self.grab_set()
-        self.frame = Frame(self)
-        self.frame.pack()
+        self.frame_header = Frame(self)
+        self.frame_header.pack(fill=BOTH, expand=True)
+        self.frame_body = Frame(self)
+        self.frame_body.pack(fill=BOTH, expand=True)
+        self.frame_bottom = Frame(self)
+        self.frame_bottom.pack(fill=BOTH, expand=True)
 
     def get_label_and_entry_widgets_in_row(self, text: str, point_info: str, row: int,
                                            necessary_field: bool = None, mold_status_widget: bool = None) \
@@ -77,21 +81,21 @@ class EditedMold(tkinter.Toplevel):
         :param mold_status_widget: Булево значение передающее True, если рендериться строка о статусе п/ф
         :return: Виджет поля ввода
         """
-        ttk.Label(self.frame, text=text, style='Regular.TLabel').grid(column=1, row=row, padx=5, pady=5)
+        ttk.Label(self.frame_body, text=text, style='Regular.TLabel').grid(column=1, row=row, padx=5, pady=5)
         if self.mold_data:
             entry_column_num = 3
-            ttk.Label(self.frame, text=point_info, style='Regular.TLabel').grid(column=2, row=row, padx=5, pady=5)
+            ttk.Label(self.frame_body, text=point_info, style='Regular.TLabel').grid(column=2, row=row, padx=5, pady=5)
         else:
             entry_column_num = 2
 
         if necessary_field and not self.mold_data:
-            ttk.Label(self.frame, text='*', style='Regular.TLabel').grid(column=4, row=row)
+            ttk.Label(self.frame_body, text='*', style='Regular.TLabel').grid(column=4, row=row)
         if mold_status_widget:
-            combobox = ttk.Combobox(self.frame, values=mold_statuses_list, state='readonly')
+            combobox = ttk.Combobox(self.frame_body, values=mold_statuses_list, state='readonly')
             combobox.grid(pady=5, column=entry_column_num, row=row)
             return combobox
         else:
-            entry_field = ttk.Entry(self.frame, style='Regular.TEntry')
+            entry_field = ttk.Entry(self.frame_body, style='Regular.TEntry')
             entry_field.grid(pady=5, padx=2, column=entry_column_num, row=row)
             return entry_field
 
@@ -101,8 +105,9 @@ class EditedMold(tkinter.Toplevel):
         """
         define_title: Callable = lambda: 'Редактирование информации о пресс-форме' \
             if self.mold_data else 'Новая пресс-форма'
-
-        ttk.Label(self.frame, text=define_title(), style='Title.TLabel').grid(column=2, row=1, pady=15)
+        define_command: Callable = lambda: self.validate_and_save_edited_mold_data() if self.mold_data else self.validate_and_save_new_mold_data()
+        
+        ttk.Label(self.frame_header, text=define_title(), style='Title.TLabel').pack(side=TOP, pady=15)
 
         self.mold_num_entry_field = self.get_label_and_entry_widgets_in_row(text='№ формы', point_info=self.mold_number,
                                                                             row=2, necessary_field=True)
@@ -131,16 +136,10 @@ class EditedMold(tkinter.Toplevel):
         self.location_entry_field = self.get_label_and_entry_widgets_in_row(text='Местонахождение',
                                                                             point_info=self.location, row=11)
 
-        if self.mold_data:
-            ttk.Button(
-                self.frame, text='Применить', style='Regular.TButton',
-                command=self.validate_and_save_edited_mold_data
-            ).grid(padx=10, pady=10, column=2, row=13)
-        else:
-            ttk.Button(
-                self.frame, text='Применить', style='Regular.TButton',
-                command=self.validate_and_save_new_mold_data
-            ).grid(padx=10, pady=10, column=2, row=13)
+        ttk.Button(
+            self.frame_bottom, text='Применить', style='Regular.TButton',
+            command=define_command
+        ).pack(side=TOP, padx=10, pady=10)
         get_info_log(user=user_data.get('user_name'), message='Widgets were rendered',
                      func_name=self.render_widgets.__name__, func_path=abspath(__file__))
         # Запуск работы окна приложения
@@ -197,7 +196,7 @@ class EditedMold(tkinter.Toplevel):
                                                text='Не корректный ввод данных', foreground='Red')
                 self.input_error_label.grid(column=1, row=12)
 
-    def change_table_names_and_paths(self, new_mold_number):
+    def change_table_names_and_paths(self, new_mold_number: str):
         """
         Функция переименования папок для хранения прикреплённых файлов к пресс-форме в случае изменения номера элемента, а также наименований таблиц в БД привязанных к данному номеру
         :param new_mold_number: Новый номер пресс-формы
