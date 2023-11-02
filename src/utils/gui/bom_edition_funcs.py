@@ -68,8 +68,12 @@ class EditedBOM(tkinter.Toplevel):
         """
         self.focus_set()
         self.grab_set()
-        self.frame = Frame(self)
-        self.frame.pack()
+        self.frame_header = Frame(self)
+        self.frame_header.pack(fill=BOTH, expand=True)
+        self.frame_body = Frame(self)
+        self.frame_body.pack(fill=BOTH, expand=True)
+        self.frame_bottom = Frame(self)
+        self.frame_bottom.pack(fill=BOTH, expand=True)
 
     def get_label_and_entry_widgets_in_row(self, text: str, point_info: str, row: int,
                                            necessary_field: bool = None) -> tkinter.Entry:
@@ -81,16 +85,16 @@ class EditedBOM(tkinter.Toplevel):
         :param necessary_field: Булево значение о необходимости заполнения данных
         :return: Виджет поля ввода
         """
-        ttk.Label(self.frame, text=text, style='Regular.TLabel').grid(column=1, row=row, padx=5, pady=5)
+        ttk.Label(self.frame_body, text=text, style='Regular.TLabel').grid(column=1, row=row, padx=5, pady=5)
         if self.part_data:
             entry_column_num = 3
-            ttk.Label(self.frame, text=point_info, style='Regular.TLabel').grid(column=2, row=row, padx=5, pady=5)
+            ttk.Label(self.frame_body, text=point_info, style='Regular.TLabel').grid(column=2, row=row, padx=5, pady=5)
         else:
             entry_column_num = 2
 
         if necessary_field and not self.part_data:
-            ttk.Label(self.frame, text='*', font=('Times', '13')).grid(column=4, row=row)
-        entry_field = ttk.Entry(self.frame, font=('Times', '10', 'bold'))
+            ttk.Label(self.frame_body, text='*', font=('Times', '13')).grid(column=4, row=row)
+        entry_field = ttk.Entry(self.frame_body, font=('Times', '10', 'bold'))
         entry_field.grid(pady=5, padx=2, column=entry_column_num, row=row)
         return entry_field
 
@@ -100,8 +104,9 @@ class EditedBOM(tkinter.Toplevel):
         """
         define_title: Callable = lambda: 'Редактирование информации о запчасти' \
             if self.part_data else 'Добавление нового элемента в BOM'
+        define_command: Callable = lambda: self.validate_and_save_edited_part_data() if self.part_data else self.validate_and_save_new_part_data()
 
-        ttk.Label(self.frame, text=define_title(), style='Title.TLabel').grid(column=2, row=1, pady=15)
+        ttk.Label(self.frame_header, text=define_title(), style='Title.TLabel').pack(side=TOP, pady=15)
 
         self.number_entry_field = self.get_label_and_entry_widgets_in_row(text='Номер', point_info=self.number,
                                                                           row=2, necessary_field=True)
@@ -132,17 +137,11 @@ class EditedBOM(tkinter.Toplevel):
                                                                                point_info=self.used_parts_quantity,
                                                                                row=13)
 
-        if self.part_data:
-            ttk.Button(
-                self.frame, text='Применить', style='Regular.TButton',
-                command=self.validate_and_save_edited_part_data
-            ).grid(padx=10, pady=10, column=2, row=14)
-        else:
-            ttk.Button(
-                self.frame, text='Применить', style='Regular.TButton',
-                width=20,
-                command=self.validate_and_save_new_part_data
-            ).grid(padx=10, pady=10, column=2, row=14)
+        ttk.Button(
+            self.frame_bottom, text='Применить', style='Regular.TButton',
+            width=20,
+            command=define_command
+        ).pack(side=TOP, padx=10, pady=10)
         get_info_log(user=user_data.get('user_name'), message='Widgets were rendered',
                      func_name=self.render_widgets.__name__, func_path=abspath(__file__))
         # Запуск работы окна приложения
@@ -153,9 +152,15 @@ class EditedBOM(tkinter.Toplevel):
         Функция переименования папок для хранения прикреплённых файлов к элементу открытого BOM в случае изменения номера элемента
         :param new_part_number: Новый номер элемента
         """
-        os.rename(os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', self.number), os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', new_part_number))
-        os.rename(os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', self.number), os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', new_part_number))
-
+        try:
+            os.rename(os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', self.number), os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', new_part_number))
+        except FileNotFoundError:
+            pass
+        try:
+            os.rename(os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', self.number), os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', new_part_number))
+        except FileNotFoundError:
+            pass
+    
     def validate_and_save_new_part_data(self):
         """
         Фнкция проверки введённых данных пользователем
