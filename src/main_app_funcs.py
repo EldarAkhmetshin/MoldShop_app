@@ -910,7 +910,12 @@ class App(Frame):
         # прежде сделать реверсию массива данных
         reversed_data = list(reversed(self.current_table[1:]))
         for row in reversed_data:
-            self.tree.insert("", END, values=row)
+            final_row = []
+            for cell in row:
+                if cell is None:
+                    cell == '-'
+                final_row.append(cell)
+            self.tree.insert("", END, values=final_row)
 
         get_info_log(user=user_data.get('user_name'), message='Table was rendered',
                      func_name=self.render_table.__name__, func_path=abspath(__file__))
