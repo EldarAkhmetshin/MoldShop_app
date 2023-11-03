@@ -1,3 +1,4 @@
+![image](https://github.com/EldarAkhmetshin/MoldShop_app/assets/105647896/77e404a9-7a7c-4df1-8782-6ce189295263) 
 # __`MoldShop Management App`__
 ## __Приложение для управления пресс-формами__
 ---
