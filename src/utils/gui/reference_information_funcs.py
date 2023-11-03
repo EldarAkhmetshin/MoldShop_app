@@ -103,15 +103,21 @@ class ReferenceInfo(tkinter.Toplevel):
         else:
             ttk.Label(self.frame_header, text='Справочная информация', style='Title.TLabel').pack(side=TOP, padx=5,
                                                                                                   pady=5)
+            ttk.Button(self.frame_body, text='Основные возможности приложения',
+                       command=lambda: self.show_instruction(f'{instructions.get("app_possibilities")}'),
+                       width=28, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
             ttk.Button(self.frame_body, text='Взаимодействие со складом',
                        command=lambda: self.show_instruction(f'{instructions.get("warehouse_operations")}'),
-                       width=25, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+                       width=28, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
             ttk.Button(self.frame_body, text='Перемещение пресс-форм',
                        command=lambda: self.show_instruction(f'{instructions.get("molds_moving")}'),
-                       width=25, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+                       width=28, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+            ttk.Button(self.frame_body, text='Работа с вложениями',
+                       command=lambda: self.show_instruction(f'{instructions.get("attachments")}'),
+                       width=28, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
             ttk.Button(self.frame_body, text='Загрузка нового BOM',
                        command=lambda: self.show_instruction(f'{instructions.get("new_bom_uploading")}'),
-                       width=25, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+                       width=28, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
 
         get_info_log(user='-', message='Reference info widgets were rendered', func_name=self.render_widgets.__name__,
                      func_path=abspath(__file__))
