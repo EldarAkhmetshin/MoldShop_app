@@ -8,8 +8,6 @@ from tkinter import *
 from tkinter import messagebox, ttk, filedialog
 from tkinter.ttk import Frame
 from typing import Callable
-from PIL import ImageTk, Image
-from pdf2image import convert_from_path
 from tkhtmlview import HTMLLabel
 
 from src.data import error_messages

@@ -6,7 +6,6 @@ from tkinter import *
 from tkinter import ttk
 from tkinter.ttk import Frame
 from typing import Callable
-from collections import OrderedDict
 
 from src.data import columns_searching_results, columns_sizes_warehouse_table
 from src.global_values import user_data
