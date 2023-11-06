@@ -1,12 +1,12 @@
 import os
-from tkinter import Tk, Menu
+from tkinter import Tk
 from ttkthemes import ThemedStyle
 from loguru import logger
 
 from src.utils.gui.styles import define_styles
 from src.utils.sql_database.new_tables import create_tables_in_db
 from src.utils.logger.logs import logger_add
-from src.main_app_funcs import App
+from src.main_app_funcs import App, create_menu_widgets
 from src.utils.gui.user_authorization_funcs import LogInApp
 from src.global_values import user_data
 
@@ -22,16 +22,10 @@ def render_main_window():
     style.set_theme('radiance')
     window.iconbitmap(os.path.join('pics', 'artpack.ico'))
     define_styles()
-    # Создание виджета с выпадающими списками команд, который находится под строкой заголовка вверху
-    menu = Menu(window)
-    window.config(menu=menu)
-    help_menu = Menu(menu, tearoff=0)
-    help_menu.add_command(label='Помощь', state='disabled')
-    help_menu.add_command(label='О программе')
-    menu.add_cascade(label='Справка', menu=help_menu)
     # Создание экземпляра класса осннового окна приложения и рендер конйнеров с виджетами
     app = App()
     app.render_widgets_main_menu()
+    create_menu_widgets(window, app)
     # Запуск работы окна приложения
     window.mainloop()
 

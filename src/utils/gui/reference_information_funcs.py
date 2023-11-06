@@ -51,23 +51,14 @@ class ReferenceInfo(tkinter.Toplevel):
         Инициация окна приложения и контенера для размещения виджетов
         """
         self.focus_set()
-        self.frame_header = Frame(self, relief=RIDGE)
-        self.frame_header.pack(side=TOP, padx=0)
-        self.frame_body = Frame(self)
-        self.frame_body.pack(fill=BOTH, expand=True)
-        self.frame_bottom = Frame(self)
-        self.frame_bottom.pack(fill=BOTH, expand=True)
+        self.frame = Frame(self)
+        self.frame.pack()
 
     def clear_frames(self):
-        for widget in self.frame_header.winfo_children():
-            widget.destroy()
-        for widget in self.frame_body.winfo_children():
-            widget.destroy()
-        for widget in self.frame_bottom.winfo_children():
-            widget.destroy()
-        self.frame_header.pack_forget()
-        self.frame_body.pack_forget()
-        self.frame_bottom.pack_forget()
+        """
+        Отчистка основного контейнера для виджетов
+        """
+        self.frame.pack_forget()
         self.init_gui()
 
     def show_instruction(self, instruction: str):
@@ -76,9 +67,16 @@ class ReferenceInfo(tkinter.Toplevel):
         :param instruction: Инструкция для пользователя обёрнутая в HTML разметку
         """
         self.clear_frames()
-        HTMLLabel(self.frame_body, html=instruction).pack(side=TOP, padx=5, pady=5)
-        ttk.Button(self.frame_bottom, image=self.back_icon_pil,
-                   command=self.render_widgets()).pack(side=LEFT, padx=5, pady=2)
+        frame_button = Frame(self.frame)
+        frame_button.pack(fill=BOTH, expand=True)
+        frame_html = Frame(self.frame)
+        frame_html.pack(fill=BOTH, expand=True)
+        # # добавляем вертикальную прокрутку
+        # scrollbar = Scrollbar(self.frame, orient=VERTICAL)
+        # scrollbar.pack(side=RIGHT, fill='y')
+        HTMLLabel(frame_html, html=instruction).pack(side=TOP, padx=1)
+        ttk.Button(frame_button, image=self.back_icon_pil, style='Regular.TButton',
+                   command=self.back_to_main_page).pack(side=LEFT, padx=1, pady=2)
 
     def back_to_main_page(self):
         """
@@ -91,33 +89,37 @@ class ReferenceInfo(tkinter.Toplevel):
         """
         Функция рендера всех виджетов окна авторизации пользователя
         """
+        frame_header = Frame(self.frame, relief=RIDGE)
+        frame_header.pack(side=TOP, padx=0)
+        frame_body = Frame(self.frame)
+        frame_body.pack(fill=BOTH, expand=True)
         if self.app_info:
-            ttk.Label(self.frame_header, image=self.image_logo_pil).pack(side=TOP, padx=5, pady=5)
-            ttk.Label(self.frame_body, text='\nПриложение: ArtPack MoldShop Manadgment'
-                                            '\nВерсия: 1.0.0 от 08.11.23'
-                                            '\nТребования: ОС Windows; 64-bit'
-                                            f'\nПользователь: {user_data.get("user_name")}'
-                                            f'\nПрава пользователя:'
-                                            f'{check_user_rigths()}',
+            ttk.Label(frame_header, image=self.image_logo_pil).pack(side=TOP, padx=5, pady=5)
+            ttk.Label(frame_body, text='\nПриложение: ArtPack MoldShop Manadgment'
+                                       '\nВерсия: 1.0.0 от 08.11.23'
+                                       '\nТребования: ОС Windows; 64-bit'
+                                       f'\nПользователь: {user_data.get("user_name")}'
+                                       f'\nПрава пользователя:'
+                                       f'{check_user_rigths()}',
                       style='Regular.TLabel').pack(side=LEFT, padx=5, pady=5)
         else:
-            ttk.Label(self.frame_header, text='Справочная информация', style='Title.TLabel').pack(side=TOP, padx=5,
-                                                                                                  pady=5)
-            ttk.Button(self.frame_body, text='Основные возможности приложения',
+            ttk.Label(frame_header, text='Справочная информация', style='Title.TLabel').pack(side=TOP, padx=5,
+                                                                                             pady=5)
+            ttk.Button(frame_body, text='Основные возможности приложения',
                        command=lambda: self.show_instruction(f'{instructions.get("app_possibilities")}'),
-                       width=28, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
-            ttk.Button(self.frame_body, text='Взаимодействие со складом',
+                       width=32, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+            ttk.Button(frame_body, text='Взаимодействие со складом',
                        command=lambda: self.show_instruction(f'{instructions.get("warehouse_operations")}'),
-                       width=28, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
-            ttk.Button(self.frame_body, text='Перемещение пресс-форм',
+                       width=32, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+            ttk.Button(frame_body, text='Перемещение пресс-форм',
                        command=lambda: self.show_instruction(f'{instructions.get("molds_moving")}'),
-                       width=28, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
-            ttk.Button(self.frame_body, text='Работа с вложениями',
+                       width=32, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+            ttk.Button(frame_body, text='Работа с вложениями',
                        command=lambda: self.show_instruction(f'{instructions.get("attachments")}'),
-                       width=28, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
-            ttk.Button(self.frame_body, text='Загрузка нового BOM',
+                       width=32, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+            ttk.Button(frame_body, text='Загрузка нового BOM',
                        command=lambda: self.show_instruction(f'{instructions.get("new_bom_uploading")}'),
-                       width=28, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+                       width=32, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
 
         get_info_log(user='-', message='Reference info widgets were rendered', func_name=self.render_widgets.__name__,
                      func_path=abspath(__file__))

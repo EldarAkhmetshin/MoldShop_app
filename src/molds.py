@@ -2,6 +2,8 @@ import os
 from tkinter import messagebox
 from openpyxl import load_workbook
 from typing import Callable
+
+from src.data import columns_bom_parts_table
 from src.utils.sql_database import table_funcs
 
 
@@ -46,7 +48,7 @@ def save_new_molds_list():
         molds_data.insert_data(row)
 
 
-def check_mold_number(mold_number: str, column_names, hot_runner: bool = None) -> bool:
+def validate_new_bom(mold_number: str, column_names: tuple, hot_runner: bool = None) -> bool:
     """
     Функция проверки наличия номера пресс-формы в общем перечне всех п/ф, проверки на наличие уже созданного ранее BOM с таким номером п/ф,
     а также проверки на соотвествие названий столбцов таблицы из нового BOM

@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
 import tkinter
+from os.path import abspath
 from tkinter import *
 from tkinter import ttk
 from tkinter.ttk import Frame
 from typing import Callable
+from collections import OrderedDict
 
 from src.data import columns_searching_results, columns_sizes_warehouse_table
+from src.global_values import user_data
+from src.utils.logger.logs import get_info_log
 from src.utils.sql_database.table_funcs import DataBase, TableInDb
 
 
@@ -55,7 +59,8 @@ class Searcher(tkinter.Toplevel):
         """
         ttk.Label(self.frame_header, text='Поиск запчастей', style='Title.TLabel').pack(side=TOP, pady=15)
 
-        ttk.Label(self.frame_body, text='Параметры поиска:', style='Regular.TLabel').grid(column=1, row=1, padx=5, pady=10)
+        ttk.Label(self.frame_body, text='Параметры поиска:', style='Regular.TLabel').grid(column=1, row=1, padx=5,
+                                                                                          pady=10)
 
         ttk.Label(self.frame_body, text='Наименование', style='Regular.TLabel').grid(column=1, row=2, padx=5, pady=5)
         self.name_entry_field = ttk.Entry(self.frame_body, font=('Times', '11', 'normal'))
@@ -74,7 +79,8 @@ class Searcher(tkinter.Toplevel):
                                                   state='readonly')
         self.product_type_combobox.grid(column=2, row=5, padx=5, pady=5)
 
-        ttk.Label(self.frame_body, text='Наличие на складе', style='Regular.TLabel').grid(column=1, row=6, padx=5, pady=5)
+        ttk.Label(self.frame_body, text='Наличие на складе', style='Regular.TLabel').grid(column=1, row=6, padx=5,
+                                                                                          pady=5)
         self.checkbutton = ttk.Checkbutton(self.frame_body, variable=self.stock, offvalue='False', onvalue='True')
         self.checkbutton.grid(column=2, row=6, padx=5, pady=5)
 
@@ -90,7 +96,8 @@ class Searcher(tkinter.Toplevel):
         Функция рендера результатов поиска в табличном виде в дополнительном окне
         """
         if len(self.results) == 0:
-            self.input_error_label = Label(self.frame_bottom, text='По вашему запросу ничего не найдено', foreground='Red')
+            self.input_error_label = Label(self.frame_bottom, text='По вашему запросу ничего не найдено',
+                                           foreground='Red')
             self.input_error_label.pack(side=TOP, padx=5, pady=5)
         else:
             if self.results_window and self.tree:
@@ -114,22 +121,40 @@ class Searcher(tkinter.Toplevel):
                 self.tree.insert("", END, values=row)
             self.results = []
             get_info_log(user=user_data.get('user_name'), message='Results of searching were rendered',
-                                     func_name=self.render_results.__name__, func_path=abspath(__file__))
+                         func_name=self.render_results.__name__, func_path=abspath(__file__))
 
     def sort_table(self, table_name):
         """
-        Функция сортировки данных в таблице базы данных по введённым ранее параметрам, а также запись полученных данных в массив с результатами поискоаого запроса
+        Функция сортировки данных в таблице базы данных по введённым ранее параметрам, а также запись полученных данных
+        в массив с результатами поискового запроса
         :param table_name: Имя таблицы, в которой осуществляется поиск
         """
         define_mold_type: Callable = lambda: 'Горячий канал' if 'HOT_RUNNER' in table_name else 'Пресс-форма'
         bom = TableInDb(table_name, 'Database')
-        table_list = bom.get_table(type_returned_data='dict', first_param='PART_NAME',
-                                   first_value=self.name_entry_field.get(),
-                                   second_param='DESCRIPTION',
-                                   second_value=self.description_entry_field.get(),
-                                   third_param='ADDITIONAL_INFO',
-                                   third_value=self.additional_info_entry_field.get())
-        for row in table_list:
+        capitalize_results = bom.get_table(type_returned_data='dict', first_param='PART_NAME',
+                                           first_value=self.name_entry_field.get().capitalize(),
+                                           second_param='DESCRIPTION',
+                                           second_value=self.description_entry_field.get().capitalize(),
+                                           third_param='ADDITIONAL_INFO',
+                                           third_value=self.additional_info_entry_field.get().capitalize())
+        lower_results = bom.get_table(type_returned_data='dict', first_param='PART_NAME',
+                                      first_value=self.name_entry_field.get().lower(),
+                                      second_param='DESCRIPTION',
+                                      second_value=self.description_entry_field.get().lower(),
+                                      third_param='ADDITIONAL_INFO',
+                                      third_value=self.additional_info_entry_field.get().lower())
+        upper_results = bom.get_table(type_returned_data='dict', first_param='PART_NAME',
+                                      first_value=self.name_entry_field.get().upper(),
+                                      second_param='DESCRIPTION',
+                                      second_value=self.description_entry_field.get().upper(),
+                                      third_param='ADDITIONAL_INFO',
+                                      third_value=self.additional_info_entry_field.get().upper())
+        table_list = []
+        table_list.extend(capitalize_results)
+        table_list.extend(lower_results)
+        table_list.extend(upper_results)
+        sorted_table = map(dict, set(tuple(sorted(result.items())) for result in table_list))
+        for row in sorted_table:
             try:
                 if ((self.stock.get() == 'True' and int(row.get('PARTS_QUANTITY')) > 0) or self.stock.get() == 'False'
                         or self.stock.get() == ''):
@@ -145,7 +170,7 @@ class Searcher(tkinter.Toplevel):
         Функция проведения поиска запчастей по введённым ранее параметрам
         """
         get_info_log(user=user_data.get('user_name'), message='Searching is run',
-                                     func_name=self.start_search.__name__, func_path=abspath(__file__))
+                     func_name=self.start_search.__name__, func_path=abspath(__file__))
         if self.input_error_label:
             self.input_error_label.destroy()
         # Получение всех наименований доступных таблиц для поиска по ним
@@ -165,5 +190,6 @@ class Searcher(tkinter.Toplevel):
             self.render_results()
 
         else:
-            self.input_error_label = Label(self.frame_bottom, text='По вашему запросу ничего не найдено', foreground='Red')
+            self.input_error_label = Label(self.frame_bottom, text='По вашему запросу ничего не найдено',
+                                           foreground='Red')
             self.input_error_label.pack(side=TOP, padx=5, pady=5)

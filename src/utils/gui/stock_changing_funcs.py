@@ -162,11 +162,16 @@ class Stock(tkinter.Toplevel):
                     messagebox.showinfo('Уведомление',
                                         f'Итоговое количество успешно изменено.\nЯчейка хранения: {self.storage_cell}')
                     self.changed_data = True
+            else:
+                self.input_error_label = Label(self.frame_bottom,
+                                               text='Ошибка. Возможно указано кол-во больше,\nчем есть в наличие',
+                                               foreground='Red')
+                self.input_error_label.pack(side=TOP, padx=5, pady=5)
         # Если данные введены некорректно пользователь получит уведомление об ошибке
         else:
             self.input_error_label = Label(self.frame_bottom,
                                            text='Не выбран тип запчасти', foreground='Red')
-            self.input_error_label.grid(side=TOP, padx=5, pady=5)
+            self.input_error_label.pack(side=TOP, padx=5, pady=5)
 
     def confirm_delete(self):
         message = "Вы уверены, что хотите закрыть это окно?"

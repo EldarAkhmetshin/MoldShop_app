@@ -3,7 +3,6 @@ from tkinter import ttk
 
 
 def define_styles():
-    print(ttk.Style().theme_names())
     style = ttk.Style()
 
     style.configure(style='Regular.TLabel',
@@ -67,7 +66,3 @@ def define_styles():
                     foreground='grey20',
                     anchor=N,
                     font=('Arial', '10', 'normal'))
-
-    # style.map(style='Menu.TButton',
-    #                  foreground=[('pressed', 'white'), ('active', 'blue')],
-    #                  background=[('pressed', '!disabled', 'black'), ('active', 'white')])

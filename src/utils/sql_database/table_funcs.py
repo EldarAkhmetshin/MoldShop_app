@@ -189,7 +189,6 @@ class TableInDb(DataBase):
         :param second_value: Значение 2-го параметра для поиска
         :param third_param: Имя 3-го столбца / параметра на который будет ориентирован поиск
         :param third_value: Значение 3-го параметра для поиска
-
         :return: all_info: Возвращаемая информация согласно запрашиваемым параметрам
         """
         self.connect_db()
@@ -215,14 +214,12 @@ class TableInDb(DataBase):
         result = self.cursor.fetchall()
         columns = tuple(i_param[1] for i_param in self.cursor.execute(f'PRAGMA table_info ({self.table_name});'))
         self.cursor.close()
-        all_info = []
 
         if type_returned_data == 'dict':
+            all_info = []
             for i_res in result:
-                info = {}
-                for i_num, i_value in enumerate(i_res):
-                    info[columns[i_num]] = i_value
-                all_info.append(info)
+                all_info.append({columns[i_num]: i_value for i_num, i_value in enumerate(i_res)})
+
             all_info_check: Callable = lambda: all_info if not last_string else all_info[len(all_info) - 1]
             return all_info_check()
 
