@@ -802,7 +802,7 @@ class App(Frame):
                                 called_function=lambda: self.open_bom(
                                     self.mold_number)),
                             edit_row_func=self.render_bom_edition_window,
-                            delete_row_func=lambda: self.delete_selected_table_row(f'BOM_{self.mold_number}', 'NUMBER'),
+                            delete_row_func=lambda: self.delete_selected_table_row(define_table_name(), 'NUMBER'),
                             new_attachment_func=lambda: self.upload_attachment(bom_part=True),
                             looking_attachments_func=self.render_attachments_window)
         # Объявление основного и вложенных контейнеров для виджетов
@@ -1162,7 +1162,7 @@ class App(Frame):
                 self.sort_bom_parts(hot_runner)
                 self.current_table = self.sorted_bom_tuple.get(sort_status)
             else:
-                self.sort_status = None
+                #self.sort_status = None
                 self.mold_number = mold_number
                 bom = table_funcs.TableInDb(define_table_name(), 'Database')
                 self.current_table = bom.get_table(type_returned_data='tuple')
@@ -1170,6 +1170,7 @@ class App(Frame):
             if hot_runner:
                 messagebox.showerror('Уведомление об ошибке', f'Спецификации по номеру "{mold_number}" не имеется')
             else:
+                # рекурсия для открытия BOM на горячий канал если не нашлась таблица с основным BOM
                 try:
                     self.open_bom(mold_number=mold_number, hot_runner=True, sort_status=sort_status)
                 except sqlite3.OperationalError:
@@ -1186,6 +1187,7 @@ class App(Frame):
             #                        called_function=lambda: self.open_bom(
             #                            self.mold_number)),
             #                    funk_four=self.render_bom_edition_window)
+            self.sort_status = sort_status
             self.render_widgets_selected_bom()
             self.render_table(columns_sizes=columns_sizes_bom_parts_table)
 
@@ -1403,7 +1405,7 @@ class App(Frame):
                         self.get_molds_data()
                     else:
                         self.tree.pack_forget()
-                        self.open_bom(self.mold_number)
+                        self.open_bom(mold_number=self.mold_number, hot_runner=self.hot_runner_bom)
         else:
             messagebox.showerror(error_messages.get('access_denied').get('message_name'),
                                  error_messages.get('access_denied').get('message_body'))

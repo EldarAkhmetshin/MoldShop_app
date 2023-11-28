@@ -37,9 +37,6 @@ class ReferenceInfo(tkinter.Toplevel):
         self.frame_header = None
         self.frame_body = None
         self.frame_bottom = None
-        self.image_logo = Image.open(os.path.abspath(os.path.join('pics', 'company_logo.png'))) \
-            .resize((150, 70))
-        self.image_logo_pil = ImageTk.PhotoImage(self.image_logo)
         self.back_icon = Image.open(os.path.abspath(os.path.join('pics', 'back.png'))) \
             .resize((20, 20))
         self.back_icon_pil = ImageTk.PhotoImage(self.back_icon)
@@ -94,7 +91,6 @@ class ReferenceInfo(tkinter.Toplevel):
         frame_body = Frame(self.frame)
         frame_body.pack(fill=BOTH, expand=True)
         if self.app_info:
-            ttk.Label(frame_header, image=self.image_logo_pil).pack(side=TOP, padx=5, pady=5)
             ttk.Label(frame_body, text='\nПриложение: ArtPack MoldShop Manadgment'
                                        '\nВерсия: 1.0.0 от 08.11.23'
                                        '\nТребования: ОС Windows; 64-bit'

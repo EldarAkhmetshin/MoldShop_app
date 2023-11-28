@@ -176,7 +176,7 @@ class Searcher(tkinter.Toplevel):
         db = DataBase('Database')
         tables_names = db.get_all_tables()
         # Старт сортировки если один из параметров заполнен
-        if self.name_entry_field or self.description_entry_field or self.additional_info_entry_field:
+        if self.name_entry_field.get() or self.description_entry_field.get() or self.additional_info_entry_field.get():
             for table in tables_names:
                 if (self.product_type_combobox.get() == 'Пресс-форма' and 'HOT_RUNNER' not in table[0]
                         and 'BOM' in table[0]):

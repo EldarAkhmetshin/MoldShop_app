@@ -106,7 +106,7 @@ class EditedMold(tkinter.Toplevel):
         define_title: Callable = lambda: 'Редактирование информации о пресс-форме' \
             if self.mold_data else 'Новая пресс-форма'
         define_command: Callable = lambda: self.validate_and_save_edited_mold_data() if self.mold_data else self.validate_and_save_new_mold_data()
-        
+
         ttk.Label(self.frame_header, text=define_title(), style='Title.TLabel').pack(side=TOP, pady=15)
 
         self.mold_num_entry_field = self.get_label_and_entry_widgets_in_row(text='№ формы', point_info=self.mold_number,
@@ -156,11 +156,11 @@ class EditedMold(tkinter.Toplevel):
             release_date = int(self.release_date_entry_field.get())
             cavities_qnt = int(self.cavities_qnt_entry_field.get())
         except ValueError:
-            self.input_error_label = Label(self.frame,
+            self.input_error_label = Label(self.frame_bottom,
                                            text='В графах "Год выпуска" и "Количество гнёзд" '
                                                 'должны быть числовые значения',
                                            foreground='Red')
-            self.input_error_label.grid(column=1, row=12)
+            self.input_error_label.pack(side=TOP)
         else:
             # Проверка на заполнение обязательных полей
             mold_num = self.mold_num_entry_field.get()
