@@ -32,6 +32,7 @@ class ReferenceInfo(tkinter.Toplevel):
         Создание переменных
         :param app_info: Булево значение, принимающее значение True, когда необходимо вывести инфо о приложении
         """
+        self.scroll_y = None
         self.frame_additional = None
         self.app_info = app_info
         self.frame_header = None
@@ -68,12 +69,14 @@ class ReferenceInfo(tkinter.Toplevel):
         frame_button.pack(fill=BOTH, expand=True)
         frame_html = Frame(self.frame)
         frame_html.pack(fill=BOTH, expand=True)
-        # # добавляем вертикальную прокрутку
-        # scrollbar = Scrollbar(self.frame, orient=VERTICAL)
-        # scrollbar.pack(side=RIGHT, fill='y')
-        HTMLLabel(frame_html, html=instruction).pack(side=TOP, padx=1)
+        instruction = HTMLLabel(frame_html, html=instruction)
         ttk.Button(frame_button, image=self.back_icon_pil, style='Regular.TButton',
                    command=self.back_to_main_page).pack(side=LEFT, padx=1, pady=2)
+        # Добавление вертикальной прокрутки
+        self.scroll_y = tkinter.Scrollbar(frame_html, orient=tkinter.VERTICAL, command=instruction.yview)
+        instruction.configure(yscrollcommand=self.scroll_y.set)
+        self.scroll_y.pack(side=RIGHT, fill='y')
+        instruction.pack(side=TOP, padx=1)
 
     def back_to_main_page(self):
         """

@@ -154,15 +154,18 @@ class Searcher(tkinter.Toplevel):
         table_list.extend(upper_results)
         sorted_table = map(dict, set(tuple(sorted(result.items())) for result in table_list))
         for row in sorted_table:
-            try:
-                if ((self.stock.get() == 'True' and int(row.get('PARTS_QUANTITY')) > 0) or self.stock.get() == 'False'
-                        or self.stock.get() == ''):
-                    self.results.append((define_mold_type(), table_name.replace('BOM_', '').replace('HOT_RUNNER_', ''),
-                                         row.get('PART_NAME'), row.get('DESCRIPTION'),
-                                         row.get('ADDITIONAL_INFO'), row.get('PARTS_QUANTITY'),
-                                         row.get('USED_PARTS_QUANTITY')))
-            except TypeError:
+            if row.get('DESCRIPTION') == 'Описание':
                 pass
+            else:
+                try:
+                    if ((self.stock.get() == 'True' and int(row.get('PARTS_QUANTITY')) > 0) or self.stock.get() == 'False'
+                            or self.stock.get() == ''):
+                        self.results.append((define_mold_type(), table_name.replace('BOM_', '').replace('HOT_RUNNER_', ''),
+                             row.get('PART_NAME'), row.get('DESCRIPTION'),
+                             row.get('ADDITIONAL_INFO'), row.get('PARTS_QUANTITY'),
+                             row.get('USED_PARTS_QUANTITY')))
+                except TypeError:
+                    pass
 
     def start_search(self):
         """

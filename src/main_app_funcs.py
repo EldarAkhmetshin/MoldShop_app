@@ -663,7 +663,8 @@ class App(Frame):
 
         btn_delete_bom = ttk.Button(
             bom_frame, text='Удалить', style='Regular.TButton',
-            command=self.delete_selected_bom
+            command=lambda: render_upload_or_download_bom_window(window_title='Удаление BOM',
+                                                                 called_func=self.delete_selected_bom)
         )
         btn_delete_bom.pack(padx=6, pady=5, side=LEFT)
         Hovertip(anchor_widget=btn_delete_bom,
@@ -1410,27 +1411,29 @@ class App(Frame):
             messagebox.showerror(error_messages.get('access_denied').get('message_name'),
                                  error_messages.get('access_denied').get('message_body'))
 
-    def delete_selected_bom(self):
+    def delete_selected_bom(self, previous_window, hot_runner_bom: bool = None):
         """
         Фнкция удаления BOM таблицы из базы данных на основании выделенной строки
+        :param previous_window: Предыдущее окно с выбором BOM для удаления
+        :param hot_runner_bom: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
         """
+        # Закрытие предыдущего окна с выбором BOM для удаления
+        previous_window.quit()
+        previous_window.destroy()
+
         if user_data.get('molds_and_boms_data_changing'):
             mold_number = self.mold_number_entry_field.get()
             if not mold_number:
                 mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
 
             if mold_number:
+                define_table: Callable = lambda: f'BOM_HOT_RUNNER_{mold_number}' if hot_runner_bom else f'BOM_{mold_number}'
                 message = "Вы уверены, что хотите удалить данный BOM"
                 if messagebox.askyesno(title='Подтверждение', message=message, parent=self):
 
                     try:
-                        bom = table_funcs.TableInDb(f'BOM_{mold_number}', 'Database')
+                        bom = table_funcs.TableInDb(define_table(), 'Database')
                         bom.delete_db_table()
-                        try:
-                            hot_runner_bom = table_funcs.TableInDb(f'BOM_HOT_RUNNER_{mold_number}', 'Database')
-                            hot_runner_bom.delete_db_table()
-                        except sqlite3.OperationalError:
-                            pass
                     except sqlite3.OperationalError:
                         messagebox.showerror('Уведомление об ошибке',
                                              'Ошибка удаления. Вероятнее всего данный BOM отсутствовал.')

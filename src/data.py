@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
+import os
+
 mold_statuses_list = ['IN', 'OUT', 'IN SERVICE']
 mold_statuses_dict = {'IN': '', 'OUT': '', 'IN SERVICE': ''}
 part_statuses_list = ['В наличие', 'Отсутствующие', 'Меньше минимума']
@@ -40,6 +42,8 @@ user_rights = {'stock_changing': 'Приём и взятие запчастей 
                'attachments_changing': 'Редактирование вложенных файлов'}
 
 instructions = {'new_bom_uploading': f"""<h3>Загрузка нового BOM</h3>
+                        <p>
+                           <a href="{os.path.abspath(os.path.join('videos', 'New BOM uploading.mp4'))}">Посмотреть видео</a>
                         <p>
                           Чтобы привязать новый BOM к какой либо пресс-форме необходимо выполнить следующие действия:
                         </p>

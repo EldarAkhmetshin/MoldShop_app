@@ -46,6 +46,8 @@ class Attachment(tkinter.Toplevel):
         """
         Создание переменных
         """
+        self.scroll_y = None
+        self.canvas = None
         self.frame_body = None
         self.frame_header = None
         self.mold_number = mold_number
@@ -64,10 +66,18 @@ class Attachment(tkinter.Toplevel):
         Инициация окна приложения и контейнера для размещения виджетов
         """
         self.focus_set()
+        self.geometry('850x400')
         self.frame_header = Frame(self)
         self.frame_header.pack(fill=BOTH, expand=True)
-        self.frame_body = Frame(self)
+        # создание канвас для прикрпеления к нему прокрутки / скроллинга
+        self.canvas = Canvas(self)
+        self.frame_body = Frame(self.canvas)
         self.frame_body.pack(fill=BOTH, expand=True)
+        self.scroll_y = tkinter.Scrollbar(self, orient=tkinter.VERTICAL, command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.scroll_y.set)
+        self.scroll_y.pack(side=RIGHT, fill='y')
+        self.canvas.pack(fill=BOTH, expand=True)
+        self.canvas.create_window((4, 4), window=self.frame_body, anchor="nw")
 
     def get_label_and_entry_widgets_in_row(self, text: str, row: int, root: str):
         """
@@ -76,16 +86,17 @@ class Attachment(tkinter.Toplevel):
         :param text: Текст надписи
         :param row: Номер строки в окне
         """
-        HTMLLabel(self.frame_body, html=f"""
+        sub_frame = Frame(self.frame_body)
+        sub_frame.pack(fill=BOTH, expand=True)
+        HTMLLabel(sub_frame, html=f"""
                                 <a href="{os.path.abspath(os.path.join(root, text))}">{text}</a>
                                 """, width=60, height=2).grid(padx=10, pady=10, column=1, row=row)
-        # ttk.Label(self.frame_body, text=text, style='Regular.TLabel').grid(column=1, row=row, padx=5, pady=5)
         ttk.Button(
-            self.frame_body, text='Загрузить', style='Regular.TButton', width=10,
+            sub_frame, text='Загрузить', style='Regular.TButton', width=10,
             command=lambda: download_file(filename=text, root=root)
         ).grid(padx=10, pady=10, column=2, row=row)
         ttk.Button(
-            self.frame_body, text='Удалить вложение', style='Regular.TButton',
+            sub_frame, text='Удалить вложение', style='Regular.TButton',
             width=20, command=lambda: self.delete_file(filename=text, root=root)
         ).grid(padx=10, pady=10, column=3, row=row)
 
@@ -112,6 +123,9 @@ class Attachment(tkinter.Toplevel):
         if row_num == 1:
             (ttk.Label(self.frame_body, text='Нет прикрпеплённых файлов', style='Regular.TLabel')
              .grid(column=1, row=row_num, padx=5, pady=5))
+        # Обновление размеров канваса после добавления всех виджетов в него
+        self.canvas.update_idletasks()
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
         # Запуск работы окна приложения
         self.mainloop()
 
