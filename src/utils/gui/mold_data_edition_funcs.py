@@ -26,6 +26,9 @@ class EditedMold(tkinter.Toplevel):
         """
         Создание переменных
         """
+        self.frame_bottom = None
+        self.frame_body = None
+        self.frame_header = None
         if mold_data:
             self.mold_data = mold_data
         else:

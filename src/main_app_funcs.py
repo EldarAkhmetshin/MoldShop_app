@@ -22,6 +22,7 @@ from src.utils.gui.bom_edition_funcs import EditedBOM
 from src.utils.gui.mold_status_changing_funcs import QRWindow
 from src.utils.gui.reference_information_funcs import ReferenceInfo
 from src.utils.gui.spare_parts_searching_funcs import Searcher
+from src.utils.gui.user_authorization_funcs import change_user
 from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database import table_funcs, new_tables
 from src.utils.gui.mold_data_edition_funcs import EditedMold
@@ -29,22 +30,9 @@ from src.utils.gui.stock_changing_funcs import Stock
 from src.utils.gui.attached_files_review_funcs import Attachment
 
 
-def change_user(window: tkinter.Tk):
-    """
-    Функция смены действующего пользователя в приложении
-    :param window: Окно приложения
-    """
-    from src.__main__ import log_in_app, render_main_window
-
-    window.destroy()
-    user_data.clear()
-    log_in_app()
-    if user_data.get('access'):
-        render_main_window()
-
 def create_menu_widgets(window: tkinter.Tk, application):
     """
-    Функция для создания виджетов с выпадающими списками команд, которые находятся под строкой заголовка вверху
+    Функция для создания виджетов с выпадающими списками команд, которые находятся под строкой заголовка наверху
     :param window: Окно приложения
     :param application: Экземпляр класса приложения
     """
@@ -72,9 +60,10 @@ def create_menu_widgets(window: tkinter.Tk, application):
         window_name='App Info'))
     menu.add_cascade(label='Справка', menu=help_menu)
 
-def render_upload_or_download_bom_window(window_title: str, called_func: Callable):
+def render_window_for_selection_bom_type(window_title: str, called_func: Callable):
     """
-    Рендер окна для выбора типа BOM для его загрузки в систему приложения, либо для скачиваемого пустого шаблона BOM (пресс-форма или горячий канал)
+    Рендер окна для выбора типа BOM для его загрузки в систему приложения, либо для скачиваемого пустого шаблона BOM
+    (пресс-форма или горячий канал)
     :param window_title: Имя доп. окна
     :param called_func: Вызываемая функция при нажатии на кнопку
     """
@@ -126,6 +115,7 @@ class App(Frame):
         self.molds_list_data: Словарь, содержащий данные (общий перечень пресс-форм) в кортежах
         """
         super().__init__()
+        self.scroll_y = None
         self.bom_data = None
         self.bom_table_dict = None
         self.sorted_bom_dict = None
@@ -572,6 +562,8 @@ class App(Frame):
         self.sort_status = None
         if self.frame_toolbar:
             self.frame_toolbar.pack_forget()
+        if self.scroll_y:
+            self.scroll_y.pack_forget()
         self.remove_listeners()
 
     def open_main_menu(self):
@@ -640,7 +632,7 @@ class App(Frame):
 
         btn_upload_bom = ttk.Button(
             bom_frame, text='Загрузить', style='Regular.TButton', width=10,
-            command=lambda: render_upload_or_download_bom_window(window_title='New BOM Uploading',
+            command=lambda: render_window_for_selection_bom_type(window_title='New BOM Uploading',
                                                                  called_func=self.upload_new_bom)
         )
         btn_upload_bom.pack(padx=6, pady=5, side=LEFT)
@@ -653,7 +645,7 @@ class App(Frame):
 
         btn_bom_template_download = ttk.Button(
             bom_frame, text='Скачать шаблон', style='Regular.TButton', width=14,
-            command=lambda: render_upload_or_download_bom_window(window_title='BOM Template Downloading',
+            command=lambda: render_window_for_selection_bom_type(window_title='BOM Template Downloading',
                                                                  called_func=self.save_bom_parts_template)
         )
         btn_bom_template_download.pack(padx=6, pady=5, side=LEFT)
@@ -663,7 +655,7 @@ class App(Frame):
 
         btn_delete_bom = ttk.Button(
             bom_frame, text='Удалить', style='Regular.TButton',
-            command=lambda: render_upload_or_download_bom_window(window_title='Удаление BOM',
+            command=lambda: render_window_for_selection_bom_type(window_title='Удаление BOM',
                                                                  called_func=self.delete_selected_bom)
         )
         btn_delete_bom.pack(padx=6, pady=5, side=LEFT)
@@ -955,7 +947,7 @@ class App(Frame):
         columns = self.current_table[0]
         # определяем таблицу
         self.tree = ttk.Treeview(columns=columns, show="headings")
-        self.tree.pack(fill=BOTH, expand=1)
+        #self.tree.pack(fill=BOTH, expand=1)
         # определяем заголовки
         for col_name in columns:
             self.tree.heading(col_name, text=col_name)
@@ -968,6 +960,11 @@ class App(Frame):
         for row in reversed_data:
             self.tree.insert("", END,
                              values=['-' if (cell is None or cell == '' or cell == ' ') else cell for cell in row])
+        # Добавление вертикальной прокрутки
+        self.scroll_y = tkinter.Scrollbar(orient=tkinter.VERTICAL, command=self.tree.yview)
+        self.tree.configure(yscrollcommand=self.scroll_y.set)
+        self.scroll_y.pack(side=RIGHT, fill='y')
+        self.tree.pack(fill=BOTH, expand=1)
 
         get_info_log(user=user_data.get('user_name'), message='Table was rendered',
                      func_name=self.render_table.__name__, func_path=abspath(__file__))

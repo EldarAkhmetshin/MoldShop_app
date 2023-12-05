@@ -7,12 +7,13 @@ from src.data import columns_bom_parts_table
 from src.utils.sql_database import table_funcs
 
 
-def get_data_from_excel_file(file_path: str, work_sheet_name: str):
+def get_data_from_excel_file(file_path: str, work_sheet_name: str) -> (tuple, list):
     """
-
-    :param file_path:
-    :param work_sheet_name:
-    :return:
+    Функция для получения информации из Excel файла
+    :param file_path: Путь к Excel файлу
+    :param work_sheet_name: Наименование листа Excel файла откуда будет браться информация
+    :return: Кортеж из наименований столбцов таблицы
+    :return: Массив данных из полученной таблицы. Каждая строка таблицы записана в отдельный кортеж
     """
     column_names = None
     rows_data = []

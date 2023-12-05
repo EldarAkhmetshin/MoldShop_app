@@ -1,8 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*- #
 from tkinter import *
 from tkinter import ttk
 
 
 def define_styles():
+    """
+    Функция для задания стилей определённым виджетам приложения
+    """
     style = ttk.Style()
 
     style.configure(style='Regular.TLabel',
@@ -11,7 +16,6 @@ def define_styles():
                     font=('Arial', '9', 'normal'))
 
     style.configure(style='Toolbar.TLabel',
-                    #foreground='grey20',
                     anchor=N,
                     font=('Arial', '9', 'normal'))
 

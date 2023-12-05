@@ -15,6 +15,10 @@ from src.data import user_rights, instructions
 
 
 def check_user_rigths() -> str:
+    """
+    Функция формирующая информацию о правах пользователя
+    :return: Информация о правах пользователя, которая будет отображатся в приложении
+    """
     define_answer: Callable = lambda: 'Да' if user_data.get(name) == 'True' else 'Нет'
     result = ''
     for name, description in user_rights.items():

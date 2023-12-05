@@ -11,6 +11,20 @@ from src.global_values import user_data
 from src.utils.logger.logs import get_info_log
 
 
+def change_user(window: tkinter.Tk):
+    """
+    Функция смены действующего пользователя в приложении
+    :param window: Окно приложения
+    """
+    from src.__main__ import log_in_app, render_main_window
+
+    window.destroy()
+    user_data.clear()
+    log_in_app()
+    if user_data.get('access'):
+        render_main_window()
+
+
 class LogInApp(Frame):
     """
     Класс представляет набор функций для создания графического интерфейса окна авторизации пользователя с помощью

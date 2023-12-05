@@ -1,14 +1,16 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*- #
 import os
 from loguru import logger
 
 
 def get_info_log(user: str, message: str, func_name: str, func_path: str):
     """
-    Function save INFO logs
-    :param user:
-    :param func_path:
-    :param message: All information from Telegram about user
-    :param func_name: Name of function which will call this func for writing log
+    Функция записи INFO логов
+    :param user: Имя пользователя
+    :param func_path: Путь к исполняемому файлу
+    :param message: Описание лога
+    :param func_name: Имя исполняемой функции
     """
     try:
         logger.info('User: {: ^10} | Message: {: ^50} | Function: {: ^25} | Func_path: {: ^50}'.
@@ -19,11 +21,11 @@ def get_info_log(user: str, message: str, func_name: str, func_path: str):
 
 def get_warning_log(user: str, message: str, func_name: str, func_path: str):
     """
-    Function save WARNING logs
-    :param user:
-    :param func_path:
-    :param message: All information from Telegram about user
-    :param func_name: Name of function which will call this func for writing log
+    Функция записи WARNING логов
+    :param user: Имя пользователя
+    :param func_path: Путь к исполняемому файлу
+    :param message: Описание лога
+    :param func_name: Имя исполняемой функции
     """
     try:
         logger.warning('User: {: ^10} | Message: {: ^50} | Function: {: ^25} | Func_path: {: ^50}'.
@@ -36,7 +38,7 @@ def get_warning_log(user: str, message: str, func_name: str, func_path: str):
 
 def logger_add():
     """
-    Function create log file
+    Функция создания файла для записей логов и настройки логов
     """
-    path_temp_file = os.path.abspath(os.path.join('..', 'savings', 'logs', 'logs.log'))
+    path_temp_file = os.path.abspath(os.path.join('savings', 'logs', 'logs.log'))
     logger.add(path_temp_file, format="{time} {level} {message}", level="INFO", rotation="10000 KB", compression="zip")

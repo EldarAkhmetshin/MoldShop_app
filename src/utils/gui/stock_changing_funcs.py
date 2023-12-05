@@ -90,13 +90,21 @@ class Stock(tkinter.Toplevel):
         # Запуск работы окна приложения
         self.mainloop()
 
-    def define_column_name(self):
+    def define_column_name(self) -> str:
+        """
+        Функция определения типа запрашиваемой запчасти / BOM элемента
+        :return: Соответствующий тип запчасти
+        """
         if self.consumption:
             return 'PARTS_QUANTITY'
         else:
             return 'USED_PARTS_QUANTITY'
 
-    def get_end_quantity(self):
+    def get_end_quantity(self) -> int:
+        """
+        Функция для получения конечного остатка на складе выбранного элемента из BOM в результате прихода или расхода
+        :return: Оставшееся количество выбранного элемента
+        """
         define_income_quantity: Callable = lambda: self.parts_quantity \
             if self.required_part_type == 'Новая' else self.used_parts_quantity
         if self.consumption:
@@ -104,7 +112,11 @@ class Stock(tkinter.Toplevel):
         else:
             return define_income_quantity() + self.required_quantity
 
-    def check_parts_quantity(self):
+    def check_parts_quantity(self) -> bool:
+        """
+        Функция проверки введеного значения пользователем и проверки возможности выдачи запрашиваемого кол-ва пользователю
+        :return: True если запрос корректен
+        """
         define_income_quantity: Callable = lambda: self.parts_quantity \
             if self.required_part_type == 'Новая' else self.used_parts_quantity
         try:

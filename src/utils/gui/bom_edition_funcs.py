@@ -24,6 +24,9 @@ class EditedBOM(tkinter.Toplevel):
         """
         Создание переменных
         """
+        self.frame_bottom = None
+        self.frame_body = None
+        self.frame_header = None
         if part_data is None:
             self.part_data = {}
         else:
@@ -153,14 +156,16 @@ class EditedBOM(tkinter.Toplevel):
         :param new_part_number: Новый номер элемента
         """
         try:
-            os.rename(os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', self.number), os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', new_part_number))
+            os.rename(os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', self.number),
+                      os.path.join('savings', 'attachments', self.mold_number, 'mold_parts', new_part_number))
         except FileNotFoundError:
             pass
         try:
-            os.rename(os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', self.number), os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', new_part_number))
+            os.rename(os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', self.number),
+                      os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', new_part_number))
         except FileNotFoundError:
             pass
-    
+
     def validate_and_save_new_part_data(self):
         """
         Фнкция проверки введённых данных пользователем
