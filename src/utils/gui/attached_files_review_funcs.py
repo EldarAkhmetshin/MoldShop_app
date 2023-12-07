@@ -135,7 +135,7 @@ class Attachment(tkinter.Toplevel):
         :param root: Путь к файлу
         :param filename: Имя файла
         """
-        if user_data.get('attachments_changing'):
+        if user_data.get('attachments_changing') == 'True':
             if messagebox.askyesno(title='Подтверждение', message=f'Вы уверены, что хотите удалить файл {filename}?', parent=self):
 
                 try:

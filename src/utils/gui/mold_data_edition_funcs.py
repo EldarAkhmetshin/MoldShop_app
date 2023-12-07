@@ -8,6 +8,7 @@ from tkinter import *
 from tkinter import messagebox, ttk
 from tkinter.ttk import Frame
 from typing import Callable
+from datetime import datetime
 
 from src.global_values import user_data
 from src.utils.logger.logs import get_info_log
@@ -266,8 +267,21 @@ class EditedMold(tkinter.Toplevel):
                                            'LOCATION': define_data(old_data=self.location,
                                                                    new_data=self.location_entry_field.get())})
                 new_mold_number = self.mold_num_entry_field.get()
+                new_mold_status = self.status_entry_field.get()
+                new_mold_name = self.mold_name_entry_field.get()
                 if new_mold_number:
                     self.change_table_names_and_paths(new_mold_number)
+                if new_mold_status:
+                    # Обновление данных в случае их изменения
+                    if new_mold_number:
+                        self.mold_number = new_mold_number
+                    if new_mold_name:
+                        self.mold_name = new_mold_name
+                    # Запись в журнал
+                    moving_history = table_funcs.TableInDb('Molds_moving_history', 'Database')
+                    moving_history.insert_data(info=(str(datetime.now()), user_data.get('user_name'), self.mold_number,
+                                                     self.mold_name, self.status,
+                                                     new_mold_status))
             except sqlite3.ProgrammingError:
                 self.input_error_label = ttk.Label(self.frame,
                                                    text='Ошибка записи данных! Обратитесь к администратору',

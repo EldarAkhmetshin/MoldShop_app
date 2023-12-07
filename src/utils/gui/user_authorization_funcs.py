@@ -70,7 +70,8 @@ class LogInApp(Frame):
                 # Сохранение информации о пользователе в глобальную переменную
                 user_data['user_name'] = user_name
                 user_data['access'] = True
-                user_data['stock_changing'] = users.get(user_name).get('stock_changing')
+                user_data['stock_changing_in'] = users.get(user_name).get('stock_changing_in')
+                user_data['stock_changing_out'] = users.get(user_name).get('stock_changing_out')
                 user_data['mold_status_changing'] = users.get(user_name).get('mold_status_changing')
                 user_data['molds_and_boms_data_changing'] = users.get(user_name).get('molds_and_boms_data_changing')
                 user_data['attachments_changing'] = users.get(user_name).get('attachments_changing')

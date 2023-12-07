@@ -23,6 +23,7 @@ def check_user_rigths() -> str:
     result = ''
     for name, description in user_rights.items():
         result = f'{result}\n\t{description}: {define_answer()}'
+        print(user_data, description)
     return result
 
 

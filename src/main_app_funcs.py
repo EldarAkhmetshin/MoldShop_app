@@ -219,41 +219,45 @@ class App(Frame):
         """
         # Открытие диалогового окна для выбора файла пользователем с локальной директории компьютера,
         # c дальнейшим извлечением пути к выбранному файлу в виде строки
-        try:
-            window.quit()
-            window.destroy()
-            file_path = filedialog.askopenfile(
-                filetypes=(('XLSX files', '*.xlsx'),)
-            ).name
-        except AttributeError:
-            pass
-        else:
-            # Получение информации из Иксель файла типа xlsx
-            define_sheet_name: Callable = lambda: 'HOT_RUNNER' if hot_runner_bom else 'MOLD'
+        if user_data.get('molds_and_boms_data_changing') == 'True':
             try:
-                column_names, rows_data = get_data_from_excel_file(file_path=file_path,
-                                                                   work_sheet_name=define_sheet_name())
-            except TypeError:
-                get_warning_log(user=user_data.get('user_name'), message='New BOM wasnt uploaded',
-                                func_name=self.upload_new_bom.__name__, func_path=abspath(__file__))
+                window.quit()
+                window.destroy()
+                file_path = filedialog.askopenfile(
+                    filetypes=(('XLSX files', '*.xlsx'),)
+                ).name
+            except AttributeError:
+                pass
             else:
-                file_path = file_path.split('/')
-                mold_number = file_path[-1].replace('.xlsx', '')
-                # Поиск соответствия по номеру пресс-формы в общем перечне
-                if validate_new_bom(mold_number=mold_number, hot_runner=hot_runner_bom, column_names=column_names):
-                    # Сохранение информации в базе данных
-                    new_tables.create_bom_for_new_mold(mold_number=mold_number, rows_data=rows_data,
-                                                       hot_runner=hot_runner_bom)
-                    # Рендер окна приложения с новой загруженной информацией
-                    info_message = info_messages.get('downloaded_bom').get('message_body')
-                    self.mold_number = mold_number
-                    self.open_bom(mold_number=mold_number)
-                    messagebox.showinfo(title=info_messages.get('downloaded_bom').get('message_name'),
-                                        message=info_message.format(mold_number=mold_number))
+                # Получение информации из Иксель файла типа xlsx
+                define_sheet_name: Callable = lambda: 'HOT_RUNNER' if hot_runner_bom else 'MOLD'
+                try:
+                    column_names, rows_data = get_data_from_excel_file(file_path=file_path,
+                                                                       work_sheet_name=define_sheet_name())
+                except TypeError:
+                    get_warning_log(user=user_data.get('user_name'), message='New BOM wasnt uploaded',
+                                    func_name=self.upload_new_bom.__name__, func_path=abspath(__file__))
                 else:
-                    error_message = error_messages.get('not_downloaded_bom').get('message_body')
-                    messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
-                                         message=error_message.format(mold_number=mold_number))
+                    file_path = file_path.split('/')
+                    mold_number = file_path[-1].replace('.xlsx', '')
+                    # Поиск соответствия по номеру пресс-формы в общем перечне
+                    if validate_new_bom(mold_number=mold_number, hot_runner=hot_runner_bom, column_names=column_names):
+                        # Сохранение информации в базе данных
+                        new_tables.create_bom_for_new_mold(mold_number=mold_number, rows_data=rows_data,
+                                                           hot_runner=hot_runner_bom)
+                        # Рендер окна приложения с новой загруженной информацией
+                        info_message = info_messages.get('downloaded_bom').get('message_body')
+                        self.mold_number = mold_number
+                        self.open_bom(mold_number=mold_number)
+                        messagebox.showinfo(title=info_messages.get('downloaded_bom').get('message_name'),
+                                            message=info_message.format(mold_number=mold_number))
+                    else:
+                        error_message = error_messages.get('not_downloaded_bom').get('message_body')
+                        messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
+                                             message=error_message.format(mold_number=mold_number))
+        else:
+            messagebox.showerror(error_messages.get('access_denied').get('message_name'),
+                                 error_messages.get('access_denied').get('message_body'))
 
     def upload_attachment(self, bom_part: bool = None):
         """
@@ -263,7 +267,7 @@ class App(Frame):
         # Открытие диалогового окна для выбора файла пользователем с локальной директории компьютера,
         # c дальнейшим извлечением пути к выбранному файлу в виде строки
         part_number = None
-        if user_data.get('attachments_changing'):
+        if user_data.get('attachments_changing') == 'True':
             if bom_part:
                 define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
                 part_number = self.get_value_by_selected_row(define_table_name(), 'NUMBER')
@@ -1234,7 +1238,7 @@ class App(Frame):
         Рендер окна для получения сообщения от сканера QR кода
         :param next_status: Новое значение параметра STATUS из таблицы перечня всех пресс-форм, которое заменит старое 
         """
-        if user_data.get('mold_status_changing'):
+        if user_data.get('mold_status_changing') == 'True':
             qr_window = QRWindow(next_status)
             qr_window.iconbitmap(os.path.join('pics', 'artpack.ico'))
             qr_window.title('QR code getting')
@@ -1346,12 +1350,13 @@ class App(Frame):
         Вывод окна для взаимодействия со складом. Взятие каких либо запчастей, либо её приём на склад. 
         :param consumption: Булево значение, которое принимает значение True когда происходит расход
         """
-        stock_changing_access = user_data.get('stock_changing')
+        define_stock_changing_access: Callable = lambda: user_data.get('stock_changing_out') if consumption \
+            else user_data.get('stock_changing_in')
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
         table_name = define_table_name()
         part_number = self.get_value_by_selected_row(table_name, 'NUMBER')
         # Если получен номер елемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
-        if part_number:
+        if part_number and define_stock_changing_access():
 
             try:
                 # Выгрузка информации о пресс-форме из базы данных
@@ -1366,7 +1371,7 @@ class App(Frame):
                 self.render_typical_additional_window(
                     called_class=lambda: Stock(part_data=part_data, mold_number=self.mold_number,
                                                consumption=consumption, table_name=table_name),
-                    window_name='BOM Edition', access=stock_changing_access,
+                    window_name='BOM Edition', access=define_stock_changing_access(),
                     called_function=lambda: self.open_bom(self.mold_number, self.hot_runner_bom))
 
     def delete_selected_table_row(self, table_name: str, column_name: str):
@@ -1375,7 +1380,7 @@ class App(Frame):
         :param column_name: Имя столбца / параметра по которому будет искаться строка для удаления
         :param table_name: Имя таблицы из базы данных
         """
-        if user_data.get('molds_and_boms_data_changing'):
+        if user_data.get('molds_and_boms_data_changing') == 'True':
             message = "Вы уверены, что хотите удалить данную строку"
             if messagebox.askyesno(title='Подтверждение', message=message, parent=self):
 
@@ -1418,7 +1423,7 @@ class App(Frame):
         previous_window.quit()
         previous_window.destroy()
 
-        if user_data.get('molds_and_boms_data_changing'):
+        if user_data.get('molds_and_boms_data_changing') == 'True':
             mold_number = self.mold_number_entry_field.get()
             if not mold_number:
                 mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')

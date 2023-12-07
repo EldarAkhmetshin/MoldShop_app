@@ -5,7 +5,6 @@ import tkinter
 from tkinter import *
 from tkinter import messagebox
 from tkinter.ttk import Frame
-from typing import Callable
 from datetime import datetime
 
 from src.global_values import user_data

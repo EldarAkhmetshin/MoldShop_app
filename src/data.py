@@ -36,7 +36,8 @@ columns_searching_results = ('Составляющая', 'Номер п/ф', 'Н
                              'Доп. информация', 'Наличие (новые)', 'Наличие (б/у)')
 columns_sizes_searching_table = {f'#{i}': 20 for i in range(1, len(columns_searching_results) + 1)}
 
-user_rights = {'stock_changing': 'Приём и взятие запчастей со склада',
+user_rights = {'stock_changing_in': 'Приём запчастей на склад',
+               'stock_changing_out': 'Взятие запчастей со склада',
                'mold_status_changing': 'Перемещение пресс-форм (смена статуса)',
                'molds_and_boms_data_changing': 'Добавление и редактирование пресс-форм и элементов BOM',
                'attachments_changing': 'Редактирование вложенных файлов'}
