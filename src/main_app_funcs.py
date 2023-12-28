@@ -984,17 +984,24 @@ class App(Frame):
 
         tree_row_id = self.tree.focus().replace('I', '')
         if tree_row_id:
-            cycle_number = int(tree_row_id[:-1])
-
+            print(tree_row_id, 8888888888888)
             try:
-                row_id = int(tree_row_id) - 1
-            except ValueError:
-                letter_values = {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5}
-                indicated_letter = tree_row_id[-1]
                 cycle_number = int(tree_row_id[:-1])
-                row_id = int(f'{cycle_number + 1}{letter_values.get(indicated_letter)}') - 1
+            except ValueError:
+                # Ошибка возникает при выделении строки № 159 и выше. Для следующих строк алгоритм
+                # определения порядкового номера строка иной
+                print('Ублюдок')
+            else:
+                try:
+                    row_id = int(tree_row_id) - 1
+                except ValueError:
+                    letter_values = {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5}
+                    indicated_letter = tree_row_id[-1]
+                    cycle_number = int(tree_row_id[:-1])
+                    row_id = int(f'{cycle_number + 1}{letter_values.get(indicated_letter)}') - 1
+                print(row_id + cycle_number * 6)
 
-            return row_id + cycle_number * 6
+                return row_id + cycle_number * 6
 
     def get_molds_data(self, sort_status: str | bool = None):
         """
