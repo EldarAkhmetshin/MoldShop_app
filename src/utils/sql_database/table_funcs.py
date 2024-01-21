@@ -11,7 +11,7 @@ from typing import Any, List, Dict, Callable
 from src.utils.logger.logs import get_info_log, get_warning_log
 
 
-class DataBase():
+class DataBase:
 
     def __init__(self, name: str):
         """
@@ -160,18 +160,26 @@ class TableInDb(DataBase):
         self.connection.commit()
         self.cursor.close()
 
-    def change_data(self, param: str, value: (str, int), data: dict):
+    def change_data(self, first_param: str, first_value: (str, int), data: dict,
+                    second_param: str = None, second_value: (str, int) = None):
         """
         Функция изменения значений в таблице в соответствии с запрошенными параметрами
 
-        :param param: Имя столбца / параметра на который будет ориентирован поиск
-        :param value: Значение параметра для поиска
+        :param second_value: Значение второго параметра для поиска
+        :param second_param: Имя второго столбца / параметра на который будет ориентирован поиск
+        :param first_param: Имя первого столбца / параметра на который будет ориентирован поиск
+        :param first_value: Значение первого параметра для поиска
         :param data: Словарь с  новыми данными для изменения значений в найденной строке таблицы ({Название столбца / параметра: Новое значение})
         """
         self.connect_db()
         for i_key, i_value in data.items():
-            self.cursor.execute(f'UPDATE {self.table_name} Set {i_key} = ?'
-                                f'WHERE {param} = ?', (i_value, value))
+            if second_param and second_value:
+                self.cursor.execute(f'UPDATE {self.table_name} Set {i_key} = ?'
+                                    f'WHERE {first_param} = ? AND {second_param} = ?',
+                                    (i_value, first_value, second_value))
+            else:
+                self.cursor.execute(f'UPDATE {self.table_name} Set {i_key} = ?'
+                                    f'WHERE {first_param} = ?', (i_value, first_value))
         self.connection.commit()
         self.cursor.close()
 

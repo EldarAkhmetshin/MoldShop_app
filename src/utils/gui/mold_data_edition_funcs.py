@@ -244,7 +244,7 @@ class EditedMold(tkinter.Toplevel):
             try:
                 define_data: Callable = lambda old_data, new_data: new_data if new_data else old_data
                 molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
-                molds_data.change_data(param='MOLD_NUMBER', value=self.mold_number,
+                molds_data.change_data(first_param='MOLD_NUMBER', first_value=self.mold_number,
                                        data={
                                            'MOLD_NUMBER': define_data(old_data=self.mold_number,
                                                                       new_data=self.mold_num_entry_field.get()),

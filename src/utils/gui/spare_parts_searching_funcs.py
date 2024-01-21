@@ -15,7 +15,8 @@ from src.utils.sql_database.table_funcs import DataBase, TableInDb
 
 class Searcher(tkinter.Toplevel):
     """
-    Класс представляет набор функций для создания графического интерфейса окна изменения количества какого либо элемента на складе.
+    Класс представляет набор функций для создания графического интерфейса окна и осуществления
+    поиска запчастей по заданным параметрам.
     """
 
     def __init__(self):
@@ -160,7 +161,8 @@ class Searcher(tkinter.Toplevel):
                 try:
                     if ((self.stock.get() == 'True' and int(row.get('PARTS_QUANTITY')) > 0) or self.stock.get() == 'False'
                             or self.stock.get() == ''):
-                        self.results.append((define_mold_type(), table_name.replace('BOM_', '').replace('HOT_RUNNER_', ''),
+                        self.results.append(
+                            (define_mold_type(), table_name.replace('BOM_', '').replace('HOT_RUNNER_', ''),
                              row.get('PART_NAME'), row.get('DESCRIPTION'),
                              row.get('ADDITIONAL_INFO'), row.get('PARTS_QUANTITY'),
                              row.get('USED_PARTS_QUANTITY')))

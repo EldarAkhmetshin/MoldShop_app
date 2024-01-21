@@ -53,8 +53,6 @@ class EditedBOM(tkinter.Toplevel):
         self.supplier = self.part_data.get('SUPPLIER')
         self.material = self.part_data.get('MATERIAL')
         self.dimensions = self.part_data.get('DIMENSIONS')
-        self.parts_quantity = self.part_data.get('PARTS_QUANTITY')
-        self.used_parts_quantity = self.part_data.get('USED_PARTS_QUANTITY')
         self.storage_cell = self.part_data.get('STORAGE_CELL')
         self.min_percent = self.part_data.get('MIN_PERCENT')
 
@@ -129,15 +127,10 @@ class EditedBOM(tkinter.Toplevel):
                                                                             point_info=self.material, row=8)
         self.dimensions_entry_field = self.get_label_and_entry_widgets_in_row(text='Габаритные размеры',
                                                                               point_info=self.dimensions, row=9)
-        self.parts_qantity_entry_field = self.get_label_and_entry_widgets_in_row(text='Остаток', row=10,
-                                                                                 point_info=self.parts_quantity)
-        self.used_parts_quantity_entry_field = self.get_label_and_entry_widgets_in_row(text='Остаток б/у',
-                                                                                       point_info=self.used_parts_quantity,
-                                                                                       row=11)
         self.storage_cell_entry_field = self.get_label_and_entry_widgets_in_row(text='Ячейка хранения',
                                                                                 point_info=self.storage_cell, row=12)
         self.min_percent_entry_field = self.get_label_and_entry_widgets_in_row(text='Необходимый минимум, %',
-                                                                               point_info=self.used_parts_quantity,
+                                                                               point_info=self.min_percent,
                                                                                row=13)
 
         ttk.Button(
@@ -226,7 +219,7 @@ class EditedBOM(tkinter.Toplevel):
             try:
                 define_data: Callable = lambda old_data, new_data: new_data if new_data else old_data
                 bom = table_funcs.TableInDb(self.table_name, 'Database')
-                bom.change_data(param='NUMBER', value=self.number,
+                bom.change_data(first_param='NUMBER', first_value=self.number,
                                 data={
                                     'NUMBER': define_data(old_data=self.number,
                                                           new_data=self.number_entry_field.get()),
@@ -244,10 +237,6 @@ class EditedBOM(tkinter.Toplevel):
                                                             new_data=self.material_entry_field.get()),
                                     'DIMENSIONS': define_data(old_data=self.dimensions,
                                                               new_data=self.dimensions_entry_field.get()),
-                                    'PARTS_QUANTITY': define_data(old_data=self.parts_quantity,
-                                                                  new_data=self.parts_qantity_entry_field.get()),
-                                    'USED_PARTS_QUANTITY': define_data(old_data=self.used_parts_quantity,
-                                                                       new_data=self.parts_qantity_entry_field.get()),
                                     'STORAGE_CELL': define_data(old_data=self.storage_cell,
                                                                 new_data=self.storage_cell_entry_field.get()),
                                     'MIN_PERCENT': define_data(old_data=self.min_percent,

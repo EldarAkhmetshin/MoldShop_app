@@ -79,7 +79,7 @@ class QRWindow(tkinter.Toplevel):
                 molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
                 mold_info = molds_data.get_table(type_returned_data='dict', first_param='MOLD_NUMBER', first_value=mold_number,
                                                  last_string=True)
-                molds_data.change_data(param='MOLD_NUMBER', value=mold_number,
+                molds_data.change_data(first_param='MOLD_NUMBER', first_value=mold_number,
                                        data={
                                            'STATUS': self.next_status,
                                        })

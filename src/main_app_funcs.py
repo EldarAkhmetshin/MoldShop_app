@@ -11,7 +11,7 @@ from pandas import DataFrame
 from PIL import Image, ImageTk
 from tkinter.ttk import Frame
 from idlelib.tooltip import Hovertip
-from typing import Callable
+from typing import Callable, Any
 
 from src.global_values import user_data
 from src.data import mold_statuses_list, part_statuses_list, columns_warehouse_table, \
@@ -20,6 +20,7 @@ from src.molds import get_data_from_excel_file, validate_new_bom
 from src.data import info_messages, error_messages, columns_molds_moving_history_table, columns_sizes_moving_history_table
 from src.utils.gui.bom_edition_funcs import EditedBOM
 from src.utils.gui.mold_status_changing_funcs import QRWindow
+from src.utils.gui.necessary_spare_parts_report_funcs import MinPartsReport
 from src.utils.gui.reference_information_funcs import ReferenceInfo
 from src.utils.gui.spare_parts_searching_funcs import Searcher
 from src.utils.gui.user_authorization_funcs import change_user
@@ -29,6 +30,46 @@ from src.utils.gui.mold_data_edition_funcs import EditedMold
 from src.utils.gui.stock_changing_funcs import Stock
 from src.utils.gui.attached_files_review_funcs import Attachment
 
+
+def save_excel_table(table):
+    """
+    Функция сохранения открытой таблицы из окна приложения в Иксель файл формата xlsx
+    """
+    # Открытие диалогового окна для сохранения файла пользователем в локальной директории компьютера,
+    # c дальнейшим извлечением пути к выбранному файлу в виде строки
+    import openpyxl
+    from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
+    from openpyxl.utils import get_column_letter
+
+    file_path = filedialog.asksaveasfilename(
+        filetypes=(('XLSX files', '*.xlsx'),)
+    )
+    if file_path:
+        file_path = file_path.replace('.xlsx', '')
+        # Формирование Иксель файла типа xlsx
+        table_length = len(table)
+        saved_table = {}
+        for num, column_name in enumerate(table[0]):
+            saved_table[column_name] = tuple(table[i][num] for i in range(1, table_length))
+        try:
+            df = DataFrame(saved_table)
+            df.to_excel(excel_writer=f'{file_path}.xlsx', sheet_name='Table', index=False)
+            wb = openpyxl.load_workbook(f'{file_path}.xlsx')
+            ws = wb['Table']
+            dim_holder = DimensionHolder(worksheet=ws)
+
+            for col in range(ws.min_column, ws.max_column + 1):
+                dim_holder[get_column_letter(col)] = ColumnDimension(ws, min=col, max=col, width=20)
+
+            ws.column_dimensions = dim_holder
+            wb.save(f'{file_path}.xlsx')
+        except Exception:
+            messagebox.showerror(title='Уведомление об ошибке',
+                                 message='Ошибка в записи файла.\nПовторите ещё раз, либо братитесь к администратору')
+            get_warning_log(user=user_data.get('user_name'), message='Table wasnt saved in Excel file',
+                            func_name=save_excel_table.__name__, func_path=abspath(__file__))
+        else:
+            messagebox.showinfo(title='Уведомление', message='Таблица успешно сохранена на Ваш компьютер')
 
 def create_menu_widgets(window: tkinter.Tk, application):
     """
@@ -85,6 +126,20 @@ def render_window_for_selection_bom_type(window_title: str, called_func: Callabl
         command=lambda: called_func(window, hot_runner_bom=True)
     ).pack(side=LEFT, padx=5, pady=5)
     window.mainloop()
+
+
+def check_value_type(value: Any) -> bool:
+    """
+    Функция возвращает булево значения соответствующее типу передаваемой переменной
+    :param value: Переменная тип, который необходимо определить (строка или цифра)
+    :return: Булево значение
+    """
+    try:
+        int(value)
+    except ValueError:
+        return False
+    else:
+        return True
 
 
 class App(Frame):
@@ -395,7 +450,6 @@ class App(Frame):
             if file_path:
                 file_path = file_path.replace('.xlsx', '')
                 # Формирование Иксель файла типа xlsx
-                table_length = len(columns_bom_parts_table)
                 saved_table = {}
                 for num, column_name in enumerate(columns_bom_parts_table):
                     saved_table[column_name] = tuple()
@@ -533,7 +587,11 @@ class App(Frame):
 
         ttk.Button(
             self.frame_main_widgets, style='Menu.TButton',
-            text='Дефектация'
+            text='Дефектация',
+            command=lambda: self.render_typical_additional_window(
+                called_class=MinPartsReport,
+                window_name='Min Parts Searching'
+            )
         ).grid(padx=30, pady=15, column=5, row=3)
 
         ttk.Button(
@@ -984,13 +1042,19 @@ class App(Frame):
 
         tree_row_id = self.tree.focus().replace('I', '')
         if tree_row_id:
-            print(tree_row_id, 8888888888888)
             try:
                 cycle_number = int(tree_row_id[:-1])
             except ValueError:
                 # Ошибка возникает при выделении строки № 159 и выше. Для следующих строк алгоритм
-                # определения порядкового номера строка иной
-                print('Ублюдок')
+                # определения порядкового номера строки иной:
+                # Буквы теперь прусутствуют как в 3, так и во 2 символе ID строки. Поэтому для определения порядкового номера
+                # строки прибавляются соответствующие цифровые значения буквам из ID
+                define_last_value: Callable = lambda: last_letter_values.get(tree_row_id[2]) if not \
+                    check_value_type(tree_row_id[2]) else int(tree_row_id[2]) + 1
+                middle_letter_values = {'A': 0, 'B': 16, 'C': 32, 'D': 48, 'E': 64, 'F': 80}
+                last_letter_values = {'A': 11, 'B': 12, 'C': 13, 'D': 14, 'E': 15, 'F': 16}
+                row_id = 158 + middle_letter_values.get(tree_row_id[1]) + define_last_value()
+                return row_id
             else:
                 try:
                     row_id = int(tree_row_id) - 1
@@ -1127,10 +1191,11 @@ class App(Frame):
                         self.sorted_bom_dict.get('Отсутствующие').append(part_info)
                         self.sorted_bom_tuple.get('Отсутствующие').append(self.bom_data[num])
 
-    def get_value_by_selected_row(self, table_name: str, column_name: str) -> str:
+    def get_value_by_selected_row(self, table_name: str, column_name: str, add_column_name: str = None) -> (str, str):
         """
         Получение определенного значения (например: номер пресс-формы или номер элемента в BOM) из 
         выделенной строки таблицы пользователем (table_row_number) в окне приложения
+        :param add_column_name: Дополнительное имя столбца / параметра по которому будет искаться строка
         :param column_name: Имя столбца / параметра по которому будет искаться строка
         :param table_name: Имя таблицы из базы данных
         """
@@ -1148,7 +1213,10 @@ class App(Frame):
         reversed_table = list(reversed(table))
         # Получение значения из массива данных
         try:
-            return reversed_table[table_row_number].get(column_name)
+            if add_column_name:
+                return reversed_table[table_row_number].get(column_name), reversed_table[table_row_number].get(add_column_name)
+            else:
+                return reversed_table[table_row_number].get(column_name)
         except (TypeError, IndexError):
             pass
 
@@ -1163,6 +1231,7 @@ class App(Frame):
         self.hot_runner_bom = hot_runner
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{mold_number}' if hot_runner else f'BOM_{mold_number}'
         if not mold_number:
+            print(mold_number)
             mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
         try:
             # Выгрузка информации из базы данных
@@ -1318,7 +1387,8 @@ class App(Frame):
         bom_edition_access = user_data.get('molds_and_boms_data_changing')
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
         table_name = define_table_name()
-        part_number = self.get_value_by_selected_row(table_name, 'NUMBER')
+        part_number, part_name = self.get_value_by_selected_row(table_name=table_name, column_name='NUMBER',
+                                                                add_column_name='PART_NAME')
         # Если получен номер елемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
         if part_number:
 
@@ -1326,7 +1396,8 @@ class App(Frame):
                 # Выгрузка информации о пресс-форме из базы данных
                 bom = table_funcs.TableInDb(table_name, 'Database')
                 part_data = bom.get_table(type_returned_data='dict', first_param='NUMBER',
-                                          first_value=part_number, last_string=True)
+                                          first_value=part_number, second_param='PART_NAME', second_value=part_name,
+                                          last_string=True)
             except (sqlite3.OperationalError, IndexError):
                 messagebox.showerror('Уведомление об ошибке', f'Данных о запчасти не имеется')
                 get_warning_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
@@ -1361,7 +1432,8 @@ class App(Frame):
             else user_data.get('stock_changing_in')
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
         table_name = define_table_name()
-        part_number = self.get_value_by_selected_row(table_name, 'NUMBER')
+        part_number, part_name = self.get_value_by_selected_row(table_name=table_name, column_name='NUMBER',
+                                                                add_column_name='PART_NAME')
         # Если получен номер елемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
         if part_number and define_stock_changing_access():
 
@@ -1369,7 +1441,8 @@ class App(Frame):
                 # Выгрузка информации о пресс-форме из базы данных
                 bom = table_funcs.TableInDb(table_name, 'Database')
                 part_data = bom.get_table(type_returned_data='dict', first_param='NUMBER',
-                                          first_value=part_number, last_string=True)
+                                          first_value=part_number, second_param='PART_NAME', second_value=part_name,
+                                          last_string=True)
             except (sqlite3.OperationalError, IndexError):
                 messagebox.showerror('Уведомление об ошибке', f'Данных о запчасти не имеется')
                 get_warning_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',

@@ -158,8 +158,8 @@ class Stock(tkinter.Toplevel):
                 try:
                     # Изменение количества запчастей в BOM
                     bom = table_funcs.TableInDb(self.table_name, 'Database')
-                    bom.change_data(param='NUMBER', value=self.part_number,
-                                    data={define_column_name(): self.get_end_quantity()})
+                    bom.change_data(first_param='NUMBER', first_value=self.part_number,
+                                    data={define_column_name(): self.get_end_quantity()}, second_param='PART_NAME', second_value=self.part_name)
                     # Новая запись в журнале истории изменений склада
                     warehouse_history = table_funcs.TableInDb(define_table_name(), 'Database')
                     warehouse_history.insert_data(info=define_data())

@@ -35,7 +35,8 @@ columns_sizes_warehouse_table = {f'#{i}': 20 for i in range(1, len(columns_wareh
 columns_searching_results = ('Составляющая', 'Номер п/ф', 'Наименование элемента', 'Описание',
                              'Доп. информация', 'Наличие (новые)', 'Наличие (б/у)')
 columns_sizes_searching_table = {f'#{i}': 20 for i in range(1, len(columns_searching_results) + 1)}
-
+columns_min_parts_excel_table = ('Номер п/ф', 'Тип', 'Номер запчасти', 'Наименование', 'Описание',
+                                 'Кол-во в п/ф, шт', 'В наличие, шт')
 user_rights = {'stock_changing_in': 'Приём запчастей на склад',
                'stock_changing_out': 'Взятие запчастей со склада',
                'mold_status_changing': 'Перемещение пресс-форм (смена статуса)',
