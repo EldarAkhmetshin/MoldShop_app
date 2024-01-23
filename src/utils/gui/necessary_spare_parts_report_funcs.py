@@ -27,6 +27,9 @@ def sort_table(table_name):
     for row in table_data:
         try:
             parts_quantity = int(row.get('PARTS_QUANTITY'))
+        except (ValueError, TypeError):
+            parts_quantity = 0
+        try:
             parts_quantity_in_mold = int(row.get('PCS_IN_MOLDS'))
             min_part_percent = int(row.get('MIN_PERCENT'))
         except (ValueError, TypeError):
@@ -73,7 +76,7 @@ class MinPartsReport(tkinter.Toplevel):
         """
         Инициация окна приложения и контейнеров для размещения виджетов
         """
-        self.geometry('300x400')
+        self.geometry('315x450')
         self.frame_header = Frame(self)
         self.frame_header.pack(fill=BOTH, expand=True)
         self.frame_body = Frame(self)
@@ -93,14 +96,20 @@ class MinPartsReport(tkinter.Toplevel):
         """
         ttk.Label(self.frame_header, text='Дефектация', style='Title.TLabel').pack(side=TOP, pady=15)
 
-        ttk.Label(self.frame_body, text='Выделите из списка ниже необходимые п/ф', style='Regular.TLabel').pack(side=TOP, pady=10)
+        (ttk.Label(self.frame_body, text='Выделите из списка ниже необходимые п/ф', style='Regular.TLabel')
+         .pack(side=TOP, pady=10))
         self.molds_list_box = Listbox(self.frame_body, selectmode=MULTIPLE, width=140)
         self.get_mold_titles()
         scroll = Scrollbar(self.frame_body, orient=tkinter.VERTICAL, command=self.molds_list_box.yview)
         scroll.pack(side=RIGHT, fill=Y)
         self.molds_list_box.configure(yscrollcommand=scroll.set)
         self.molds_list_box.pack(side=TOP, pady=10)
-
+        (ttk.Label(self.frame_body, text='ПРИМЕЧАНИЕ: Запчасть будет учитываться в '
+                                         '\nвыгрузке если будут заполнены ячейки в столбцах:'
+                                         '\n - Количество в форме;'
+                                         '\n - В наличие (новые), шт;'
+                                         '\n - Допустимый остаток,%', style='Regular.TLabel')
+         .pack(side=TOP, pady=4))
         ttk.Button(
             self.frame_bottom, text='Применить', style='Regular.TButton',
             command=self.start_search

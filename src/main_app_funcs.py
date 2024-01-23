@@ -287,8 +287,12 @@ class App(Frame):
                 # Получение информации из Иксель файла типа xlsx
                 define_sheet_name: Callable = lambda: 'HOT_RUNNER' if hot_runner_bom else 'MOLD'
                 try:
-                    column_names, rows_data = get_data_from_excel_file(file_path=file_path,
-                                                                       work_sheet_name=define_sheet_name())
+                    column_names, rows_data, status, error_massage = get_data_from_excel_file(file_path=file_path,
+                                                                                              work_sheet_name=define_sheet_name())
+                    if not status:
+                        messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
+                                             message=error_massage)
+                        return
                 except TypeError:
                     get_warning_log(user=user_data.get('user_name'), message='New BOM wasnt uploaded',
                                     func_name=self.upload_new_bom.__name__, func_path=abspath(__file__))

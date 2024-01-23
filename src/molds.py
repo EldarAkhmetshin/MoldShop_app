@@ -25,17 +25,25 @@ def get_data_from_excel_file(file_path: str, work_sheet_name: str) -> (tuple, li
         messagebox.showerror('Уведомление об ошибке',
                              'Название листа не соотвествует. Убедитесь, что вы используете правильный файл шаблона')
     else:
+        part_nums = []
         for count, row in enumerate(work_sheet.values):
-            if not row[0]:
-                break
+            # Проверка на наличие номера запчасти в каждой строке и на то, чтобы этот номер не повторялся в BOM
+            part_num = row[0]
+            if not part_num:
+                return (column_names, rows_data,
+                        False, 'BOM не может быть загружен, так как имеется строка без номера запчасти')
+            elif part_num in part_nums:
+                return (column_names, rows_data,
+                        False, f'BOM не может быть загружен, так как номер запчасти {row[0]} дублируется')
 
             if count == 0:
                 column_names = row
                 rows_data.append(row)
             else:
                 rows_data.append(row)
+            part_nums.append(part_num)
 
-        return column_names, rows_data
+        return column_names, rows_data, True, None
 
 
 def save_new_molds_list():
