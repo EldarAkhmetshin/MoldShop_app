@@ -7,6 +7,8 @@ import os
 from tkinter import *
 from tkinter import ttk, filedialog, messagebox
 from os.path import abspath
+
+from openpyxl.reader.excel import load_workbook
 from pandas import DataFrame
 from PIL import Image, ImageTk
 from tkinter.ttk import Frame
@@ -29,6 +31,7 @@ from src.utils.sql_database import table_funcs, new_tables
 from src.utils.gui.mold_data_edition_funcs import EditedMold
 from src.utils.gui.stock_changing_funcs import Stock
 from src.utils.gui.attached_files_review_funcs import Attachment
+from src.utils.sql_database.table_funcs import DataBase, TableInDb
 
 
 def save_excel_table(table):
@@ -141,6 +144,30 @@ def check_value_type(value: Any) -> bool:
     else:
         return True
 
+
+def fill_bom_parameters():
+    # Выгрузка данных из иксель файла
+    work_book = load_workbook(os.path.join('parameters.xls'))
+    parameters = []
+    try:
+        work_sheet = work_book['data']
+    except KeyError:
+        messagebox.showerror('Уведомление об ошибке',
+                             'Название листа не соотвествует. Убедитесь, что вы используете правильный файл шаблона')
+    else:
+        for count, row in enumerate(work_sheet.values):
+            # Проверка на наличие номера запчасти в каждой строке и на то, чтобы этот номер не повторялся в BOM
+            parameters.append(row)
+    # Сортировка бд на поиск схожих значений с последующей замены данных
+    database = DataBase('Database')
+    table_names = database.get_all_tables()
+    bom_table_names = list(filter(lambda table_name: 'BOM' in table_name[0], table_names))
+    for bom in bom_table_names:
+        db = TableInDb(bom, 'Database')
+        table_data = db.get_table(type_returned_data='dict')
+        for row in table_data:
+            for param in parameters:
+                pass
 
 class App(Frame):
     """
