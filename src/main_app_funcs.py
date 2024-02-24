@@ -17,12 +17,15 @@ from typing import Callable, Any
 
 from src.global_values import user_data
 from src.data import mold_statuses_list, part_statuses_list, columns_warehouse_table, \
-    columns_sizes_warehouse_table, columns_bom_parts_table, columns_sizes_bom_parts_table
-from src.molds import get_data_from_excel_file, validate_new_bom
-from src.data import info_messages, error_messages, columns_molds_moving_history_table, columns_sizes_moving_history_table
+    columns_sizes_warehouse_table, columns_bom_parts_table, columns_sizes_bom_parts_table, columns_purchased_parts, \
+    columns_sizes_purchased_parts_table
+from src.data import info_messages, error_messages, columns_molds_moving_history_table, \
+    columns_sizes_moving_history_table
+from src.utils.excel.xls_tables import get_new_bom_from_excel_file, export_excel_table
 from src.utils.gui.bom_edition_funcs import EditedBOM
 from src.utils.gui.mold_status_changing_funcs import QRWindow
 from src.utils.gui.necessary_spare_parts_report_funcs import MinPartsReport
+from src.utils.gui.purchased_parts_funcs import upload_purchased_parts, CustomsReport
 from src.utils.gui.reference_information_funcs import ReferenceInfo
 from src.utils.gui.spare_parts_searching_funcs import Searcher
 from src.utils.gui.user_authorization_funcs import change_user
@@ -34,45 +37,36 @@ from src.utils.gui.attached_files_review_funcs import Attachment
 from src.utils.sql_database.table_funcs import DataBase, TableInDb
 
 
-def save_excel_table(table):
+def validate_new_bom(mold_number: str, column_names: tuple, hot_runner: bool = None) -> bool:
     """
-    Функция сохранения открытой таблицы из окна приложения в Иксель файл формата xlsx
+    Функция проверки наличия номера пресс-формы в общем перечне всех п/ф, проверки на наличие уже созданного ранее BOM
+    с таким номером п/ф, а также проверки на соответствие названий столбцов таблицы из нового BOM
+    :param mold_number: Номер пресс-формы
+    :param column_names: Наименования столбцов нового BOM
+    :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
+    :return: True - если номер п/ф существует в перечне и такой BOM не создавался ранее
     """
-    # Открытие диалогового окна для сохранения файла пользователем в локальной директории компьютера,
-    # c дальнейшим извлечением пути к выбранному файлу в виде строки
-    import openpyxl
-    from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
-    from openpyxl.utils import get_column_letter
+    define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{mold_number}' if hot_runner else f'BOM_{mold_number}'
+    # Выгрузка информации из базы данных
+    molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
+    molds_table = molds_data.get_table(type_returned_data='tuple')
+    # Поиск соответствия через цикл
+    for mold_info in molds_table:
+        if mold_info[0] == mold_number:
+            db = table_funcs.DataBase('Database')
+            tables = db.get_all_tables()
+            # Проверка базы данных на наличие схожей таблицы по названию
+            new_table = define_table_name()
+            for table in tables:
+                if table[0] == new_table:
+                    return False
+            # Проверка названий столбцов нового BOM на корректность
+            for num, name in enumerate(columns_bom_parts_table):
+                if name != column_names[num]:
+                    return False
+            return True
+    return False
 
-    file_path = filedialog.asksaveasfilename(
-        filetypes=(('XLSX files', '*.xlsx'),)
-    )
-    if file_path:
-        file_path = file_path.replace('.xlsx', '')
-        # Формирование Иксель файла типа xlsx
-        table_length = len(table)
-        saved_table = {}
-        for num, column_name in enumerate(table[0]):
-            saved_table[column_name] = tuple(table[i][num] for i in range(1, table_length))
-        try:
-            df = DataFrame(saved_table)
-            df.to_excel(excel_writer=f'{file_path}.xlsx', sheet_name='Table', index=False)
-            wb = openpyxl.load_workbook(f'{file_path}.xlsx')
-            ws = wb['Table']
-            dim_holder = DimensionHolder(worksheet=ws)
-
-            for col in range(ws.min_column, ws.max_column + 1):
-                dim_holder[get_column_letter(col)] = ColumnDimension(ws, min=col, max=col, width=20)
-
-            ws.column_dimensions = dim_holder
-            wb.save(f'{file_path}.xlsx')
-        except Exception:
-            messagebox.showerror(title='Уведомление об ошибке',
-                                 message='Ошибка в записи файла.\nПовторите ещё раз, либо братитесь к администратору')
-            get_warning_log(user=user_data.get('user_name'), message='Table wasnt saved in Excel file',
-                            func_name=save_excel_table.__name__, func_path=abspath(__file__))
-        else:
-            messagebox.showinfo(title='Уведомление', message='Таблица успешно сохранена на Ваш компьютер')
 
 def create_menu_widgets(window: tkinter.Tk, application):
     """
@@ -104,12 +98,13 @@ def create_menu_widgets(window: tkinter.Tk, application):
         window_name='App Info'))
     menu.add_cascade(label='Справка', menu=help_menu)
 
-def render_window_for_selection_bom_type(window_title: str, called_func: Callable):
+
+def render_window_for_selection_bom_type(window_title: str, callback_func: Callable):
     """
     Рендер окна для выбора типа BOM для его загрузки в систему приложения, либо для скачиваемого пустого шаблона BOM
     (пресс-форма или горячий канал)
     :param window_title: Имя доп. окна
-    :param called_func: Вызываемая функция при нажатии на кнопку
+    :param callback_func: Вызываемая функция при нажатии на кнопку
     """
     window = tkinter.Toplevel()
     window.title(window_title)
@@ -121,12 +116,12 @@ def render_window_for_selection_bom_type(window_title: str, called_func: Callabl
     ttk.Button(
         window, text='Пресс-форма', style='Regular.TButton',
         width=20,
-        command=lambda: called_func(window)
+        command=lambda: callback_func(window)
     ).pack(side=LEFT, padx=5, pady=5)
     ttk.Button(
         window, text='Горячий канал', style='Regular.TButton',
         width=20,
-        command=lambda: called_func(window, hot_runner_bom=True)
+        command=lambda: callback_func(window, hot_runner_bom=True)
     ).pack(side=LEFT, padx=5, pady=5)
     window.mainloop()
 
@@ -153,7 +148,7 @@ def fill_bom_parameters():
         work_sheet = work_book['data']
     except KeyError:
         messagebox.showerror('Уведомление об ошибке',
-                             'Название листа не соотвествует. Убедитесь, что вы используете правильный файл шаблона')
+                             'Название листа не соответствует. Убедитесь, что вы используете правильный файл шаблона')
     else:
         for count, row in enumerate(work_sheet.values):
             # Проверка на наличие номера запчасти в каждой строке и на то, чтобы этот номер не повторялся в BOM
@@ -169,31 +164,38 @@ def fill_bom_parameters():
             for param in parameters:
                 pass
 
+
 class App(Frame):
     """
     Класс представляет набор функций для создания графического интерфейса основного окна приложения с помощью
     библиотеки Tkinter. А именно отрисовка / вывод различных изображений, таблиц, кнопок, полей ввода и т.д. 
     Помимо рендера виджетов, класс включает в себя функции для обработки отображаемой информации. В частности это 
-    взимодействие с таблицами базы данных. 
+    взаимодействие с таблицами базы данных.
     """
 
     def __init__(self):
         """
+        Инициация переменных класса
         self.tree: Контейнер для вывода информации в табличном виде
         self.frame_header: Контейнер для отображения шапки приложения
         self.frame_main_widgets: Контейнер для отображения кнопок и полей ввода ниже шапки приложения
         self.frame_body: Контейнер для отображения основной информации
         self.tracked_variable: Переменная для отслеживания записываемых данных в поле ввода
-        self.hot_runner_bom: Булево значение, которое становится True когда выбирается пользователем таблица горячего канала
-        self.sorted_bom_tuple: Словарь, содержащий данные (BOM выбранной пресс-формы) в кортежах для вывода отсортированной информации по разным признакам
+        self.hot_runner_bom: Булево значение, которое становится True когда выбирается пользователем таблица
+        горячего канала
+        self.sorted_bom_tuple: Словарь, содержащий данные (BOM выбранной пресс-формы) в кортежах для вывода
+        отсортированной информации по разным признакам
         self.all_molds_table_dict: Словарь, содержащий данные (общий перечень пресс-форм) в словарях
-        self.mold_number: Текстовое значение параметра "MOLD_NUMBER" из таблицы базы данных. Принимает значение выбранной пресс-формы пользователем в данный момент
+        self.mold_number: Текстовое значение параметра "MOLD_NUMBER" из таблицы базы данных. Принимает значение
+        выбранной пресс-формы пользователем в данный момент
         self.mold_number_entry_field: Поле ввода для открытия BOM по номеру пресс-формы
         self.current_table: Массив состоящий из кортежей с данными для вывода таблицы в окне приложения
         self.event: Обрабатываемое событие
         self.sort_status: Значение характеризующее выбранный параметр сортировки для вывода табличных данных
-        self.sorted_molds_data_tuple: Словарь, содержащий данные (общий перечень пресс-форм) в кортежах для вывода отсортированной информации по разным признакам
-        self.sorted_molds_data_dict: Словарь, содержащий данные (общий перечень пресс-форм) в словарях для вывода отсортированной информации по разным признакам
+        self.sorted_molds_data_tuple: Словарь, содержащий данные (общий перечень пресс-форм) в кортежах для вывода
+        отсортированной информации по разным признакам
+        self.sorted_molds_data_dict: Словарь, содержащий данные (общий перечень пресс-форм) в словарях для вывода
+        отсортированной информации по разным признакам
         self.molds_list_data: Словарь, содержащий данные (общий перечень пресс-форм) в кортежах
         """
         super().__init__()
@@ -271,7 +273,7 @@ class App(Frame):
         self.sorted_molds_data_tuple = None
         self.sorted_molds_data_dict = None
         self.molds_list_data = None
-        # Объявление переменных, в которых будут вызываться определенные функции при нажитии клавиши
+        # Объявление переменных, в которых будут вызываться определенные функции при нажатии клавиши
         self.key_two_func = None
         self.key_three_func = None
         self.key_four_func = None
@@ -291,16 +293,16 @@ class App(Frame):
         self.frame_main_widgets.pack(anchor=N)
         self.frame_body = Frame(self)
         self.frame_body.pack()
-        #self.frame_body.pack(fill=BOTH, expand=True)
 
     def upload_new_bom(self, window: tkinter, hot_runner_bom: bool = None):
         """
         Функция загрузки спецификации пресс-формы (BOM) из Иксель файла формата xlsx в таблицу базы данных
         :param window: дополнительное окно приложения
-        :param hot_runner_bom: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
+        :param hot_runner_bom: Булево значение, которое характеризует какой тип BOM был выбран
+        (Пресс-форма или горячий канал)
         """
         # Открытие диалогового окна для выбора файла пользователем с локальной директории компьютера,
-        # c дальнейшим извлечением пути к выбранному файлу в виде строки
+        # с дальнейшим извлечением пути к выбранному файлу в виде строки
         if user_data.get('molds_and_boms_data_changing') == 'True':
             try:
                 window.quit()
@@ -314,8 +316,9 @@ class App(Frame):
                 # Получение информации из Иксель файла типа xlsx
                 define_sheet_name: Callable = lambda: 'HOT_RUNNER' if hot_runner_bom else 'MOLD'
                 try:
-                    column_names, rows_data, status, error_massage = get_data_from_excel_file(file_path=file_path,
-                                                                                              work_sheet_name=define_sheet_name())
+                    column_names, rows_data, status, error_massage = get_new_bom_from_excel_file(
+                        file_path=file_path,
+                        work_sheet_name=define_sheet_name())
                     if not status:
                         messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
                                              message=error_massage)
@@ -348,14 +351,15 @@ class App(Frame):
     def upload_attachment(self, bom_part: bool = None):
         """
         Функция загрузки вложения (какого либо файла) в директорию приложения для дальнейшего использования
-        :param bom_part: Булево значение, которое принимает True когда открыт какой либо BOM
+        :param bom_part: Булево значение, которое принимает True когда открыт какой-либо BOM
         """
         # Открытие диалогового окна для выбора файла пользователем с локальной директории компьютера,
-        # c дальнейшим извлечением пути к выбранному файлу в виде строки
+        # с дальнейшим извлечением пути к выбранному файлу в виде строки
         part_number = None
         if user_data.get('attachments_changing') == 'True':
             if bom_part:
-                define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
+                define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom \
+                    else f'BOM_{self.mold_number}'
                 part_number = self.get_value_by_selected_row(define_table_name(), 'NUMBER')
             if not self.mold_number:
                 self.mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
@@ -373,7 +377,8 @@ class App(Frame):
                         if not part_number \
                         else (
                         os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts', part_number)
-                        if self.hot_runner_bom else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts',
+                        if self.hot_runner_bom else os.path.join('savings', 'attachments', self.mold_number,
+                                                                 'mold_parts',
                                                                  part_number))
                     try:
                         os.mkdir(os.path.join('savings', 'attachments', self.mold_number))
@@ -403,7 +408,8 @@ class App(Frame):
                     except IOError:
                         messagebox.showerror(title='Ошибка',
                                              message='Файл не удалось прикрепить. Обратитесь к администратору.')
-                        get_warning_log(user=user_data.get('user_name'), message='File wasnt attached because of IOError',
+                        get_warning_log(user=user_data.get('user_name'), message='File wasnt attached because of '
+                                                                                 'IOError',
                                         func_name=self.upload_attachment.__name__, func_path=abspath(__file__))
                     else:
                         messagebox.showinfo(title='Уведомление', message='Файл успешно прикреплён')
@@ -417,54 +423,15 @@ class App(Frame):
             messagebox.showerror(error_messages.get('access_denied').get('message_name'),
                                  error_messages.get('access_denied').get('message_body'))
 
-    def save_excel_table(self):
-        """
-        Функция сохранения открытой таблицы из окна приложения в Иксель файл формата xlsx
-        """
-        # Открытие диалогового окна для сохранения файла пользователем в локальной директории компьютера,
-        # c дальнейшим извлечением пути к выбранному файлу в виде строки
-        import openpyxl
-        from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
-        from openpyxl.utils import get_column_letter
-
-        file_path = filedialog.asksaveasfilename(
-            filetypes=(('XLSX files', '*.xlsx'),)
-        )
-        if file_path:
-            file_path = file_path.replace('.xlsx', '')
-            # Формирование Иксель файла типа xlsx
-            table_length = len(self.current_table)
-            saved_table = {}
-            for num, column_name in enumerate(self.current_table[0]):
-                saved_table[column_name] = tuple(self.current_table[i][num] for i in range(1, table_length))
-            try:
-                df = DataFrame(saved_table)
-                df.to_excel(excel_writer=f'{file_path}.xlsx', sheet_name='Table', index=False)
-                wb = openpyxl.load_workbook(f'{file_path}.xlsx')
-                ws = wb['Table']
-                dim_holder = DimensionHolder(worksheet=ws)
-
-                for col in range(ws.min_column, ws.max_column + 1):
-                    dim_holder[get_column_letter(col)] = ColumnDimension(ws, min=col, max=col, width=20)
-
-                ws.column_dimensions = dim_holder
-                wb.save(f'{file_path}.xlsx')
-            except Exception:
-                messagebox.showerror(title='Уведомление об ошибке',
-                                     message='Ошибка в записи файла.\nПовторите ещё раз, либо братитесь к администратору')
-                get_warning_log(user=user_data.get('user_name'), message='Table wasnt saved in Excel file',
-                                func_name=self.save_excel_table.__name__, func_path=abspath(__file__))
-            else:
-                messagebox.showinfo(title='Уведомление', message='Таблица успешно сохранена на Ваш компьютер')
-
     def save_bom_parts_template(self, window: tkinter, hot_runner_bom: bool = None):
         """
         Функция сохранения шаблона формирования BOM в Иксель файл формата xlsx
         :param window: Открытое дополнительное окно приложения для выбора типа пресс-формы
-        :param hot_runner_bom: Булево значение, которое становится True когда выбирается пользователем таблица горячего канала
+        :param hot_runner_bom: Булево значение, которое становится True когда выбирается пользователем таблица
+        горячего канала
         """
         # Открытие диалогового окна для сохранения файла пользователем в локальной директории компьютера,
-        # c дальнейшим извлечением пути к выбранному файлу в виде строки
+        # с дальнейшим извлечением пути к выбранному файлу в виде строки
         import openpyxl
         from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
         from openpyxl.utils import get_column_letter
@@ -475,7 +442,7 @@ class App(Frame):
             file_path = filedialog.asksaveasfilename(
                 filetypes=(('XLSX files', '*.xlsx'),)
             )
-        except  AttributeError:
+        except AttributeError:
             pass
         else:
             if file_path:
@@ -499,8 +466,9 @@ class App(Frame):
                     wb.save(f'{file_path}.xlsx')
                 except Exception:
                     messagebox.showerror(title='Уведомление об ошибке',
-                                         message='Ошибка в записи файла.\nПовторите ещё раз, либо братитесь к администратору')
-                    get_warning_log(user=user_data.get('user_name'), message='Template wasnt saved in Excel file',
+                                         message='Ошибка в записи файла.\nПовторите ещё раз, либо обратитесь к '
+                                                 'администратору')
+                    get_warning_log(user=user_data.get('user_name'), message='Template was not saved in Excel file',
                                     func_name=self.save_bom_parts_template.__name__, func_path=abspath(__file__))
                 else:
                     messagebox.showinfo(title='Уведомление', message='BOM шаблон успешно сохранен на Ваш компьютер')
@@ -509,7 +477,7 @@ class App(Frame):
                        delete_row_func: Callable = None, new_attachment_func: Callable = None,
                        looking_attachments_func: Callable = None):
         """
-        Рендер виджетов панели иснтрументов
+        Рендер виджетов панели инструментов
         :param looking_attachments_func: Функция просмотра вложенных файлов
         :param new_attachment_func: Функция прикрепления файла
         :param back_func: Вызываемая функция при нажатии кнопки "Назад" 
@@ -554,7 +522,7 @@ class App(Frame):
         delete_button.pack(side=LEFT, padx=3, pady=4)
         Hovertip(anchor_widget=delete_button, text='Удалить строку', hover_delay=400)
         download_excel_button = ttk.Button(frame_toolbar_table, image=self.excel_icon_pil,
-                                           command=self.save_excel_table)
+                                           command=lambda: export_excel_table(table=self.current_table))
         download_excel_button.pack(side=LEFT, padx=3, pady=4)
         Hovertip(anchor_widget=download_excel_button, text='Выгрузить таблицу в Excel файл', hover_delay=400)
 
@@ -563,10 +531,10 @@ class App(Frame):
                                            command=new_attachment_func)
         new_attachment_button.pack(side=LEFT, padx=3, pady=4)
         Hovertip(anchor_widget=new_attachment_button, text='Прикрепить изображение / документ', hover_delay=400)
-        open_attacments_button = ttk.Button(frame_toolbar_attachments, image=self.attachments_icon_pil,
-                                            command=looking_attachments_func)
-        open_attacments_button.pack(side=LEFT, padx=3, pady=4)
-        Hovertip(anchor_widget=open_attacments_button, text='Просмотреть вложения', hover_delay=400)
+        open_attachments_button = ttk.Button(frame_toolbar_attachments, image=self.attachments_icon_pil,
+                                             command=looking_attachments_func)
+        open_attachments_button.pack(side=LEFT, padx=3, pady=4)
+        Hovertip(anchor_widget=open_attachments_button, text='Просмотреть вложения', hover_delay=400)
 
         ttk.Label(frame_toolbar_searching, text=f'Поиск', style='Toolbar.TLabel').pack(side=TOP, padx=2, pady=2)
         searching_button = ttk.Button(frame_toolbar_searching, image=self.loupe_icon_pil,
@@ -633,10 +601,16 @@ class App(Frame):
 
         ttk.Button(
             self.frame_main_widgets, style='Menu.TButton',
+            text='Отслеживание закупок',
+            command=self.open_purchased_parts_window
+        ).grid(padx=30, pady=15, column=9, row=3)
+
+        ttk.Button(
+            self.frame_main_widgets, style='Menu.TButton',
             text='Справка', command=lambda: self.render_typical_additional_window(
                 called_class=ReferenceInfo,
                 window_name='Reference Information')
-        ).grid(padx=30, pady=15, column=9, row=3)
+        ).grid(padx=30, pady=15, column=5, row=4)
 
         ttk.Label(self.frame_body, image=self.image_body_pil).pack(fill=BOTH, side=RIGHT, pady=27)
         get_info_log(user=user_data.get('user_name'), message='Main menu widgets were rendered',
@@ -671,9 +645,8 @@ class App(Frame):
         self.frame_main_widgets = Frame(self)
         self.frame_main_widgets.pack(anchor=N)
         self.frame_body = Frame(self)
-        #self.frame_body.pack(fill=BOTH, expand=True)
         self.frame_body.pack()
-        # Рендеров виджетов главного меню
+        # Рендер виджетов главного меню
         self.render_widgets_main_menu()
 
     def render_widgets_molds_list(self):
@@ -684,7 +657,7 @@ class App(Frame):
         # Рендер панели инструментов
         self.render_toolbar(back_func=self.open_main_menu, add_row_func=lambda: self.render_typical_additional_window(
             called_class=EditedMold, window_name='New Mold Information', access=molds_data_editing_access,
-            called_function=self.get_molds_data),
+            callback_function=self.get_molds_data),
                             edit_row_func=self.render_mold_edition_window,
                             delete_row_func=lambda: self.delete_selected_table_row('All_molds_data', 'MOLD_NUMBER'),
                             new_attachment_func=self.upload_attachment,
@@ -726,12 +699,14 @@ class App(Frame):
         btn_upload_bom = ttk.Button(
             bom_frame, text='Загрузить', style='Regular.TButton', width=10,
             command=lambda: render_window_for_selection_bom_type(window_title='New BOM Uploading',
-                                                                 called_func=self.upload_new_bom)
+                                                                 callback_func=self.upload_new_bom)
         )
         btn_upload_bom.pack(padx=6, pady=5, side=LEFT)
         Hovertip(anchor_widget=btn_upload_bom,
-                 text='Для загрузки в систему нового BOM (спецификации) используйте шаблон таблицы, который можно скачать. '
-                      '\nЧтобы загрузка произошла успешно убедитесь, что пресс-форма под таким номером уже имеется в общем '
+                 text='Для загрузки в систему нового BOM (спецификации) используйте шаблон таблицы, который можно '
+                      'скачать.'
+                      '\nЧтобы загрузка произошла успешно убедитесь, что пресс-форма под таким номером уже имеется в '
+                      'общем'
                       '\nперечне и название файла полностью совпадает с номером пресс-формы. Например: название файла'
                       '\n"1981-A.xlsx" и номер пресс-формы "1981-A"',
                  hover_delay=400)
@@ -739,7 +714,7 @@ class App(Frame):
         btn_bom_template_download = ttk.Button(
             bom_frame, text='Скачать шаблон', style='Regular.TButton', width=14,
             command=lambda: render_window_for_selection_bom_type(window_title='BOM Template Downloading',
-                                                                 called_func=self.save_bom_parts_template)
+                                                                 callback_func=self.save_bom_parts_template)
         )
         btn_bom_template_download.pack(padx=6, pady=5, side=LEFT)
         Hovertip(anchor_widget=btn_bom_template_download,
@@ -749,7 +724,7 @@ class App(Frame):
         btn_delete_bom = ttk.Button(
             bom_frame, text='Удалить', style='Regular.TButton',
             command=lambda: render_window_for_selection_bom_type(window_title='Удаление BOM',
-                                                                 called_func=self.delete_selected_bom)
+                                                                 callback_func=self.delete_selected_bom)
         )
         btn_delete_bom.pack(padx=6, pady=5, side=LEFT)
         Hovertip(anchor_widget=btn_delete_bom,
@@ -783,7 +758,8 @@ class App(Frame):
 
     def render_widgets_mold_scanning_mode(self):
         """
-        Функция рендера всех виджетов окна приложения в режиме изменения статуса пресс-формы и просмотра журнала перемещений
+        Функция рендера всех виджетов окна приложения в режиме изменения статуса пресс-формы и просмотра
+        журнала перемещений
         """
         # Рендер панели инструментов
         self.render_toolbar(back_func=self.open_main_menu)
@@ -806,8 +782,8 @@ class App(Frame):
         (ttk.Label(title_frame, text='Перемещение пресс-форм', style='Title.TLabel')
          .pack(side=LEFT, padx=8, pady=2))
         ttk.Label(description_frame, text='*********', style='Regular.TLabel').pack(side=LEFT, padx=8, pady=2)
-        ttk.Label(status_frame, text='Выберите необходимый статус куда будет перещена п/ф').pack(side=TOP, padx=3,
-                                                                                                 pady=2)
+        ttk.Label(status_frame, text='Выберите необходимый статус куда будет перемещена п/ф').pack(side=TOP, padx=3,
+                                                                                                   pady=2)
 
         ttk.Button(
             status_frame, text='ТО2', style='Regular.TButton',
@@ -829,13 +805,15 @@ class App(Frame):
             side=LEFT, padx=5)
         ttk.Label(picture_subframe, image=self.image_scanner_pil).pack(side=RIGHT, pady=1)
 
-        get_info_log(user=user_data.get('user_name'), message='Mold scaning mode widgets were rendered',
+        get_info_log(user=user_data.get('user_name'), message='Mold scanning mode widgets were rendered',
                      func_name=self.render_widgets_mold_scanning_mode.__name__, func_path=abspath(__file__))
 
     def render_widgets_warehouse_mode(self, consumption: bool = None):
         """
-        Функция рендера всех виджетов окна приложения в режиме изменения статуса пресс-формы и просмотра журнала перемещений
-        :param consumption: Булево значение, которое принимает значение True когда выбран расход (взятие запчастей со склада)
+        Функция рендера всех виджетов окна приложения в режиме изменения статуса пресс-формы и просмотра журнала
+        перемещений
+        :param consumption: Булево значение, которое принимает значение True когда выбран расход
+        (взятие запчастей со склада)
         """
         define_title: Callable = lambda: 'История расходов склада пресс-форм' if consumption \
             else 'История приходов склада пресс-форм'
@@ -874,18 +852,60 @@ class App(Frame):
         get_info_log(user=user_data.get('user_name'), message='Warehouse mode widgets were rendered',
                      func_name=self.render_widgets_warehouse_mode.__name__, func_path=abspath(__file__))
 
+    def render_widgets_purchased_parts_mode(self):
+        """
+        Функция рендера всех виджетов окна приложения в режиме изменения статуса пресс-формы и просмотра журнала
+        перемещений
+        """
+        # Рендер панели инструментов
+        self.render_toolbar(back_func=self.open_main_menu)
+        # Объявление основного и вложенных контейнеров для виджетов
+        self.frame_main_widgets = Frame(self, relief=RIDGE)
+        self.frame_main_widgets.pack(fill=X)
+        main_sub_frame = Frame(self.frame_main_widgets)
+        main_sub_frame.pack(side=LEFT, pady=2, padx=2)
+        picture_subframe = Frame(self.frame_main_widgets)
+        picture_subframe.pack(side=RIGHT, pady=2, padx=2)
+        title_frame = Frame(main_sub_frame)
+        title_frame.pack(fill=BOTH, expand=True)
+        description_frame = Frame(main_sub_frame)
+        description_frame.pack(fill=BOTH, expand=True)
+        spareparts_frame = ttk.LabelFrame(main_sub_frame, text='Запчасти', relief=RIDGE)
+        spareparts_frame.pack(side=LEFT, padx=4, pady=2)
+        # Рендер виджетов
+        (ttk.Label(title_frame, text='Отслеживание закупленных запчастей', style='Title.TLabel')
+         .pack(side=LEFT, padx=8, pady=2))
+        ttk.Label(description_frame, text='*********', style='Regular.TLabel').pack(side=LEFT, padx=8, pady=2)
+
+        ttk.Button(
+            spareparts_frame, text='Добавить закупаемые запчасти', style='Regular.TButton', width=30,
+            command=self.update_window_with_new_parts,
+        ).pack(side=LEFT, padx=3, pady=3)
+
+        ttk.Button(
+            spareparts_frame, text='Сделать выгрузку для таможни', style='Regular.TButton', width=30,
+            command=lambda: self.render_typical_additional_window(called_class=CustomsReport,
+                                                                  window_name='Customs report creation')
+        ).pack(side=LEFT, padx=3, pady=3)
+
+        ttk.Label(picture_subframe, image=self.image_rack_pil).pack(side=RIGHT, pady=1)
+
+        get_info_log(user=user_data.get('user_name'), message='Warehouse mode widgets were rendered',
+                     func_name=self.render_widgets_warehouse_mode.__name__, func_path=abspath(__file__))
+
     def render_widgets_selected_bom(self):
         """
         Функция рендера всех виджетов окна приложения в режиме просмотра BOM (спецификации) пресс-формы
         """
-        define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
+        define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom \
+            else f'BOM_{self.mold_number}'
         # Рендер панели инструментов
         self.render_toolbar(back_func=self.get_molds_data,
                             add_row_func=lambda: self.render_typical_additional_window(
                                 called_class=lambda: EditedBOM(self.mold_number, define_table_name()),
                                 window_name='New Spare Part Information',
                                 access=user_data.get('molds_and_boms_data_changing'),
-                                called_function=lambda: self.open_bom(
+                                callback_function=lambda: self.open_bom(
                                     self.mold_number)),
                             edit_row_func=self.render_bom_edition_window,
                             delete_row_func=lambda: self.delete_selected_table_row(define_table_name(), 'NUMBER'),
@@ -977,7 +997,7 @@ class App(Frame):
 
     def on_clicked_or_pressed_table_row(self, event):
         """
-        Обработчик события двойного нажатия мыши или клавиши Enter на выделеную строку таблицы
+        Обработчик события двойного нажатия мыши или клавиши Enter на выделенную строку таблицы
         :param event: Обрабатываемое событие
         """
         self.open_bom()
@@ -1023,7 +1043,7 @@ class App(Frame):
     def on_pressed_key_five(self, event):
         """
         Обработчик события нажатия клавиши 5
-        :param event: Обрабаьываемое событие
+        :param event: Обрабатываемое событие
         """
         try:
             self.key_five_func()
@@ -1033,18 +1053,18 @@ class App(Frame):
     def render_table(self, columns_sizes: dict):
         """
         Вывод таблицы в отображаемом окне приложения на основе полученных данных, которые были предварительно
-        загруженны из таблицы базы данных
+        загружены из таблицы базы данных
         :param columns_sizes: Информация о размере каждого столбца таблицы
         """
-        # определяем столбцы
+        # Определение столбцов
         columns = self.current_table[0]
-        # определяем таблицу
+        # Определение таблицы
         self.tree = ttk.Treeview(columns=columns, show="headings")
-        #self.tree.pack(fill=BOTH, expand=1)
-        # определяем заголовки
+        # Определение заголовков
+        print(columns)
         for col_name in columns:
             self.tree.heading(col_name, text=col_name)
-        # настраиваем столбцы
+        # Настройка столбцов
         for col_num, col_size in columns_sizes.items():
             self.tree.column(column=col_num, stretch=YES, width=col_size)
         # Добавление данных в отображаемую таблицу. Чтобы последняя добавленная информацию отображалась необходимо
@@ -1064,11 +1084,11 @@ class App(Frame):
 
     def get_row_number_in_table(self) -> int:
         """
-        Данная функция преобразует полученный ID номер выделенной строки пользователем в таблице  в порядковый номер строки.
-        В библиотеке Tkinter ID присваивается следующим образом: I001, I002, ..., I009, I00A, I00B, I00C, I00D, I00E, I00F,
-        I010, I011, ..., I01A, I01B, I01C, I01D, I01E, I01F, I020, I021, ....
-        Соответственно для корректного получения порядкового номера строки необходимо учесть числовые и буквенные итерации.
-        :return: порядковый номер выделенной строки
+        Данная функция преобразует полученный ID номер выделенной строки пользователем в таблице в порядковый номер
+        строки. В библиотеке Tkinter ID присваивается следующим образом: I001, I002, ..., I009, I00A, I00B, I00C,
+        I00D, I00E, I00F, I010, I011, ..., I01A, I01B, I01C, I01D, I01E, I01F, I020, I021, .... Соответственно для
+        корректного получения порядкового номера строки необходимо учесть числовые и буквенные итерации. :return:
+        Порядковый номер выделенной строки
         """
 
         tree_row_id = self.tree.focus().replace('I', '')
@@ -1076,10 +1096,10 @@ class App(Frame):
             try:
                 cycle_number = int(tree_row_id[:-1])
             except ValueError:
-                # Ошибка возникает при выделении строки № 159 и выше. Для следующих строк алгоритм
-                # определения порядкового номера строки иной:
-                # Буквы теперь прусутствуют как в 3, так и во 2 символе ID строки. Поэтому для определения порядкового номера
-                # строки прибавляются соответствующие цифровые значения буквам из ID
+                # Ошибка возникает при выделении строки № 159 и выше. Для следующих строк алгоритм определения
+                # порядкового номера строки иной: Буквы теперь присутствуют как в 3, так и во 2 символе ID строки.
+                # Поэтому для определения порядкового номера строки прибавляются соответствующие цифровые значения
+                # буквам из ID
                 define_last_value: Callable = lambda: last_letter_values.get(tree_row_id[2]) if not \
                     check_value_type(tree_row_id[2]) else int(tree_row_id[2]) + 1
                 middle_letter_values = {'A': 0, 'B': 16, 'C': 32, 'D': 48, 'E': 64, 'F': 80}
@@ -1123,12 +1143,6 @@ class App(Frame):
         # Объявление обработчиков событий на двойной клик мышью или клавиши Enter
         self.tree.bind('<Double-ButtonPress-1>', self.on_clicked_or_pressed_table_row)
         self.tree.bind('<Return>', self.on_clicked_or_pressed_table_row)
-        # Объявление других обработчиков событий
-        # self.add_listeners(funk_two=self.open_main_menu,
-        #                    funk_three=lambda: self.render_typical_additional_window(
-        #                        called_class=EditedMold, window_name='New Mold Information',
-        #                        called_function=self.get_molds_data),
-        #                    funk_four=self.render_mold_edition_window)
 
     def add_listeners(self, funk_two: Callable, funk_three: Callable = None,
                       funk_four: Callable = None, funk_five: Callable = None):
@@ -1151,15 +1165,16 @@ class App(Frame):
 
     def remove_listeners(self):
         """
-        Функция удаления удаления обработчиков событий
+        Функция удаления обработчиков событий
         """
         for key in range(1, 6):
             self.master.unbind(f'{key}')
 
     def sort_molds(self):
         """
-        Функция сортировки общего перечня пресс-форм в зависимости от её статуса и записи информации в переменные класса.
-        Вызывается при открытие окна с перечнем п/ф. Функция необходима для минимизации количества вызовов базы данных.
+        Функция сортировки общего перечня пресс-форм в зависимости от её статуса и записи информации в переменные
+        класса. Вызывается при открытии окна с перечнем п/ф. Функция необходима для минимизации количества вызовов
+        базы данных.
         """
         # Перезапись переменных для обновления данных, которые будут получены из БД
         self.sorted_molds_data_tuple = {status: [] for status in mold_statuses_list}
@@ -1183,18 +1198,21 @@ class App(Frame):
     def sort_bom_parts(self, hot_runner: bool = None):
         """
         Функция сортировки перечня BOM в зависимости от имеющегося количества запчастей на складе.
-        Вызывается при открытие окна с BOM. Функция необходима для минимизации количества вызовов базы данных.
-        :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
+        Вызывается при открытии окна с BOM. Функция необходима для минимизации количества вызовов базы данных.
+        :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран
+        (Пресс-форма или горячий канал)
         """
         # Перезапись переменных для обновления данных, которые будут получены из БД
         self.sorted_bom_tuple = {status: [] for status in part_statuses_list}
         self.sorted_bom_dict = {status: [] for status in part_statuses_list}
         # Выгрузка таблицы из БД
-        define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if hot_runner else f'BOM_{self.mold_number}'
+        define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if hot_runner \
+            else f'BOM_{self.mold_number}'
         bom = table_funcs.TableInDb(define_table_name(), 'Database')
         self.bom_table_dict = bom.get_table(type_returned_data='dict')
         self.bom_data = bom.get_table(type_returned_data='tuple')
         self.current_table = bom.get_table(type_returned_data='tuple')
+        print(self.current_table)
         # Сортировка и запись в зависимости от статуса
         for num, part_info in enumerate(self.bom_table_dict):
             if num == 0:
@@ -1205,20 +1223,20 @@ class App(Frame):
                 # Проверка числовых значений и сортировка данных по условиям
                 try:
                     min_percent = int(part_info.get('MIN_PERCENT'))
-                    parts_qantity = int(part_info.get('PARTS_QUANTITY'))
+                    parts_quantity = int(part_info.get('PARTS_QUANTITY'))
                     pcs_in_mold = int(part_info.get('PCS_IN_MOLDS'))
-                    current_percent = int(parts_qantity) / int(pcs_in_mold) * 100
+                    current_percent = int(parts_quantity) / int(pcs_in_mold) * 100
                 except TypeError:
                     pass
                 else:
 
-                    if parts_qantity > 0:
+                    if parts_quantity > 0:
                         self.sorted_bom_dict.get('В наличие').append(part_info)
                         self.sorted_bom_tuple.get('В наличие').append(self.bom_data[num])
                         if current_percent < min_percent:
                             self.sorted_bom_dict.get('Меньше минимума').append(part_info)
                             self.sorted_bom_tuple.get('Меньше минимума').append(self.bom_data[num])
-                    elif parts_qantity == 0:
+                    elif parts_quantity == 0:
                         self.sorted_bom_dict.get('Отсутствующие').append(part_info)
                         self.sorted_bom_tuple.get('Отсутствующие').append(self.bom_data[num])
 
@@ -1245,7 +1263,8 @@ class App(Frame):
         # Получение значения из массива данных
         try:
             if add_column_name:
-                return reversed_table[table_row_number].get(column_name), reversed_table[table_row_number].get(add_column_name)
+                return reversed_table[table_row_number].get(column_name), reversed_table[table_row_number].get(
+                    add_column_name)
             else:
                 return reversed_table[table_row_number].get(column_name)
         except (TypeError, IndexError):
@@ -1255,7 +1274,8 @@ class App(Frame):
         """
         Функция для вывода спецификации (BOM) пресс-формы в табличном виде в окне приложения
         :param sort_status: Значение, которое характеризует был ли выбран параметр сортировки для отображения таблицы
-        :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
+        :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран
+        (Пресс-форма или горячий канал)
         :param mold_number: Номер пресс-формы полученный из строки ввода
         """
         self.mold_number_entry_field.delete(0, END)
@@ -1271,10 +1291,10 @@ class App(Frame):
                 self.sort_bom_parts(hot_runner)
                 self.current_table = self.sorted_bom_tuple.get(sort_status)
             else:
-                #self.sort_status = None
                 self.mold_number = mold_number
                 bom = table_funcs.TableInDb(define_table_name(), 'Database')
-                self.current_table = bom.get_table(type_returned_data='tuple')
+                self.current_table = [columns_bom_parts_table]
+                self.current_table.extend(bom.get_table(type_returned_data='tuple'))
         except sqlite3.OperationalError:
             if hot_runner:
                 messagebox.showerror('Уведомление об ошибке', f'Спецификации по номеру "{mold_number}" не имеется')
@@ -1289,13 +1309,6 @@ class App(Frame):
             self.clean_frames()
             # Обновление обработчиков событий
             self.remove_listeners()
-            # self.add_listeners(funk_two=self.get_molds_data,
-            #                    funk_three=lambda: self.render_typical_additional_window(
-            #                        called_class=lambda: EditedBOM(self.mold_number),
-            #                        window_name='New Spare Part Information',
-            #                        called_function=lambda: self.open_bom(
-            #                            self.mold_number)),
-            #                    funk_four=self.render_bom_edition_window)
             self.sort_status = sort_status
             self.render_widgets_selected_bom()
             self.render_table(columns_sizes=columns_sizes_bom_parts_table)
@@ -1337,8 +1350,30 @@ class App(Frame):
         self.render_widgets_warehouse_mode(consumption)
         # Определение размера столбцов таблицы
         self.render_table(columns_sizes=columns_sizes_warehouse_table)
-        # Объявление обработчиков событий
-        # self.add_listeners(funk_two=self.open_main_menu)
+
+    def open_purchased_parts_window(self):
+        """
+        Функция вывода окна с виджетами для смены статуса пресс-формы и таблицей с историей этих изменений
+        """
+        # Очистка области в окне приложения перед выводом новой таблицы
+        self.clean_frames()
+        # Формирование табличных данных
+        purchased_parts = table_funcs.TableInDb('Purchased_parts', 'Database')
+        purchased_parts_data = purchased_parts.get_table(type_returned_data='tuple')
+        self.current_table = []
+        self.current_table = [columns_purchased_parts if i == 0 else purchased_parts_data[i - 1]
+                              for i in range(0, len(purchased_parts_data) + 1)]
+        # Рендер виджетов
+        self.render_widgets_purchased_parts_mode()
+        # Определение размера столбцов таблицы
+        self.render_table(columns_sizes=columns_sizes_purchased_parts_table)
+
+    def update_window_with_new_parts(self):
+        """
+        Функция обновления окна с закупаемыми запчастями при успешной загрузке новых данных из Иксель файла
+        """
+        if upload_purchased_parts():
+            self.open_purchased_parts_window()
 
     def open_qr_window(self, next_status: str):
         """
@@ -1358,11 +1393,11 @@ class App(Frame):
                 self.open_mold_scanning_window()
 
     def render_typical_additional_window(self, called_class: Callable, window_name: str, access: str = None,
-                                         called_function: Callable = None):
+                                         callback_function: Callable = None):
         """
         Функция создания дополнительного окна по шаблону
         :param access: Переменная характеризующая наличие доступа у пользователя для выбранного действия
-        :param called_function: Вызываемая функция в случае изменения каких либо данных после взаимодействия
+        :param callback_function: Вызываемая функция в случае изменения каких либо данных после взаимодействия
         пользователя в открытом окне
         :param window_name: Название открываемого окна
         :param called_class: Вызываемый класс для создания его экземпляра
@@ -1378,8 +1413,8 @@ class App(Frame):
                     get_info_log(user=user_data.get('user_name'), message='Successful data changing',
                                  func_name=self.render_typical_additional_window.__name__, func_path=abspath(__file__))
                     self.tree.pack_forget()
-                    if called_function:
-                        called_function()
+                    if callback_function:
+                        callback_function()
             except AttributeError:
                 pass
         else:
@@ -1394,7 +1429,7 @@ class App(Frame):
         mold_number = self.mold_number_entry_field.get()
         if not mold_number:
             mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
-        # Если получен номер елемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
+        # Если получен номер элемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
         if mold_number:
 
             try:
@@ -1403,24 +1438,26 @@ class App(Frame):
                 mold_data = all_molds_data.get_table(type_returned_data='dict', first_param='MOLD_NUMBER',
                                                      first_value=mold_number, last_string=True)
             except (sqlite3.OperationalError, IndexError):
-                messagebox.showerror('Уведомление об ошибке', f'Данных о пресс-форме "{mold_number}" не имеется')
+                messagebox.showerror('Уведомление об ошибке', f'Данных о пресс-форме '
+                                                              f'"{mold_number}" не имеется')
                 get_warning_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
                                 func_name=self.render_mold_edition_window.__name__, func_path=abspath(__file__))
             else:
                 self.render_typical_additional_window(called_class=lambda: EditedMold(mold_data=mold_data),
                                                       window_name='Mold Data Edition', access=mold_data_edition_access,
-                                                      called_function=self.get_molds_data)
+                                                      callback_function=self.get_molds_data)
 
     def render_bom_edition_window(self):
         """
-        Рендер окна для редактирования данных запчастях открытого в приложении BOM
+        Рендер окна для редактирования данных о запчастях открытого в приложении BOM
         """
         bom_edition_access = user_data.get('molds_and_boms_data_changing')
-        define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
+        define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom \
+            else f'BOM_{self.mold_number}'
         table_name = define_table_name()
         part_number, part_name = self.get_value_by_selected_row(table_name=table_name, column_name='NUMBER',
                                                                 add_column_name='PART_NAME')
-        # Если получен номер елемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
+        # Если получен номер элемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
         if part_number:
 
             try:
@@ -1438,16 +1475,17 @@ class App(Frame):
                     called_class=lambda: EditedBOM(part_data=part_data, mold_number=self.mold_number,
                                                    table_name=table_name),
                     window_name='BOM Edition', access=bom_edition_access,
-                    called_function=lambda: self.open_bom(self.mold_number))
+                    callback_function=lambda: self.open_bom(self.mold_number))
 
     def render_attachments_window(self):
         """
         Рендер окна для просмотра прикреплённых вложенных файлов к номеру пресс-формы, либо номеру запчасти
         """
-        define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
+        define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom \
+            else f'BOM_{self.mold_number}'
         table_name = define_table_name()
         part_number = self.get_value_by_selected_row(table_name, 'NUMBER')
-        # Если получен номер елемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
+        # Если получен номер элемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
         if part_number:
             self.render_typical_additional_window(called_class=lambda: Attachment(mold_number=self.mold_number,
                                                                                   part_number=part_number,
@@ -1461,11 +1499,12 @@ class App(Frame):
         """
         define_stock_changing_access: Callable = lambda: user_data.get('stock_changing_out') if consumption \
             else user_data.get('stock_changing_in')
-        define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom else f'BOM_{self.mold_number}'
+        define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if self.hot_runner_bom \
+            else f'BOM_{self.mold_number}'
         table_name = define_table_name()
         part_number, part_name = self.get_value_by_selected_row(table_name=table_name, column_name='NUMBER',
                                                                 add_column_name='PART_NAME')
-        # Если получен номер елемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
+        # Если получен номер элемента таблицы, тогда будет вызвано окно для взаимодействия с пользователем
         if part_number and define_stock_changing_access():
 
             try:
@@ -1483,11 +1522,11 @@ class App(Frame):
                     called_class=lambda: Stock(part_data=part_data, mold_number=self.mold_number,
                                                consumption=consumption, table_name=table_name),
                     window_name='BOM Edition', access=define_stock_changing_access(),
-                    called_function=lambda: self.open_bom(self.mold_number, self.hot_runner_bom))
+                    callback_function=lambda: self.open_bom(self.mold_number, self.hot_runner_bom))
 
     def delete_selected_table_row(self, table_name: str, column_name: str):
         """
-        Фнкция удаления строки из таблицы базы данных на основании выделенной строки
+        Функция удаления строки из таблицы базы данных на основании выделенной строки
         :param column_name: Имя столбца / параметра по которому будет искаться строка для удаления
         :param table_name: Имя таблицы из базы данных
         """
@@ -1526,9 +1565,10 @@ class App(Frame):
 
     def delete_selected_bom(self, previous_window, hot_runner_bom: bool = None):
         """
-        Фнкция удаления BOM таблицы из базы данных на основании выделенной строки
+        Функция удаления BOM таблицы из базы данных на основании выделенной строки
         :param previous_window: Предыдущее окно с выбором BOM для удаления
-        :param hot_runner_bom: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
+        :param hot_runner_bom: Булево значение, которое характеризует какой тип BOM был выбран
+        (Пресс-форма или горячий канал)
         """
         # Закрытие предыдущего окна с выбором BOM для удаления
         previous_window.quit()
@@ -1540,7 +1580,8 @@ class App(Frame):
                 mold_number = self.get_value_by_selected_row('All_molds_data', 'MOLD_NUMBER')
 
             if mold_number:
-                define_table: Callable = lambda: f'BOM_HOT_RUNNER_{mold_number}' if hot_runner_bom else f'BOM_{mold_number}'
+                define_table: Callable = lambda: f'BOM_HOT_RUNNER_{mold_number}' if hot_runner_bom \
+                    else f'BOM_{mold_number}'
                 message = "Вы уверены, что хотите удалить данный BOM"
                 if messagebox.askyesno(title='Подтверждение', message=message, parent=self):
 
@@ -1562,7 +1603,7 @@ class App(Frame):
 
     def confirm_delete(self):
         """
-        Фнкция вывода диалогового окна для запроса подтверждения закрытия окна
+        Функция вывода диалогового окна для запроса подтверждения закрытия окна
         """
         message = "Вы уверены, что хотите удалить данную строку"
         if messagebox.askyesno(title='Подтверждение', message=message, parent=self):

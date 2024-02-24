@@ -14,9 +14,9 @@ from src.utils.sql_database import table_funcs
 
 class Stock(tkinter.Toplevel):
     """
-    Класс представляет набор функций для создания графического интерфейса окна изменения количества какого либо элемента на складе.
+    Класс представляет набор функций для создания графического интерфейса окна изменения количества какого либо
+    элемента на складе.
     """
-
     def __init__(self, mold_number: str, part_data: dict, table_name: str, consumption: bool = None):
         """
         Создание переменных
@@ -26,7 +26,7 @@ class Stock(tkinter.Toplevel):
         self.table_name = table_name
         self.consumption = consumption
         self.used_parts_quantity_entry_field = None
-        self.parts_qantity_entry_field = None
+        self.parts_quantity_entry_field = None
         self.part_number = self.part_data.get('NUMBER')
         self.part_name = self.part_data.get('PART_NAME')
         if not self.part_data.get('PARTS_QUANTITY'):
@@ -114,7 +114,8 @@ class Stock(tkinter.Toplevel):
 
     def check_parts_quantity(self) -> bool:
         """
-        Функция проверки введеного значения пользователем и проверки возможности выдачи запрашиваемого кол-ва пользователю
+        Функция проверки введенного значения пользователем и проверки возможности выдачи запрашиваемого
+        кол-ва пользователю
         :return: True если запрос корректен
         """
         define_income_quantity: Callable = lambda: self.parts_quantity \
@@ -128,7 +129,8 @@ class Stock(tkinter.Toplevel):
         else:
             if self.consumption and self.required_quantity > define_income_quantity():
                 self.input_error_label = Label(self.frame,
-                                               text='Запрашиваемое количество отсутствует на складе. Введите другое число.',
+                                               text='Запрашиваемое количество отсутствует на складе. Введите другое '
+                                                    'число.',
                                                foreground='Red')
             else:
                 return True
@@ -144,8 +146,8 @@ class Stock(tkinter.Toplevel):
         define_table_name: Callable = lambda: 'OUT_warehouse_history' if self.consumption else 'IN_warehouse_history'
         # Определение данных для записи в таблицу с историей изменений склада
         define_data: Callable = lambda: (
-            str(datetime.now()), user_data.get('user_name'), self.mold_number, self.part_number,
-            self.part_name, self.required_part_type, self.required_quantity)
+            str(datetime.now().strftime("%m/%d/%Y, %H:%M")), user_data.get('user_name'), self.mold_number,
+            self.part_number, self.part_name, self.required_part_type, self.required_quantity)
         if self.input_error_label:
             self.input_error_label.destroy()
 
@@ -159,7 +161,8 @@ class Stock(tkinter.Toplevel):
                     # Изменение количества запчастей в BOM
                     bom = table_funcs.TableInDb(self.table_name, 'Database')
                     bom.change_data(first_param='NUMBER', first_value=self.part_number,
-                                    data={define_column_name(): self.get_end_quantity()}, second_param='PART_NAME', second_value=self.part_name)
+                                    data={define_column_name(): self.get_end_quantity()}, second_param='PART_NAME',
+                                    second_value=self.part_name)
                     # Новая запись в журнале истории изменений склада
                     warehouse_history = table_funcs.TableInDb(define_table_name(), 'Database')
                     warehouse_history.insert_data(info=define_data())
@@ -172,7 +175,8 @@ class Stock(tkinter.Toplevel):
                     self.quit()
                     self.destroy()
                     messagebox.showinfo('Уведомление',
-                                        f'Итоговое количество успешно изменено.\nЯчейка хранения: {self.storage_cell}')
+                                        f'Итоговое количество успешно изменено.'
+                                        f'\nЯчейка хранения: {self.storage_cell}')
                     self.changed_data = True
             else:
                 self.input_error_label = Label(self.frame_bottom,

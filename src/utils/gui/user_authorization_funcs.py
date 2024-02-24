@@ -48,7 +48,7 @@ class LogInApp(Frame):
 
     def init_gui(self):
         """
-        Инициация окна приложения и контенера для размещения виджетов
+        Инициация окна приложения и контейнера для размещения виджетов
         """
         self.master.title('MoldShop Management')
         self.pack(fill=BOTH, expand=True)
@@ -57,7 +57,7 @@ class LogInApp(Frame):
 
     def check_entry_user_data(self):
         """
-        Фнкция проверки введённых данных пользователем
+        Функция проверки введённых данных пользователем
         """
         # Окно авторизации закрывается если пароль введён правильно
         user_name = self.login_entry_field.get()
@@ -75,6 +75,7 @@ class LogInApp(Frame):
                 user_data['mold_status_changing'] = users.get(user_name).get('mold_status_changing')
                 user_data['molds_and_boms_data_changing'] = users.get(user_name).get('molds_and_boms_data_changing')
                 user_data['attachments_changing'] = users.get(user_name).get('attachments_changing')
+                user_data['purchased_parts_uploading'] = users.get(user_name).get('purchased_parts_uploading')
                 self.window.destroy()
                 get_info_log(user=user_name, message='Successful login', func_name=self.check_entry_user_data.__name__,
                              func_path=abspath(__file__))

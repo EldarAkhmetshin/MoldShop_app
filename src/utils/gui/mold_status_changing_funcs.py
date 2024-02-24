@@ -13,7 +13,8 @@ from src.utils.sql_database import table_funcs
 
 class QRWindow(tkinter.Toplevel):
     """
-    Класс представляет набор функций для создания графического интерфейса окна получения сообщения от сканера после сканерования QR кода на пресс-форме для изменения её статуса.
+    Класс представляет набор функций для создания графического интерфейса окна получения сообщения от сканера
+    после сканирования QR кода на пресс-форме для изменения её статуса.
     Также включены функции обработки полученной ин
     """
 
@@ -56,7 +57,7 @@ class QRWindow(tkinter.Toplevel):
         Функция рендера всех виджетов окна ввода информации
         """
 
-        (Label(self.frame, text='Отсканнируйте QR код', font=('Times', '20', 'normal')).pack(side=TOP, pady=10))
+        (Label(self.frame, text='Отсканируйте QR код', font=('Times', '20', 'normal')).pack(side=TOP, pady=10))
 
         self.code_entry_field = Entry(self.frame, show='*', font=('Times', '25', 'normal'),
                                       textvariable=self.tracked_variable)
@@ -67,7 +68,7 @@ class QRWindow(tkinter.Toplevel):
 
     def validate_and_save_edited_data(self):
         """
-        Фнкция проверки введённых данных пользователем
+        Функция проверки введённых данных пользователем
         """
         # Проверка правильности ввода информации
         scanned_code = self.code_entry_field.get()
@@ -77,15 +78,14 @@ class QRWindow(tkinter.Toplevel):
             try:
                 # Сохранение нового статус п/ф в таблице перечня пресс-форм
                 molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
-                mold_info = molds_data.get_table(type_returned_data='dict', first_param='MOLD_NUMBER', first_value=mold_number,
-                                                 last_string=True)
+                mold_info = molds_data.get_table(type_returned_data='dict', first_param='MOLD_NUMBER',
+                                                 first_value=mold_number, last_string=True)
                 molds_data.change_data(first_param='MOLD_NUMBER', first_value=mold_number,
-                                       data={
-                                           'STATUS': self.next_status,
-                                       })
+                                       data={'STATUS': self.next_status})
                 # Запись в журнал
                 moving_history = table_funcs.TableInDb('Molds_moving_history', 'Database')
-                moving_history.insert_data(info=(str(datetime.now()), user_data.get('user_name'), mold_number,
+                moving_history.insert_data(info=(str(datetime.now().strftime("%m/%d/%Y, %H:%M")),
+                                                 user_data.get('user_name'), mold_number,
                                                  mold_info.get('MOLD_NAME'), mold_info.get('STATUS'), self.next_status))
             except sqlite3.ProgrammingError:
                 self.input_error_label = Label(self.frame,
@@ -100,7 +100,7 @@ class QRWindow(tkinter.Toplevel):
         else:
             # Если данные введены некорректно пользователь получит уведомление об ошибке
             self.input_error_label = Label(self.frame,
-                                           text='Не заполненны обязательные поля', foreground='Red')
+                                           text='Не заполнены обязательные поля', foreground='Red')
             self.input_error_label.grid(column=1, row=12)
 
     def confirm_delete(self):

@@ -7,7 +7,6 @@ from abc import abstractmethod, ABC
 from loguru import logger
 from typing import Any, List, Dict, Callable
 
-
 from src.utils.logger.logs import get_info_log, get_warning_log
 
 
@@ -64,7 +63,7 @@ class DataBase:
         Функция подключения к базе данных для взаимодействия с ней
         """
         path = os.path.abspath(os.path.join('savings', 'database', f'{self.name}.db'))
-        #path = os.path.abspath(os.path.join(f'{self.name}.db'))
+        # path = os.path.abspath(os.path.join(f'{self.name}.db'))
         self.connection = sqlite3.connect(path)
         self.cursor = self.connection.cursor()
 
@@ -74,7 +73,7 @@ class DataBase:
         :return tables: Список наименований всех таблиц базы данных
         """
         self.connect_db()
-        self.cursor.execute(''' SELECT name FROM sqlite_master WHERE type = "table"''' )
+        self.cursor.execute(''' SELECT name FROM sqlite_master WHERE type = "table"''')
         tables = self.cursor.fetchall()
         self.cursor.close()
         return tables
@@ -86,7 +85,7 @@ class DataBase:
         :param new_name: Новое имя таблицы
         """
         self.connect_db()
-        self.cursor.execute(''' ALTER TABLE old_name RENAME TO new_name''' )
+        self.cursor.execute(''' ALTER TABLE old_name RENAME TO new_name''')
         self.connection.commit()
         self.cursor.close()
 
@@ -122,14 +121,15 @@ class TableInDb(DataBase):
     def add_column(self, table_params: dict):
         """
         Функция добавления новых столбцов в таблицу
-        :param table_params: Словарь с перечисленными новыми столбцами таблицы {Имя столбца: Формат данных для этого столбца}
+        :param table_params: Словарь с перечисленными новыми столбцами таблицы
+        {Имя столбца: Формат данных для этого столбца}
         """
         self.connect_db()
         for i_param, i_type in table_params.items():
             try:
                 self.cursor.execute(f''' ALTER TABLE {self.table_name} ADD COLUMN {i_param} {i_type}''')
             except sqlite3.OperationalError:
-                get_warning_log(user='-', message=f'Duplicate column {i_param}', func_name= self.add_column.__name__,
+                get_warning_log(user='-', message=f'Duplicate column {i_param}', func_name=self.add_column.__name__,
                                 func_path=abspath(__file__))
             else:
                 print(f'New column {i_param} with type {i_type} successfully added')
@@ -166,10 +166,11 @@ class TableInDb(DataBase):
         Функция изменения значений в таблице в соответствии с запрошенными параметрами
 
         :param second_value: Значение второго параметра для поиска
-        :param second_param: Имя второго столбца / параметра на который будет ориентирован поиск
+        :param second_param: Имя второго столбца / параметра, на который будет ориентирован поиск
         :param first_param: Имя первого столбца / параметра на который будет ориентирован поиск
         :param first_value: Значение первого параметра для поиска
-        :param data: Словарь с  новыми данными для изменения значений в найденной строке таблицы ({Название столбца / параметра: Новое значение})
+        :param data: Словарь с новыми данными для изменения значений в найденной строке таблицы
+        ({Название столбца / параметра: Новое значение})
         """
         self.connect_db()
         for i_key, i_value in data.items():
@@ -189,7 +190,7 @@ class TableInDb(DataBase):
             -> List[dict] | List[tuple] | Dict:
         """
         Функция получения данных из таблицы базы данных в соответствии с запрошенными параметрами
-        :param type_returned_data: Формат возращаемой информации в массиве данных (словарь или кортеж).
+        :param type_returned_data: Формат возвращаемой информации в массиве данных (словарь или кортеж).
         :param first_param: Имя 1-го столбца / параметра на который будет ориентирован поиск
         :param first_value: Значение 1-го параметра для поиска
         :param last_string: Булево значение для получения только 1-й последней строки удовлетворяющей запрашиваемым параметрам 
@@ -253,5 +254,3 @@ class TableInDb(DataBase):
         self.cursor.execute(f"DROP TABLE {self.table_name}")
         self.connection.commit()
         self.cursor.close()
-
-        

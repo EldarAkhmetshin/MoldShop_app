@@ -14,16 +14,15 @@ from src.utils.logger.logs import get_info_log
 from src.data import user_rights, instructions
 
 
-def check_user_rigths() -> str:
+def check_user_rights() -> str:
     """
     Функция формирующая информацию о правах пользователя
-    :return: Информация о правах пользователя, которая будет отображатся в приложении
+    :return: Информация о правах пользователя, которая будет отображаться в приложении
     """
     define_answer: Callable = lambda: 'Да' if user_data.get(name) == 'True' else 'Нет'
     result = ''
     for name, description in user_rights.items():
         result = f'{result}\n\t{description}: {define_answer()}'
-        print(user_data, description)
     return result
 
 
@@ -51,7 +50,7 @@ class ReferenceInfo(tkinter.Toplevel):
 
     def init_gui(self):
         """
-        Инициация окна приложения и контенера для размещения виджетов
+        Инициация окна приложения и контейнера для размещения виджетов
         """
         self.focus_set()
         self.frame = Frame(self)
@@ -99,12 +98,12 @@ class ReferenceInfo(tkinter.Toplevel):
         frame_body = Frame(self.frame)
         frame_body.pack(fill=BOTH, expand=True)
         if self.app_info:
-            ttk.Label(frame_body, text='\nПриложение: ArtPack MoldShop Manadgment'
-                                       '\nВерсия: 1.0.0 от 08.11.23'
+            ttk.Label(frame_body, text='\nПриложение: ArtPack MoldShop Management'
+                                       '\nВерсия: 1.0.2 от 17.02.24'
                                        '\nТребования: ОС Windows; 64-bit'
                                        f'\nПользователь: {user_data.get("user_name")}'
                                        f'\nПрава пользователя:'
-                                       f'{check_user_rigths()}',
+                                       f'{check_user_rights()}',
                       style='Regular.TLabel').pack(side=LEFT, padx=5, pady=5)
         else:
             ttk.Label(frame_header, text='Справочная информация', style='Title.TLabel').pack(side=TOP, padx=5,

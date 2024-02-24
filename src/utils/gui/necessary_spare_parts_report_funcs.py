@@ -6,9 +6,11 @@ from tkinter import *
 from tkinter import ttk
 from tkinter.ttk import Frame
 from typing import Callable
+from math import ceil
 
 from src.data import columns_searching_results, columns_sizes_warehouse_table, columns_min_parts_excel_table
 from src.global_values import user_data
+from src.utils.excel.xls_tables import export_excel_table
 from src.utils.logger.logs import get_info_log
 from src.utils.sql_database.table_funcs import DataBase, TableInDb
 
@@ -20,7 +22,8 @@ def sort_table(table_name):
     :param table_name: Имя таблицы, в которой осуществляется поиск
     """
     define_mold_type: Callable = lambda: 'Горячий канал' if 'HOT_RUNNER' in table_name else 'Пресс-форма'
-    check_min_availability: Callable = lambda: True if parts_quantity / parts_quantity_in_mold * 100 < min_part_percent else False
+    check_min_availability: Callable = lambda: True if parts_quantity / parts_quantity_in_mold * 100 < \
+        min_part_percent else False
     bom = TableInDb(table_name, 'Database')
     table_data = bom.get_table(type_returned_data='dict')
     result_table = []
@@ -36,8 +39,10 @@ def sort_table(table_name):
             pass
         else:
             if check_min_availability():
+                necessary_parts_quantity = ceil((parts_quantity_in_mold / 100 * min_part_percent) - parts_quantity)
                 result_table.append((table_name, define_mold_type(), row.get('NUMBER'), row.get('PART_NAME'),
-                                     row.get('DESCRIPTION'), row.get('PCS_IN_MOLDS'), row.get('PARTS_QUANTITY')))
+                                     row.get('DESCRIPTION'), row.get('PCS_IN_MOLDS'), row.get('PARTS_QUANTITY'),
+                                     necessary_parts_quantity))
 
     return result_table
 
@@ -85,6 +90,9 @@ class MinPartsReport(tkinter.Toplevel):
         self.frame_bottom.pack(fill=BOTH, expand=True)
 
     def get_mold_titles(self):
+        """
+        Функция для получения наименований всех БОМов имеющихся в текущей базе данных
+        """
         database = DataBase('Database')
         table_names = database.get_all_tables()
         bom_table_names = list(filter(lambda table_name: 'BOM' in table_name[0], table_names))
@@ -117,44 +125,10 @@ class MinPartsReport(tkinter.Toplevel):
         # Запуск работы окна приложения
         self.mainloop()
 
-    def render_results(self):
-        """
-        Функция рендера результатов поиска в табличном виде в дополнительном окне
-        """
-        if len(self.results) == 0:
-            self.input_error_label = Label(self.frame_bottom, text='По вашему запросу ничего не найдено',
-                                           foreground='Red')
-            self.input_error_label.pack(side=TOP, padx=5, pady=5)
-        else:
-            if self.results_window and self.tree:
-                self.tree.pack_forget()
-                self.results_window.destroy()
-            # рендер дополнительного окна для вывода результатов
-            self.results_window = tkinter.Toplevel()
-            self.results_window.title('Searching Results')
-            self.results_window.geometry('640x480')
-            self.results_window.focus_set()
-            # определяем таблицу
-            self.tree = ttk.Treeview(self.results_window, columns=columns_searching_results, show="headings")
-            self.tree.pack(fill=BOTH, expand=1)
-            # определяем заголовки
-            for col_name in columns_searching_results:
-                self.tree.heading(col_name, text=col_name)
-            # настраиваем столбцы
-            for col_num, col_size in columns_sizes_warehouse_table.items():
-                self.tree.column(column=col_num, stretch=YES, width=col_size)
-            for row in self.results:
-                self.tree.insert("", END, values=row)
-            self.results = []
-            get_info_log(user=user_data.get('user_name'), message='Results of searching were rendered',
-                         func_name=self.render_results.__name__, func_path=abspath(__file__))
-
     def start_search(self):
         """
         Функция проведения поиска запчастей по введённым ранее параметрам
         """
-        from src.main_app_funcs import save_excel_table
-
         sorted_table = [columns_min_parts_excel_table]
         get_info_log(user=user_data.get('user_name'), message='Searching is run',
                      func_name=self.start_search.__name__, func_path=abspath(__file__))
@@ -171,4 +145,4 @@ class MinPartsReport(tkinter.Toplevel):
                                            foreground='Red')
             self.input_error_label.pack(side=TOP, padx=5, pady=5)
         else:
-            save_excel_table(sorted_table)
+            export_excel_table(sorted_table)
