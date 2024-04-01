@@ -14,16 +14,48 @@ from src.utils.excel.xls_tables import export_excel_table, \
     get_purchasing_list_from_excel_file
 from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database import new_tables
-from src.utils.sql_database.table_funcs import TableInDb
+from src.utils.sql_database.table_funcs import TableInDb, DataBase
 
 
-def validate_new_parts_table(column_names: list) -> bool:
+def validate_new_parts_table(column_names: list, rows_data: list) -> bool:
     """
     Функция валидации данных перед их загрузкой в базу данных
+    :param rows_data: Список списков с построчной информацией
     :param column_names: Имена столбцов валидируемой таблицы
     :return: Булево значение, характеризующее состояние валидации (пройдена / не пройдена)
     """
-    column_names = 5
+    # Проверка на соответствие наименований столбцов
+    bom_name_id = None
+    element_num_id = None
+    element_name_id = None
+    purchased_elements_cnt_id = None
+    for i, column_name in enumerate(columns_min_parts_excel_table):
+        if column_name == 'Номер п/ф':
+            bom_name_id = i
+        elif column_name == 'Номер запчасти':
+            element_num_id = i
+        elif column_name == 'Наименование':
+            element_name_id = i
+        elif column_name == 'Необходимое кол-во, шт':
+            purchased_elements_cnt_id = i
+    if not bom_name_id or not element_num_id or not element_name_id or not purchased_elements_cnt_id:
+        print('Несоответствие названий основных столбцов таблицы')
+        return False
+
+    database = DataBase('Database')
+    table_names = database.get_all_tables()
+    for i, row in enumerate(rows_data):
+        # Проверка, что название BOM из таблицы соответствует названию таблицы БД
+        if row[bom_name_id] not in table_names:
+            print(f'Строка {i + 2}: Название бома ошибочно')
+            return False
+        # Проверка, что номер и имя элемента из таблицы имеется в ральном BOM БД
+        bom_db = TableInDb(row[bom_name_id], 'Database')
+        #if len(bom_db.get_table())
+        # if row[element_num_id] not in table_names:
+        #     print(f'Строка {i + 2}: Название бома ошибочно')
+        #     return False
+        # Проверка значения в столбце с указанным кол-вом для закупки на правильность типа данных
     return True
 
 
@@ -55,7 +87,7 @@ def upload_purchased_parts() -> bool:
                                 func_name=upload_purchased_parts.__name__, func_path=abspath(__file__))
             else:
                 # Поиск соответствия по номеру пресс-формы в общем перечне
-                if validate_new_parts_table(column_names=column_names):
+                if validate_new_parts_table(column_names, rows_data):
                     # Сохранение информации в базе данных
                     new_tables.add_new_purchasing_list(data=rows_data)
                     # Рендер окна приложения с новой загруженной информацией
@@ -95,7 +127,7 @@ def sort_table(purchase_number: str) -> list:
                                            second_param='PART_NAME', second_value=part_name, last_string=True)
         result_table.append((bom_name, part_number, part_name,
                              row.get('DESCRIPTION'), '0.5', part_data.get('DIMENSIONS'),
-                             part_data.get('MATERIAL'), row.get('QUANTITY')))
+                             part_data.get('MATERIAL'), row.get('SUPPLIER'), row.get('QUANTITY')))
 
     return result_table
 

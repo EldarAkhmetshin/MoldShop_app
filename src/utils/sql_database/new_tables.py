@@ -36,7 +36,7 @@ def add_new_purchasing_list(data: list):
     except IndexError:
         purchase_num = 0
     else:
-        purchase_num = last_purchased_part.get('PURCHASE_NUMBER')
+        purchase_num = int(last_purchased_part.get('PURCHASE_NUMBER'))
     for row in data:
         row = list(row)
         row.insert(0, purchase_num + 1)
