@@ -12,6 +12,7 @@ from src.data import columns_searching_results, columns_sizes_warehouse_table, c
 from src.global_values import user_data
 from src.utils.excel.xls_tables import export_excel_table, \
     get_purchasing_list_from_excel_file
+from src.utils.gui.necessary_spare_parts_report_funcs import get_mold_names_list
 from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database import new_tables
 from src.utils.sql_database.table_funcs import TableInDb, DataBase
@@ -29,33 +30,36 @@ def validate_new_parts_table(column_names: list, rows_data: list) -> bool:
     element_num_id = None
     element_name_id = None
     purchased_elements_cnt_id = None
-    for i, column_name in enumerate(columns_min_parts_excel_table):
-        if column_name == 'Номер п/ф':
+    for i, column_name in enumerate(column_names):
+        if column_name.lower() == 'номер п/ф':
             bom_name_id = i
-        elif column_name == 'Номер запчасти':
+        elif column_name.lower() == 'номер запчасти':
             element_num_id = i
-        elif column_name == 'Наименование':
+        elif column_name.lower() == 'наименование':
             element_name_id = i
-        elif column_name == 'Необходимое кол-во, шт':
+        elif column_name.lower() == 'необходимое кол-во, шт':
             purchased_elements_cnt_id = i
-    if not bom_name_id or not element_num_id or not element_name_id or not purchased_elements_cnt_id:
+    if (bom_name_id is None or element_num_id is None or
+            element_name_id is None or purchased_elements_cnt_id is None):
         print('Несоответствие названий основных столбцов таблицы')
         return False
 
-    database = DataBase('Database')
-    table_names = database.get_all_tables()
+    bom_table_names = get_mold_names_list()
     for i, row in enumerate(rows_data):
         # Проверка, что название BOM из таблицы соответствует названию таблицы БД
-        if row[bom_name_id] not in table_names:
+        if row[bom_name_id] not in bom_table_names:
             print(f'Строка {i + 2}: Название бома ошибочно')
             return False
-        # Проверка, что номер и имя элемента из таблицы имеется в ральном BOM БД
+        # Проверка, что номер и имя элемента из таблицы имеется в реальном BOM БД
         bom_db = TableInDb(row[bom_name_id], 'Database')
-        #if len(bom_db.get_table())
-        # if row[element_num_id] not in table_names:
-        #     print(f'Строка {i + 2}: Название бома ошибочно')
-        #     return False
+        if len(bom_db.get_table(type_returned_data='tuple', first_param='NUMBER', first_value=row[element_num_id],
+                                second_param='PART_NAME', second_value=row[element_name_id])) == 0:
+            print(f'Строка {i + 2}: Не совпадает элемент спецификации')
+            return False
         # Проверка значения в столбце с указанным кол-вом для закупки на правильность типа данных
+        if not isinstance(row[purchased_elements_cnt_id], int):
+            print(f'Строка {i + 2}: Не правильный тип данных. Должно быть число.')
+            return False
     return True
 
 

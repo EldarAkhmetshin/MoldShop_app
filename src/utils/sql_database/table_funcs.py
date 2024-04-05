@@ -76,7 +76,7 @@ class DataBase:
         self.cursor.execute(''' SELECT name FROM sqlite_master WHERE type = "table"''')
         tables = self.cursor.fetchall()
         self.cursor.close()
-        return tables
+        return [table[0] for table in tables]
 
     def rename_table(self, old_name: str, new_name: str):
         """
