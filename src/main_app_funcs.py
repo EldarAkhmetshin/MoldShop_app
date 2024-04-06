@@ -1004,6 +1004,21 @@ class App(Frame):
         self.open_bom()
         self.event = event
 
+    def on_clicked_or_pressed_purchased_parts_table_row(self, event):
+        """
+        Обработчик события двойного нажатия мыши или клавиши Enter на выделенную строку таблицы
+        :param event: Обрабатываемое событие
+        """
+        table_row_number = self.get_row_number_in_table()
+        print(table_row_number)
+        db = TableInDb('Purchased_parts', 'Database')
+        db_table = list(reversed(db.get_table(type_returned_data='dict')))
+        print(db_table[table_row_number])
+        self.render_typical_additional_window(
+            called_class=Searcher,
+            window_name='Spare Parts Searching')
+        self.event = event
+
     def on_pressed_key_one(self, event):
         """
         Обработчик события нажатия клавиши 1
@@ -1368,6 +1383,9 @@ class App(Frame):
         self.render_widgets_purchased_parts_mode()
         # Определение размера столбцов таблицы
         self.render_table(columns_sizes=columns_sizes_purchased_parts_table)
+        # Объявление обработчиков событий на двойной клик мышью или клавиши Enter
+        self.tree.bind('<Double-ButtonPress-1>', self.on_clicked_or_pressed_purchased_parts_table_row)
+        self.tree.bind('<Return>', self.on_clicked_or_pressed_purchased_parts_table_row)
 
     def update_window_with_new_parts(self):
         """
