@@ -24,7 +24,7 @@ from src.data import info_messages, error_messages, columns_molds_moving_history
 from src.utils.excel.xls_tables import get_new_bom_from_excel_file, export_excel_table
 from src.utils.gui.bom_edition_funcs import EditedBOM
 from src.utils.gui.mold_status_changing_funcs import QRWindow
-from src.utils.gui.necessary_spare_parts_report_funcs import MinPartsReport
+from src.utils.gui.necessary_spare_parts_report_funcs import MinPartsReport, get_mold_names_list
 from src.utils.gui.purchased_parts_funcs import upload_purchased_parts, CustomsReport
 from src.utils.gui.reference_information_funcs import ReferenceInfo
 from src.utils.gui.spare_parts_searching_funcs import Searcher
@@ -155,9 +155,7 @@ def fill_bom_parameters():
             # Проверка на наличие номера запчасти в каждой строке и на то, чтобы этот номер не повторялся в BOM
             parameters.append(row)
     # Сортировка бд на поиск схожих значений с последующей замены данных
-    database = DataBase('Database')
-    table_names = database.get_all_tables()
-    bom_table_names = list(filter(lambda table_name: 'BOM' in table_name[0], table_names))
+    bom_table_names = get_mold_names_list()
     for bom in bom_table_names:
         db = TableInDb(bom, 'Database')
         table_data = db.get_table(type_returned_data='dict')

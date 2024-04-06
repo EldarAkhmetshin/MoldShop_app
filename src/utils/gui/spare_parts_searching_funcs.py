@@ -9,6 +9,7 @@ from typing import Callable
 
 from src.data import columns_searching_results, columns_sizes_warehouse_table
 from src.global_values import user_data
+from src.utils.gui.necessary_spare_parts_report_funcs import get_mold_names_list
 from src.utils.logger.logs import get_info_log
 from src.utils.sql_database.table_funcs import DataBase, TableInDb
 
@@ -178,19 +179,18 @@ class Searcher(tkinter.Toplevel):
         if self.input_error_label:
             self.input_error_label.destroy()
         # Получение всех наименований доступных таблиц для поиска по ним
-        db = DataBase('Database')
-        tables_names = db.get_all_tables()
+        tables_names = get_mold_names_list()
         # Старт сортировки если один из параметров заполнен
         if self.name_entry_field.get() or self.description_entry_field.get() or self.additional_info_entry_field.get():
             for table in tables_names:
-                if (self.product_type_combobox.get() == 'Пресс-форма' and 'HOT_RUNNER' not in table[0]
-                        and 'BOM' in table[0]):
-                    self.sort_table(table[0])
-                elif self.product_type_combobox.get() == 'Горячий канал' and 'HOT_RUNNER' in table[0] and 'BOM':
-                    self.sort_table(table[0])
+                if (self.product_type_combobox.get() == 'Пресс-форма' and 'HOT_RUNNER' not in table
+                        and 'BOM' in table):
+                    self.sort_table(table)
+                elif self.product_type_combobox.get() == 'Горячий канал' and 'HOT_RUNNER' in table and 'BOM':
+                    self.sort_table(table)
                 elif ((self.product_type_combobox.get() == 'Все' or self.product_type_combobox.get() == '')
-                      and 'BOM' in table[0]):
-                    self.sort_table(table[0])
+                      and 'BOM' in table):
+                    self.sort_table(table)
             self.render_results()
 
         else:

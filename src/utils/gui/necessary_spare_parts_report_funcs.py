@@ -47,6 +47,15 @@ def sort_table(table_name):
     return result_table
 
 
+def get_mold_names_list() -> list:
+    """
+    Функция для получения наименований всех БОМов имеющихся в текущей базе данных
+    """
+    database = DataBase('Database')
+    table_names = database.get_all_tables()
+    return list(filter(lambda table_name: 'BOM' in table_name, table_names))
+
+
 class MinPartsReport(tkinter.Toplevel):
     """
     Класс представляет набор функций для создания графического интерфейса окна и осуществления
@@ -89,14 +98,14 @@ class MinPartsReport(tkinter.Toplevel):
         self.frame_bottom = Frame(self)
         self.frame_bottom.pack(fill=BOTH, expand=True)
 
-    def get_mold_titles(self):
-        """
-        Функция для получения наименований всех БОМов имеющихся в текущей базе данных
-        """
-        database = DataBase('Database')
-        table_names = database.get_all_tables()
-        bom_table_names = list(filter(lambda table_name: 'BOM' in table_name[0], table_names))
-        self.molds_list_box.insert(0, *bom_table_names)
+    # def get_mold_titles(self):
+    #     """
+    #     Функция для получения наименований всех БОМов имеющихся в текущей базе данных
+    #     """
+    #     database = DataBase('Database')
+    #     table_names = database.get_all_tables()
+    #     bom_table_names = list(filter(lambda table_name: 'BOM' in table_name[0], table_names))
+    #     self.molds_list_box.insert(0, *bom_table_names)
 
     def render_widgets(self):
         """
@@ -107,7 +116,8 @@ class MinPartsReport(tkinter.Toplevel):
         (ttk.Label(self.frame_body, text='Выделите из списка ниже необходимые п/ф', style='Regular.TLabel')
          .pack(side=TOP, pady=10))
         self.molds_list_box = Listbox(self.frame_body, selectmode=MULTIPLE, width=140)
-        self.get_mold_titles()
+        bom_table_names = get_mold_names_list()
+        self.molds_list_box.insert(0, *bom_table_names)
         scroll = Scrollbar(self.frame_body, orient=tkinter.VERTICAL, command=self.molds_list_box.yview)
         scroll.pack(side=RIGHT, fill=Y)
         self.molds_list_box.configure(yscrollcommand=scroll.set)
