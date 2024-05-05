@@ -70,3 +70,11 @@ def define_styles():
                     foreground='grey20',
                     anchor=N,
                     font=('Arial', '10', 'normal'))
+
+    style.configure(style='GreenToolbar.TButton',
+                    background='chartreuse',
+                    anchor=N)
+
+    style.configure(style='RedToolbar.TButton',
+                    background='coral',
+                    anchor=N)

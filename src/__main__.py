@@ -17,12 +17,13 @@ def render_main_window():
     """
     # Создание окна приложения
     window = Tk()
-    window.geometry('1920x1080')
+    window.state('zoomed')
+    window.geometry('300x20')
     style = ThemedStyle(window)
     style.set_theme('radiance')
     window.iconbitmap(os.path.join('pics', 'artpack.ico'))
     define_styles()
-    # Создание экземпляра класса осн нового окна приложения и рендер контейнеров с виджетами
+    # Создание экземпляра класса окна приложения и рендер контейнеров с виджетами
     app = App()
     app.render_widgets_main_menu()
     create_menu_widgets(window, app)

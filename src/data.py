@@ -4,7 +4,7 @@ import os
 
 mold_statuses_list = ['IN', 'OUT', 'IN SERVICE']
 mold_statuses_dict = {'IN': '', 'OUT': '', 'IN SERVICE': ''}
-part_statuses_list = ['В наличие', 'Отсутствующие', 'Меньше минимума']
+part_statuses_list = ['В наличие', 'Отсутствующие', 'Меньше минимума', 'Наоборот']
 info_messages = {
     'downloaded_bom': {'message_name': 'Уведомление о загрузке',
                        'message_body': 'Спецификация по номеру "{mold_number}" успешно внесена в систему'},
@@ -24,6 +24,11 @@ columns_bom_parts_table = (
     'Допустимый остаток, %', 'Вес, кг')
 columns_sizes_bom_parts_table = {f'#{i}': 20 for i in range(1, len(columns_bom_parts_table) + 1)}
 
+columns_molds_table = ('№ Формы', '№ горячего канала', 'Наименование', 'Название продукции',
+                       'Год выпуска', 'Количество гнёзд', 'Производитель', 'Производитель г.к.', 'Статус',
+                       'Местонахождение')
+columns_sizes_molds_table = {f'#{i}': 20 for i in range(1, len(columns_molds_table) + 1)}
+
 columns_molds_moving_history_table = ('Дата', 'Ответcтвенный', 'Номер пресс-формы',
                                       'Название проекта', 'Прошлый статус', 'Новый статус')
 columns_sizes_moving_history_table = {f'#{i}': 20 for i in range(1, len(columns_molds_moving_history_table) + 1)}
@@ -36,7 +41,7 @@ columns_searching_results = ('Составляющая', 'Номер п/ф', 'Н
                              'Доп. информация', 'Наличие (новые)', 'Наличие (б/у)')
 columns_sizes_searching_table = {f'#{i}': 20 for i in range(1, len(columns_searching_results) + 1)}
 columns_purchased_parts = ('Номер закупки', 'Дата загрузки', 'Номер п/ф', 'Тип', 'Номер запчасти', 'Наименование',
-                           'Описание', 'Закупленное кол-во')
+                           'Описание', 'Закупленное кол-во', 'Статус', 'Комментарий')
 columns_sizes_purchased_parts_table = {f'#{i}': 20 for i in range(1, len(columns_purchased_parts) + 1)}
 
 columns_min_parts_excel_table = ('Номер п/ф', 'Тип', 'Номер запчасти', 'Наименование', 'Описание',
@@ -158,3 +163,5 @@ instructions = {'new_bom_uploading': f"""<h3>Загрузка нового BOM</
                         </ul>
                         """
                 }
+purchased_statuses = {'in_process': 'Ожидается',
+                      'received': 'Принят на склад'}

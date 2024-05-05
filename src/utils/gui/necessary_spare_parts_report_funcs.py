@@ -98,15 +98,6 @@ class MinPartsReport(tkinter.Toplevel):
         self.frame_bottom = Frame(self)
         self.frame_bottom.pack(fill=BOTH, expand=True)
 
-    # def get_mold_titles(self):
-    #     """
-    #     Функция для получения наименований всех БОМов имеющихся в текущей базе данных
-    #     """
-    #     database = DataBase('Database')
-    #     table_names = database.get_all_tables()
-    #     bom_table_names = list(filter(lambda table_name: 'BOM' in table_name[0], table_names))
-    #     self.molds_list_box.insert(0, *bom_table_names)
-
     def render_widgets(self):
         """
         Функция рендера всех виджетов окна ввода информации
@@ -146,7 +137,7 @@ class MinPartsReport(tkinter.Toplevel):
             self.input_error_label.destroy()
         # Получение всех наименований, которые были выделены пользователем
         selection = self.molds_list_box.curselection()
-        selected_table_names = [self.molds_list_box.get(i)[0] for i in selection]
+        selected_table_names = [self.molds_list_box.get(i) for i in selection]
         # Старт сортировки
         for table in selected_table_names:
             sorted_table.extend(sort_table(table))

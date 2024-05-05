@@ -1,6 +1,7 @@
 from typing import Callable
 from datetime import datetime
 
+from src.data import purchased_statuses
 from src.utils.sql_database import table_funcs
 from src.utils.sql_database.table_funcs import DataBase, TableInDb
 
@@ -41,8 +42,13 @@ def add_new_purchasing_list(data: list):
         row = list(row)
         row.insert(0, purchase_num + 1)
         row.insert(1, datetime.now().strftime("%m/%d/%Y, %H:%M"))
+        # Удаление не нужных значений
         row.pop(len(row) - 2)
         row.pop(len(row) - 2)
+        # Добавление значений статуса закупки и комментария
+        row.append(purchased_statuses.get('in_process'))
+        row.append(None)
+
         purchased_parts.insert_data(tuple(row))
 
 
@@ -78,7 +84,8 @@ def create_tables_in_db():
     purchased_parts = table_funcs.TableInDb('Purchased_parts', 'Database')
     purchased_parts.crt_new_table_and_connect_db(
         table_params={'PURCHASE_NUMBER': 'TEXT', 'DATE': 'TEXT', 'MOLD_NUMBER': 'TEXT', 'PART_TYPE': 'TEXT',
-                      'PART_NUMBER': 'TEXT', 'PART_NAME': 'TEXT', 'DESCRIPTION': 'TEXT', 'QUANTITY': 'INT'})
+                      'PART_NUMBER': 'TEXT', 'PART_NAME': 'TEXT', 'DESCRIPTION': 'TEXT', 'QUANTITY': 'INT',
+                      'STATUS': 'TEXT', 'COMMENT': 'TEXT'})
 
 
 def add_columns_bom_table(columns: dict):

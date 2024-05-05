@@ -16,13 +16,13 @@ from src.global_values import user_data
 
 def download_file(filename: str, root: str):
     """
-    Функция загрузки вложения (какого либо файла) в директорию выбранную пользователем
+    Функция загрузки вложения (какого либо файла) в директорию, выбранную пользователем
     :param root: Путь к файлу
     :param filename: Имя файла
     """
     filetype = re.search(r'\.\w+', filename).group(0)
     # Открытие диалогового окна для выбора пользователем локальной директории для сохранения файла,
-    # c дальнейшим извлечением пути в виде строки
+    # с дальнейшим извлечением пути в виде строки
 
     local_file_path = filedialog.asksaveasfilename(
         filetypes=((f'{filetype.upper()} files', f'*{filetype}'),)
@@ -42,7 +42,7 @@ class Attachment(tkinter.Toplevel):
     редактирования, их предпросмотра и скачивания в указанную директорию пользователем
     """
 
-    def __init__(self, mold_number: str, part_number: str = None, hot_runner: bool = None):
+    def __init__(self, mold_number: str, part_number: str = None, hot_runner: bool = None, checking: bool = None):
         """
         Создание переменных
         """
@@ -58,8 +58,10 @@ class Attachment(tkinter.Toplevel):
         self.image_pil = None
         self.frame = None
         self.root = None
-        super().__init__()
-        self.init_gui()
+        self.folder_path = None
+        if not checking:
+            super().__init__()
+            self.init_gui()
 
     def init_gui(self):
         """
@@ -78,6 +80,19 @@ class Attachment(tkinter.Toplevel):
         self.scroll_y.pack(side=RIGHT, fill='y')
         self.canvas.pack(fill=BOTH, expand=True)
         self.canvas.create_window((4, 4), window=self.frame_body, anchor="nw")
+
+    def define_folder_path(self):
+        """
+        Функция определения пути к папке с прикрепленными файлами
+        """
+        if self.part_number:
+            define_path: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts',
+                                                         str(self.part_number)) \
+                if self.hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts',
+                                                     str(self.part_number))
+            self.folder_path = define_path()
+        else:
+            self.folder_path = os.path.join('savings', 'attachments', str(self.mold_number))
 
     def get_label_and_entry_widgets_in_row(self, text: str, row: int, root: str):
         """
@@ -104,18 +119,13 @@ class Attachment(tkinter.Toplevel):
         """
         Функция рендера всех виджетов окна ввода информации
         """
-        if self.part_number:
-            define_path: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts',
-                                                         self.part_number) \
-                if self.hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts',
-                                                     self.part_number)
-            path = define_path()
-        else:
-            path = os.path.join('savings', 'attachments', self.mold_number)
+        self.define_folder_path()
 
-        ttk.Label(self.frame_header, text='Просмотр вложенных файлов', style='Title.TLabel').pack(side=TOP, pady=15)
+        ttk.Label(self.frame_header, text='Просмотр вложенных файлов '
+                                          f'для {self.part_number if self.part_number else self.mold_number}',
+                  style='Title.TLabel').pack(side=TOP, pady=15)
         row_num = 1
-        for root, dirs, files in os.walk(path):
+        for root, dirs, files in os.walk(self.folder_path):
             for file in files:
                 if os.path.join(root, file):
                     self.get_label_and_entry_widgets_in_row(text=file, row=row_num, root=root)
@@ -129,9 +139,23 @@ class Attachment(tkinter.Toplevel):
         # Запуск работы окна приложения
         self.mainloop()
 
+    def search_attachments(self) -> bool:
+        """
+        Функция проверки на наличие прикреплённых файлов к элементу BOM или к пресс-форме
+        :return: Булево значение характерезующее результат поиска
+        """
+        self.define_folder_path()
+
+        for root, dirs, files in os.walk(self.folder_path):
+            for file in files:
+                if os.path.join(root, file):
+                    return True
+
+        return False
+
     def delete_file(self, filename: str, root: str):
         """
-        Функция  для удаления вложенного файла
+        Функция для удаления вложенного файла
         :param root: Путь к файлу
         :param filename: Имя файла
         """

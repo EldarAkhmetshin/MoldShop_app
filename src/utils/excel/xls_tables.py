@@ -7,6 +7,7 @@ from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
 from openpyxl.utils import get_column_letter
 from pandas import DataFrame
 
+from src.data import purchased_statuses
 from src.global_values import user_data
 from src.utils.logger.logs import get_warning_log
 from src.utils.sql_database import table_funcs
@@ -83,9 +84,6 @@ def get_purchasing_list_from_excel_file(file_path: str, work_sheet_name: str) ->
             if not part_num:
                 return (column_names, rows_data,
                         False, 'Информация не может быть загружена, так как имеется строка без номера запчасти')
-            # elif part_num in part_nums:
-            #     return (column_names, rows_data,
-            #             False, f'Информация не может быть загружена, так как номер запчасти {row[0]} дублируется')
 
             if count == 0:
                 column_names = row

@@ -5,10 +5,9 @@ from os.path import abspath
 from tkinter import *
 from tkinter import ttk, filedialog, messagebox
 from tkinter.ttk import Frame
-from typing import Callable
 
 from src.data import columns_searching_results, columns_sizes_warehouse_table, columns_min_parts_excel_table, \
-    error_messages, columns_customs_report_excel_table
+    error_messages, columns_customs_report_excel_table, purchased_statuses
 from src.global_values import user_data
 from src.utils.excel.xls_tables import export_excel_table, \
     get_purchasing_list_from_excel_file
@@ -26,40 +25,58 @@ def validate_new_parts_table(column_names: list, rows_data: list) -> bool:
     :return: Булево значение, характеризующее состояние валидации (пройдена / не пройдена)
     """
     # Проверка на соответствие наименований столбцов
-    bom_name_id = None
+    mold_num_id = None
     element_num_id = None
     element_name_id = None
     purchased_elements_cnt_id = None
     for i, column_name in enumerate(column_names):
         if column_name.lower() == 'номер п/ф':
-            bom_name_id = i
+            mold_num_id = i
         elif column_name.lower() == 'номер запчасти':
             element_num_id = i
         elif column_name.lower() == 'наименование':
             element_name_id = i
         elif column_name.lower() == 'необходимое кол-во, шт':
             purchased_elements_cnt_id = i
-    if (bom_name_id is None or element_num_id is None or
+    if (mold_num_id is None or element_num_id is None or
             element_name_id is None or purchased_elements_cnt_id is None):
         print('Несоответствие названий основных столбцов таблицы')
+        messagebox.showerror(title='Ошибка',
+                             message='Несоответствие названий основных столбцов таблицы')
         return False
 
     bom_table_names = get_mold_names_list()
+    spare_parts = []
     for i, row in enumerate(rows_data):
+        mold_num = row[mold_num_id]
+        part_num = row[element_num_id]
+        part_name = row[element_name_id]
+        purchased_parts_cnt = row[purchased_elements_cnt_id]
         # Проверка, что название BOM из таблицы соответствует названию таблицы БД
-        if row[bom_name_id] not in bom_table_names:
-            print(f'Строка {i + 2}: Название бома ошибочно')
+        if mold_num not in bom_table_names:
+            messagebox.showerror(title='Ошибка',
+                                 message=f'Строка {i + 2}: Название бома ошибочно')
             return False
         # Проверка, что номер и имя элемента из таблицы имеется в реальном BOM БД
-        bom_db = TableInDb(row[bom_name_id], 'Database')
-        if len(bom_db.get_table(type_returned_data='tuple', first_param='NUMBER', first_value=row[element_num_id],
-                                second_param='PART_NAME', second_value=row[element_name_id])) == 0:
-            print(f'Строка {i + 2}: Не совпадает элемент спецификации')
+        bom_db = TableInDb(mold_num, 'Database')
+        if len(bom_db.get_table(type_returned_data='tuple', first_param='NUMBER', first_value=part_num,
+                                second_param='PART_NAME', second_value=part_name)) == 0:
+            messagebox.showerror(title='Ошибка',
+                                 message=f'Строка {i + 2}: Не совпадает элемент спецификации')
+            return False
+        # Проверка на дублирование по номеру п/ф и запчасти
+        if f'{mold_num}_{part_name}' in spare_parts:
+            messagebox.showerror(title='Ошибка',
+                                 message=f'Строка {i + 2}: Дублирование одинаковых элементов')
             return False
         # Проверка значения в столбце с указанным кол-вом для закупки на правильность типа данных
-        if not isinstance(row[purchased_elements_cnt_id], int):
-            print(f'Строка {i + 2}: Не правильный тип данных. Должно быть число.')
+        if not isinstance(purchased_parts_cnt, int):
+            messagebox.showerror(title='Ошибка',
+                                 message=f'Строка {i + 2}: Не правильный тип данных. Должно быть число.')
             return False
+
+        spare_parts.append(f'{mold_num}_{part_name}')
+
     return True
 
 
@@ -99,9 +116,6 @@ def upload_purchased_parts() -> bool:
                                         message='Лист закупаемых запчастей успешно загружен')
                     return True
                 else:
-                    messagebox.showerror(title='Ошибка',
-                                         message='Информация не может быть загружена по причине некорректного '
-                                                 'заполнения таблицы')
                     return False
     else:
         messagebox.showerror(error_messages.get('access_denied').get('message_name'),
@@ -218,7 +232,6 @@ class CustomsReport(tkinter.Toplevel):
         # Получение всех наименований, которые были выделены пользователем
         selection = self.purchase_numbers_list_box.curselection()
         selected_purchase_nums = [self.purchase_numbers_list_box.get(i) for i in selection]
-        print(selected_purchase_nums)
         # Старт сортировки
         sorted_table = [columns_customs_report_excel_table]
         for purchase_num in selected_purchase_nums:
@@ -229,3 +242,147 @@ class CustomsReport(tkinter.Toplevel):
             self.input_error_label.pack(side=TOP, padx=5, pady=5)
         else:
             export_excel_table(sorted_table)
+
+
+class PurchasedPart(tkinter.Toplevel):
+    """
+    Класс представляет набор функций для создания графического интерфейса окна и осуществления
+    поиска запчастей по заданным параметрам.
+    """
+
+    def __init__(self, purchase_number, mold_number, part_number, part_name, purchased_cnt, status, comment):
+        """
+        Создание переменных
+        """
+        self.changed_data = None
+        self.purchase_number = purchase_number
+        self.mold_number = mold_number
+        self.part_number = part_number
+        self.part_name = part_name
+        self.purchased_cnt = purchased_cnt
+        self.status = status if status else '-'
+        self.comment = comment if comment else '-'
+
+        self.status_combobox = None
+        self.comment_entry_field = None
+
+        self.frame_bottom = None
+        self.frame_body = None
+        self.frame_header = None
+
+        super().__init__()
+        self.focus_set()
+        self.init_gui()
+
+    def init_gui(self):
+        """
+        Инициация окна приложения и контейнеров для размещения виджетов
+        """
+        self.frame_header = Frame(self)
+        self.frame_header.pack(fill=BOTH, expand=True)
+        self.frame_body = Frame(self)
+        self.frame_body.pack(fill=BOTH, expand=True)
+        self.frame_bottom = Frame(self)
+        self.frame_bottom.pack(fill=BOTH, expand=True)
+
+    def render_widgets(self):
+        """
+        Функция рендера всех виджетов окна ввода информации
+        """
+        ttk.Label(self.frame_body, text='Номер закупки:', style='Regular.TLabel').grid(column=1, row=1,
+                                                                                       padx=5, pady=5)
+        ttk.Label(self.frame_body, text=self.purchase_number, style='Regular.TLabel').grid(column=2, row=1,
+                                                                                           padx=5, pady=5)
+
+        ttk.Label(self.frame_body, text='Номер п/ф:', style='Regular.TLabel').grid(column=1, row=2,
+                                                                                   padx=5, pady=5)
+        ttk.Label(self.frame_body, text=self.mold_number, style='Regular.TLabel').grid(column=2, row=2,
+                                                                                       padx=5, pady=5)
+
+        ttk.Label(self.frame_body, text='Номер запчасти:', style='Regular.TLabel').grid(column=1, row=3,
+                                                                                        padx=5, pady=5)
+        ttk.Label(self.frame_body, text=self.part_number, style='Regular.TLabel').grid(column=2, row=3,
+                                                                                       padx=5, pady=5)
+
+        ttk.Label(self.frame_body, text='Имя запчасти:', style='Regular.TLabel').grid(column=1, row=4,
+                                                                                      padx=5, pady=5)
+        ttk.Label(self.frame_body, text=self.part_name, style='Regular.TLabel').grid(column=2, row=4,
+                                                                                     padx=5, pady=5)
+
+        ttk.Label(self.frame_body, text='Закупленное кол-во:', style='Regular.TLabel').grid(column=1, row=5,
+                                                                                            padx=5, pady=5)
+        ttk.Label(self.frame_body, text=self.purchased_cnt, style='Regular.TLabel').grid(column=2, row=5,
+                                                                                         padx=5, pady=5)
+
+        ttk.Label(self.frame_body, text='Статус:', style='Regular.TLabel').grid(column=1, row=6,
+                                                                                padx=5, pady=5)
+        ttk.Label(self.frame_body, text=self.status, style='Regular.TLabel').grid(column=2, row=6,
+                                                                                  padx=5, pady=5)
+        if self.status == purchased_statuses.get('in_process'):
+            self.status_combobox = ttk.Combobox(self.frame_body, values=[status_name for status_name
+                                                                         in purchased_statuses.values()], state='readonly')
+            self.status_combobox.grid(column=2, row=7, padx=5, pady=5)
+
+        ttk.Label(self.frame_body, text='Комментарий:', style='Regular.TLabel').grid(column=1, row=8,
+                                                                                     padx=5, pady=5)
+        ttk.Label(self.frame_body, text=self.comment, style='Regular.TLabel').grid(column=2, row=8,
+                                                                                   padx=5, pady=5)
+        self.comment_entry_field = ttk.Entry(self.frame_body, font=('Times', '11', 'normal'))
+        self.comment_entry_field.grid(column=2, row=9, padx=5, pady=5)
+
+        ttk.Button(
+            self.frame_bottom, text='Применить', style='Regular.TButton',
+            command=self.change_part_status_and_cnt
+        ).pack(side=TOP, padx=10, pady=10)
+        # Запуск работы окна приложения
+        self.mainloop()
+
+    def change_part_status_and_cnt(self):
+        """
+        Функция для изменения информации о статусе закупленной запчасти
+        """
+        try:
+            new_status = self.status_combobox.get()
+            print(555, new_status)
+        except AttributeError:
+
+            new_status = self.status
+            print(7777, new_status)
+        else:
+            # Изменение количества запчастей в BOM
+            try:
+                bom_db = TableInDb(self.mold_number, 'Database')
+                part_info = bom_db.get_table(type_returned_data='dict',
+                                             first_param='NUMBER', first_value=self.part_number,
+                                             second_param='PART_NAME', second_value=self.part_name,
+                                             last_string=True)
+                current_part_cnt = part_info.get('PARTS_QUANTITY')
+                end_quantity = int(self.purchased_cnt) + int(current_part_cnt) if current_part_cnt else int(self.purchased_cnt)
+                bom_db.change_data(first_param='NUMBER', first_value=self.part_number,
+                                   data={'PARTS_QUANTITY': end_quantity},
+                                   second_param='PART_NAME', second_value=self.part_name)
+            except Exception:
+                messagebox.showerror(title='Ошибка',
+                                     message=f'Ошибка записи данных. Необходимо обратиться к разроботчику')
+                get_warning_log(user=user_data.get('user_name'), message='Error of data changing',
+                                func_name=self.change_part_status_and_cnt.__name__, func_path=abspath(__file__))
+        new_comment = self.comment_entry_field.get()
+        purchased_parts_db = TableInDb('Purchased_parts', 'Database')
+        purchased_parts_db.change_data(first_param='PURCHASE_NUMBER', first_value=self.purchase_number,
+                                       second_param='PART_NUMBER', second_value=self.part_number,
+                                       data={'STATUS': new_status, 'COMMENT': self.comment_entry_field.get()}
+                                       if self.comment_entry_field.get()
+                                       else {'STATUS': new_status})
+        try:
+            self.status_combobox.get()
+            messagebox.showinfo('Уведомление', 'Информация о закупаемой запчасти успешно изменена. '
+                                               f'Количество на складе увеличенно на {self.purchased_cnt}')
+        except AttributeError:
+            messagebox.showinfo('Уведомление', 'Информация о закупаемой запчасти успешно сохранена. ')
+
+        self.changed_data = True
+        self.quit()
+        self.destroy()
+
+        get_info_log(user=user_data.get('user_name'), message='Data was successfully changed',
+                     func_name=self.change_part_status_and_cnt.__name__, func_path=abspath(__file__))
