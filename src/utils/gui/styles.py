@@ -24,6 +24,11 @@ def define_styles():
                     anchor=N,
                     font=('Arial', '16', 'bold'))
 
+    style.configure(style='SubTitle.TLabel',
+                    foreground='grey20',
+                    anchor=N,
+                    font=('Arial', '9', 'bold'))
+
     style.configure(style='Regular.TEntry',
                     foreground='grey20',
                     anchor=N,

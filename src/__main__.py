@@ -35,6 +35,7 @@ def log_in_app():
     """
     Рендер окна для авторизации пользователя
     """
+    # check_passwords()
     window = Tk()
     window.iconbitmap(os.path.join('pics', 'artpack.ico'))
     style = ThemedStyle(window)

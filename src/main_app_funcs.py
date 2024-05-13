@@ -29,6 +29,7 @@ from src.utils.gui.purchased_parts_funcs import upload_purchased_parts, CustomsR
 from src.utils.gui.reference_information_funcs import ReferenceInfo
 from src.utils.gui.spare_parts_searching_funcs import Searcher
 from src.utils.gui.user_authorization_funcs import change_user
+from src.utils.gui.users_data_edition import UsersData
 from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database import table_funcs, new_tables
 from src.utils.gui.mold_data_edition_funcs import EditedMold
@@ -81,6 +82,7 @@ def create_menu_widgets(window: tkinter.Tk, application):
     window.config(menu=menu)
     file_menu = Menu(menu, tearoff=0)
     file_menu.add_command(label='Сменить пользователя', command=lambda: change_user(window))
+    file_menu.add_command(label='Редактировать пользователей', command=lambda: UsersData().render_widgets())
     menu.add_cascade(label='Файл', menu=file_menu, )
     window.config(menu=menu)
     operations_menu = Menu(menu, tearoff=0)
@@ -1306,7 +1308,6 @@ class App(Frame):
         except sqlite3.OperationalError:
             if hot_runner:
                 messagebox.showerror('Уведомление об ошибке', f'Спецификации по номеру "{mold_number}" не имеется')
-                # self.hot_runner_bom = None
             else:
                 # рекурсия для открытия BOM на горячий канал если не нашлась таблица с основным BOM
                 try:
