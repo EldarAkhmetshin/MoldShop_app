@@ -90,6 +90,9 @@ class Searcher(tkinter.Toplevel):
             command=self.start_search
         ).pack(side=TOP, padx=10, pady=10)
         # Запуск работы окна приложения
+        get_info_log(user=user_data.get('user_name'), message='Searching window was rendered',
+                     func_name=self.render_widgets.__name__,
+                     func_path=abspath(__file__))
         self.mainloop()
 
     def render_results(self):

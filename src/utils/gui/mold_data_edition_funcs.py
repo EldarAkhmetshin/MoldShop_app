@@ -11,7 +11,7 @@ from typing import Callable
 from datetime import datetime
 
 from src.global_values import user_data
-from src.utils.logger.logs import get_info_log
+from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database import table_funcs
 from src.data import mold_statuses_list
 from src.utils.sql_database.table_funcs import DataBase
@@ -82,7 +82,7 @@ class EditedMold(tkinter.Toplevel):
         :param point_info: Текущее значение (до изменения)
         :param row: Номер строки в окне
         :param necessary_field: Булево значение о необходимости заполнения данных
-        :param mold_status_widget: Булево значение передающее True, если рендериться строка о статусе п/ф
+        :param mold_status_widget: Булево значение передающее True, если выводится строка о статусе п/ф
         :return: Виджет поля ввода
         """
         ttk.Label(self.frame_body, text=text, style='Regular.TLabel').grid(column=1, row=row, padx=5, pady=5)
@@ -109,7 +109,8 @@ class EditedMold(tkinter.Toplevel):
         """
         define_title: Callable = lambda: 'Редактирование информации о пресс-форме' \
             if self.mold_data else 'Новая пресс-форма'
-        define_command: Callable = lambda: self.validate_and_save_edited_mold_data() if self.mold_data else self.validate_and_save_new_mold_data()
+        define_command: Callable = lambda: self.validate_and_save_edited_mold_data() if self.mold_data \
+            else self.validate_and_save_new_mold_data()
 
         ttk.Label(self.frame_header, text=define_title(), style='Title.TLabel').pack(side=TOP, pady=15)
 
@@ -151,9 +152,9 @@ class EditedMold(tkinter.Toplevel):
 
     def validate_and_save_new_mold_data(self):
         """
-        Фнкция проверки введённых данных пользователем
+        Функция проверки введённых данных пользователем
         """
-        # Проверка правильности ввода информации о годе выпуска пресс формы и количестве гнёзд
+        # Проверка правильности ввода информации о годе выпуска пресс-формы и количестве гнёзд
         if self.input_error_label:
             self.input_error_label.destroy()
         try:
@@ -186,13 +187,16 @@ class EditedMold(tkinter.Toplevel):
                                                    text='Ошибка записи данных! Обратитесь к администратору',
                                                    foreground='Red')
                     self.input_error_label.grid(column=1, row=12)
+                    get_warning_log(user=user_data.get('user_name'), message='Bom data was NOT changed',
+                                    func_name=self.validate_and_save_new_mold_data.__name__,
+                                    func_path=abspath(__file__))
                 else:
                     self.quit()
                     self.destroy()
                     messagebox.showinfo('Уведомление',
                                         'Информация о новой пресс-форме успешно добавлена в общий перечень')
                     self.changed_data = True
-                    get_info_log(user=user_data.get('user_name'), message='New data was successfully added',
+                    get_info_log(user=user_data.get('user_name'), message='New MOLD data was successfully added',
                                  func_name=self.validate_and_save_new_mold_data.__name__, func_path=abspath(__file__))
             # Если данные введены некорректно пользователь получит уведомление об ошибке
             else:
@@ -206,7 +210,8 @@ class EditedMold(tkinter.Toplevel):
         :param new_mold_number: Новый номер пресс-формы
         """
         try:
-            os.rename(os.path.join('savings', 'attachments', self.mold_number), os.path.join('savings', 'attachments', new_mold_number))
+            os.rename(os.path.join('savings', 'attachments', self.mold_number), os.path.join('savings', 'attachments',
+                                                                                             new_mold_number))
         except FileNotFoundError:
             pass
         db = DataBase('Database')
@@ -221,9 +226,9 @@ class EditedMold(tkinter.Toplevel):
 
     def validate_and_save_edited_mold_data(self):
         """
-        Фнкция проверки введённых данных пользователем
+        Функция проверки введённых данных пользователем
         """
-        # Проверка правильности ввода информации о годе выпуска пресс формы и количестве гнёзд
+        # Проверка правильности ввода информации о годе выпуска пресс-формы и количестве гнёзд
         if self.input_error_label:
             self.input_error_label.destroy()
         try:
@@ -297,7 +302,7 @@ class EditedMold(tkinter.Toplevel):
 
     def confirm_delete(self):
         """
-        Фнкция вывода диалогового окна для запроса подтверждения закрытия окна
+        Функция вывода диалогового окна для запроса подтверждения закрытия окна
         """
         message = "Вы уверены, что хотите закрыть это окно?"
         if messagebox.askyesno(message=message, parent=self):

@@ -10,14 +10,15 @@ from tkinter.ttk import Frame
 from typing import Callable
 
 from src.global_values import user_data
-from src.utils.logger.logs import get_info_log
+from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database import table_funcs
 
 
 class EditedBOM(tkinter.Toplevel):
     """
     Класс представляет набор функций для создания графического интерфейса окон редактирования
-    информации о выбранной запчасти из BOM пресс-формы, а также валидации и записи новой информации в таблицы базы данных.
+    информации о выбранной запчасти из BOM пресс-формы, а также валидации и записи новой информации
+    в таблицы базы данных.
     """
 
     def __init__(self, mold_number: str, table_name: str, part_data: dict = None):
@@ -36,7 +37,7 @@ class EditedBOM(tkinter.Toplevel):
         self.min_percent_entry_field = None
         self.storage_cell_entry_field = None
         self.used_parts_quantity_entry_field = None
-        self.parts_qantity_entry_field = None
+        self.parts_quantity_entry_field = None
         self.dimensions_entry_field = None
         self.material_entry_field = None
         self.supplier_entry_field = None
@@ -105,7 +106,8 @@ class EditedBOM(tkinter.Toplevel):
         """
         define_title: Callable = lambda: 'Редактирование информации о запчасти' \
             if self.part_data else 'Добавление нового элемента в BOM'
-        define_command: Callable = lambda: self.validate_and_save_edited_part_data() if self.part_data else self.validate_and_save_new_part_data()
+        define_command: Callable = lambda: self.validate_and_save_edited_part_data() if self.part_data \
+            else self.validate_and_save_new_part_data()
 
         ttk.Label(self.frame_header, text=define_title(), style='Title.TLabel').pack(side=TOP, pady=15)
 
@@ -138,14 +140,15 @@ class EditedBOM(tkinter.Toplevel):
             width=20,
             command=define_command
         ).pack(side=TOP, padx=10, pady=10)
-        get_info_log(user=user_data.get('user_name'), message='Widgets were rendered',
+        get_info_log(user=user_data.get('user_name'), message='Bom edition win was rendered',
                      func_name=self.render_widgets.__name__, func_path=abspath(__file__))
         # Запуск работы окна приложения
         self.mainloop()
 
     def change_paths(self, new_part_number: str):
         """
-        Функция переименования папок для хранения прикреплённых файлов к элементу открытого BOM в случае изменения номера элемента
+        Функция переименования папок для хранения прикреплённых файлов к элементу открытого BOM в случае
+        изменения номера элемента
         :param new_part_number: Новый номер элемента
         """
         try:
@@ -161,7 +164,7 @@ class EditedBOM(tkinter.Toplevel):
 
     def validate_and_save_new_part_data(self):
         """
-        Фнкция проверки введённых данных пользователем
+        Функция проверки введённых данных пользователем
         """
         if self.input_error_label:
             self.input_error_label.destroy()
@@ -174,7 +177,7 @@ class EditedBOM(tkinter.Toplevel):
                 part_number, part_name, self.pcs_in_mold_entry_field.get(), self.description_entry_field.get(),
                 self.additional_info_entry_field.get(), self.supplier_entry_field.get(),
                 self.material_entry_field.get(), self.dimensions_entry_field.get(),
-                self.parts_qantity_entry_field.get(), self.used_parts_quantity_entry_field.get(),
+                self.parts_quantity_entry_field.get(), self.used_parts_quantity_entry_field.get(),
                 self.storage_cell_entry_field.get(), self.min_percent_entry_field.get()
             )
             try:
@@ -185,23 +188,25 @@ class EditedBOM(tkinter.Toplevel):
                                                text='Ошибка записи данных! Обратитесь к администратору',
                                                foreground='Red')
                 self.input_error_label.grid(column=1, row=15)
+                get_warning_log(user=user_data.get('user_name'), message='New bom data was NOT added',
+                                func_name=self.validate_and_save_new_part_data.__name__, func_path=abspath(__file__))
             else:
                 self.quit()
                 self.destroy()
                 messagebox.showinfo('Уведомление',
                                     'Информация о новом элементе успешно добавлена в BOM')
                 self.changed_data = True
-                get_info_log(user=user_data.get('user_name'), message='New data was successfully added',
+                get_info_log(user=user_data.get('user_name'), message='New BOM data was successfully added',
                              func_name=self.validate_and_save_new_part_data.__name__, func_path=abspath(__file__))
         # Если данные введены некорректно пользователь получит уведомление об ошибке
         else:
             self.input_error_label = Label(self.frame,
-                                           text='Не заполненны обязательные поля', foreground='Red')
+                                           text='Не заполнены обязательные поля', foreground='Red')
             self.input_error_label.grid(column=1, row=15)
 
     def validate_and_save_edited_part_data(self):
         """
-        Фнкция проверки введённых данных пользователем
+        Функция проверки введённых данных пользователем
         """
         # Проверка правильности ввода информации
         if self.input_error_label:
@@ -250,17 +255,19 @@ class EditedBOM(tkinter.Toplevel):
                                                text='Ошибка записи данных! Обратитесь к администратору',
                                                foreground='Red')
                 self.input_error_label.grid(column=1, row=12)
+                get_warning_log(user=user_data.get('user_name'), message='Bom data was NOT changed',
+                                func_name=self.validate_and_save_edited_part_data.__name__, func_path=abspath(__file__))
             else:
                 self.quit()
                 self.destroy()
                 messagebox.showinfo('Уведомление', 'Информация о пресс-форме успешно изменена')
                 self.changed_data = True
-                get_info_log(user=user_data.get('user_name'), message='Data was successfully changed',
+                get_info_log(user=user_data.get('user_name'), message='Bom data was successfully changed',
                              func_name=self.validate_and_save_edited_part_data.__name__, func_path=abspath(__file__))
 
     def confirm_delete(self):
         """
-        Фнкция вывода диалогового окна для запроса подтверждения закрытия окна
+        Функция вывода диалогового окна для запроса подтверждения закрытия окна
         """
         message = "Вы уверены, что хотите закрыть это окно?"
         if messagebox.askyesno(message=message, parent=self):

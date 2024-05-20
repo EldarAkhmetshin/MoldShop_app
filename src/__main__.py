@@ -51,7 +51,7 @@ def log_in_app():
 @logger.catch
 def run():
     logger_add()
-    create_tables_in_db()
+    # create_tables_in_db()
     # add_columns_bom_table(columns={'WEIGHT': 'REAL'})
     # delete_titles_row_bom_table()
     log_in_app()

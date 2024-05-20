@@ -7,3 +7,4 @@ if not find_dotenv():
 else:
     load_dotenv()
     users = loads(environ.get('USERS'))
+    # all_users_data = users

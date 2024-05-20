@@ -14,7 +14,7 @@ from src.utils.excel.xls_tables import export_excel_table, \
 from src.utils.gui.necessary_spare_parts_report_funcs import get_mold_names_list
 from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database import new_tables
-from src.utils.sql_database.table_funcs import TableInDb, DataBase
+from src.utils.sql_database.table_funcs import TableInDb
 
 
 def validate_new_parts_table(column_names: list, rows_data: list) -> bool:
@@ -40,7 +40,6 @@ def validate_new_parts_table(column_names: list, rows_data: list) -> bool:
             purchased_elements_cnt_id = i
     if (mold_num_id is None or element_num_id is None or
             element_name_id is None or purchased_elements_cnt_id is None):
-        print('Несоответствие названий основных столбцов таблицы')
         messagebox.showerror(title='Ошибка',
                              message='Несоответствие названий основных столбцов таблицы')
         return False
@@ -160,6 +159,7 @@ class CustomsReport(tkinter.Toplevel):
         """
         Создание переменных
         """
+        super().__init__()
         self.purchase_numbers_list_box = None
         self.results_window = None
         self.checkbutton = None
@@ -176,8 +176,8 @@ class CustomsReport(tkinter.Toplevel):
         self.stock = StringVar()
         self.results = []
         self.input_error_label = None
-        super().__init__()
         self.focus_set()
+
         self.init_gui()
 
     def init_gui(self):
@@ -341,48 +341,51 @@ class PurchasedPart(tkinter.Toplevel):
         """
         Функция для изменения информации о статусе закупленной запчасти
         """
-        try:
-            new_status = self.status_combobox.get()
-            print(555, new_status)
-        except AttributeError:
-
-            new_status = self.status
-            print(7777, new_status)
-        else:
-            # Изменение количества запчастей в BOM
+        if user_data.get('stock_changing_in') == 'True':
             try:
-                bom_db = TableInDb(self.mold_number, 'Database')
-                part_info = bom_db.get_table(type_returned_data='dict',
-                                             first_param='NUMBER', first_value=self.part_number,
-                                             second_param='PART_NAME', second_value=self.part_name,
-                                             last_string=True)
-                current_part_cnt = part_info.get('PARTS_QUANTITY')
-                end_quantity = int(self.purchased_cnt) + int(current_part_cnt) if current_part_cnt else int(self.purchased_cnt)
-                bom_db.change_data(first_param='NUMBER', first_value=self.part_number,
-                                   data={'PARTS_QUANTITY': end_quantity},
-                                   second_param='PART_NAME', second_value=self.part_name)
-            except Exception:
-                messagebox.showerror(title='Ошибка',
-                                     message=f'Ошибка записи данных. Необходимо обратиться к разроботчику')
-                get_warning_log(user=user_data.get('user_name'), message='Error of data changing',
-                                func_name=self.change_part_status_and_cnt.__name__, func_path=abspath(__file__))
-        new_comment = self.comment_entry_field.get()
-        purchased_parts_db = TableInDb('Purchased_parts', 'Database')
-        purchased_parts_db.change_data(first_param='PURCHASE_NUMBER', first_value=self.purchase_number,
-                                       second_param='PART_NUMBER', second_value=self.part_number,
-                                       data={'STATUS': new_status, 'COMMENT': self.comment_entry_field.get()}
-                                       if self.comment_entry_field.get()
-                                       else {'STATUS': new_status})
-        try:
-            self.status_combobox.get()
-            messagebox.showinfo('Уведомление', 'Информация о закупаемой запчасти успешно изменена. '
-                                               f'Количество на складе увеличенно на {self.purchased_cnt}')
-        except AttributeError:
-            messagebox.showinfo('Уведомление', 'Информация о закупаемой запчасти успешно сохранена. ')
+                new_status = self.status_combobox.get()
+            except AttributeError:
+                new_status = self.status
+            else:
+                # Изменение количества запчастей в BOM
+                try:
+                    bom_db = TableInDb(self.mold_number, 'Database')
+                    part_info = bom_db.get_table(type_returned_data='dict',
+                                                 first_param='NUMBER', first_value=self.part_number,
+                                                 second_param='PART_NAME', second_value=self.part_name,
+                                                 last_string=True)
+                    current_part_cnt = part_info.get('PARTS_QUANTITY')
+                    end_quantity = int(self.purchased_cnt) + int(current_part_cnt) if current_part_cnt else int(self.purchased_cnt)
+                    bom_db.change_data(first_param='NUMBER', first_value=self.part_number,
+                                       data={'PARTS_QUANTITY': end_quantity},
+                                       second_param='PART_NAME', second_value=self.part_name)
+                except Exception:
+                    messagebox.showerror(title='Ошибка',
+                                         message=f'Ошибка записи данных. Необходимо обратиться к разработчику')
+                    get_warning_log(user=user_data.get('user_name'), message='Error of data changing',
+                                    func_name=self.change_part_status_and_cnt.__name__, func_path=abspath(__file__))
+            new_comment = self.comment_entry_field.get()
+            purchased_parts_db = TableInDb('Purchased_parts', 'Database')
+            purchased_parts_db.change_data(first_param='PURCHASE_NUMBER', first_value=self.purchase_number,
+                                           second_param='PART_NUMBER', second_value=self.part_number,
+                                           data={'STATUS': new_status, 'COMMENT': self.comment_entry_field.get()}
+                                           if self.comment_entry_field.get()
+                                           else {'STATUS': new_status})
+            try:
+                self.status_combobox.get()
+                messagebox.showinfo('Уведомление', 'Информация о закупаемой запчасти успешно изменена. '
+                                                   f'Количество на складе увеличено на {self.purchased_cnt}')
+            except AttributeError:
+                messagebox.showinfo('Уведомление', 'Информация о закупаемой запчасти успешно сохранена. ')
 
-        self.changed_data = True
-        self.quit()
-        self.destroy()
+            self.changed_data = True
+            self.quit()
+            self.destroy()
 
-        get_info_log(user=user_data.get('user_name'), message='Data was successfully changed',
-                     func_name=self.change_part_status_and_cnt.__name__, func_path=abspath(__file__))
+            get_info_log(user=user_data.get('user_name'), message='Data was successfully changed',
+                         func_name=self.change_part_status_and_cnt.__name__, func_path=abspath(__file__))
+        else:
+            messagebox.showerror(title='Ошибка',
+                                 message='Отсутствуют права на приём запчастей')
+            get_warning_log(user=user_data.get('user_name'), message='Error of user access right',
+                            func_name=self.change_part_status_and_cnt.__name__, func_path=abspath(__file__))

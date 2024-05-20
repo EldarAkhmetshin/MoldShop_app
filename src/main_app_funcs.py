@@ -13,7 +13,7 @@ from pandas import DataFrame
 from PIL import Image, ImageTk
 from tkinter.ttk import Frame
 from idlelib.tooltip import Hovertip
-from typing import Callable, Any
+from typing import Callable, Any, List, Literal
 
 from src.global_values import user_data
 from src.data import mold_statuses_list, part_statuses_list, columns_warehouse_table, \
@@ -82,11 +82,13 @@ def create_menu_widgets(window: tkinter.Tk, application):
     window.config(menu=menu)
     file_menu = Menu(menu, tearoff=0)
     file_menu.add_command(label='Сменить пользователя', command=lambda: change_user(window))
-    file_menu.add_command(label='Редактировать пользователей', command=lambda: UsersData().render_widgets())
+    if user_data.get('user_name') == 'admin':
+        file_menu.add_command(label='Редактировать пользователей', command=lambda: UsersData().render_widgets())
     menu.add_cascade(label='Файл', menu=file_menu, )
     window.config(menu=menu)
     operations_menu = Menu(menu, tearoff=0)
     operations_menu.add_command(label='Перечень п/ф', command=application.get_molds_data)
+    operations_menu.add_command(label='Дефектация', command=application.get_molds_data)
     operations_menu.add_command(label='Журнал склада',
                                 command=lambda: application.open_warehouse_history_window(consumption=True))
     operations_menu.add_command(label='История перемещений п/ф', command=application.open_mold_scanning_window)
@@ -214,6 +216,7 @@ class App(Frame):
         self.current_table = None
         self.mold_number_entry_field = None
         self.event = None
+        self.user_name = user_data.get('user_name')
         # Объявление переменных изображений
         self.image_logo = Image.open(os.path.abspath(os.path.join('pics', 'company_logo.png'))) \
             .resize((150, 70))
@@ -349,10 +352,17 @@ class App(Frame):
                         self.open_bom(mold_number=mold_number)
                         messagebox.showinfo(title=info_messages.get('downloaded_bom').get('message_name'),
                                             message=info_message.format(mold_number=mold_number))
+
+                        get_info_log(user=self.user_name, message='New BOM was uploaded',
+                                     func_name=self.upload_new_bom.__name__,
+                                     func_path=abspath(__file__))
                     else:
                         error_message = error_messages.get('not_downloaded_bom').get('message_body')
                         messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
                                              message=error_message.format(mold_number=mold_number))
+                        get_warning_log(user=self.user_name, message='New BOM was NOT uploaded',
+                                        func_name=self.upload_new_bom.__name__,
+                                        func_path=abspath(__file__))
         else:
             messagebox.showerror(error_messages.get('access_denied').get('message_name'),
                                  error_messages.get('access_denied').get('message_body'))
@@ -423,9 +433,15 @@ class App(Frame):
                         self.render_typical_additional_window(called_class=lambda: Attachment(
                             mold_number=self.mold_number, part_number=part_number, hot_runner=self.hot_runner_bom),
                                                               window_name='Attachments')
+                        get_info_log(user=self.user_name, message='Document was attached',
+                                     func_name=self.upload_attachment.__name__,
+                                     func_path=abspath(__file__))
             else:
                 messagebox.showerror(title='Ошибка',
                                      message='Чтобы прикрепить файл выберите элемент из таблицы')
+                get_warning_log(user=self.user_name, message='Document was NOT attached',
+                                func_name=self.upload_attachment.__name__,
+                                func_path=abspath(__file__))
         else:
             messagebox.showerror(error_messages.get('access_denied').get('message_name'),
                                  error_messages.get('access_denied').get('message_body'))
@@ -475,16 +491,13 @@ class App(Frame):
                     messagebox.showerror(title='Уведомление об ошибке',
                                          message='Ошибка в записи файла.\nПовторите ещё раз, либо обратитесь к '
                                                  'администратору')
-                    get_warning_log(user=user_data.get('user_name'), message='Template was not saved in Excel file',
+                    get_warning_log(user=self.user_name, message='Template was not saved in Excel file',
                                     func_name=self.save_bom_parts_template.__name__, func_path=abspath(__file__))
                 else:
                     messagebox.showinfo(title='Уведомление', message='BOM шаблон успешно сохранен на Ваш компьютер')
-
-    # def render_attachment_toolbar_button(self):
-    #     self.open_attachments_button = ttk.Button(self.frame_toolbar_attachments, image=self.attachments_icon_pil,
-    #                                               command=looking_attachments_func)
-    #     self.open_attachments_button.pack(side=LEFT, padx=3, pady=4)
-    #     Hovertip(anchor_widget=self.open_attachments_button, text='Просмотреть вложения', hover_delay=400)
+                    get_info_log(user=self.user_name, message='BOM template was saved',
+                                 func_name=self.save_bom_parts_template.__name__,
+                                 func_path=abspath(__file__))
 
     def render_toolbar(self, back_func: Callable, add_row_func: Callable = None, edit_row_func: Callable = None,
                        delete_row_func: Callable = None, new_attachment_func: Callable = None,
@@ -567,7 +580,7 @@ class App(Frame):
             called_class=ReferenceInfo,
             window_name='Reference Information')).pack(side=LEFT, padx=3,
                                                        pady=4)
-        get_info_log(user=user_data.get('user_name'), message='Toolbar widgets were rendered',
+        get_info_log(user=self.user_name, message='Toolbar widgets were rendered',
                      func_name=self.render_toolbar.__name__, func_path=abspath(__file__))
 
     def render_widgets_main_menu(self):
@@ -627,7 +640,7 @@ class App(Frame):
         ).grid(padx=30, pady=15, column=5, row=4)
 
         ttk.Label(self.frame_body, image=self.image_body_pil).pack(fill=BOTH, side=RIGHT, pady=10)
-        get_info_log(user=user_data.get('user_name'), message='Main menu widgets were rendered',
+        get_info_log(user=self.user_name, message='Main menu widgets were rendered',
                      func_name=self.render_widgets_main_menu.__name__, func_path=abspath(__file__))
 
     def clean_frames(self):
@@ -768,7 +781,7 @@ class App(Frame):
 
         ttk.Label(picture_subframe, image=self.image_mold_pil).pack(side=RIGHT, pady=1)
 
-        get_info_log(user=user_data.get('user_name'), message='Mold list widgets were rendered',
+        get_info_log(user=self.user_name, message='Mold list widgets were rendered',
                      func_name=self.render_widgets_molds_list.__name__, func_path=abspath(__file__))
 
     def render_widgets_mold_scanning_mode(self):
@@ -820,7 +833,7 @@ class App(Frame):
             side=LEFT, padx=5)
         ttk.Label(picture_subframe, image=self.image_scanner_pil).pack(side=RIGHT, pady=1)
 
-        get_info_log(user=user_data.get('user_name'), message='Mold scanning mode widgets were rendered',
+        get_info_log(user=self.user_name, message='Mold scanning mode widgets were rendered',
                      func_name=self.render_widgets_mold_scanning_mode.__name__, func_path=abspath(__file__))
 
     def render_widgets_warehouse_mode(self, consumption: bool = None):
@@ -864,7 +877,7 @@ class App(Frame):
 
         ttk.Label(picture_subframe, image=self.image_rack_pil).pack(side=RIGHT, pady=1)
 
-        get_info_log(user=user_data.get('user_name'), message='Warehouse mode widgets were rendered',
+        get_info_log(user=self.user_name, message='Warehouse mode widgets were rendered',
                      func_name=self.render_widgets_warehouse_mode.__name__, func_path=abspath(__file__))
 
     def render_widgets_purchased_parts_mode(self):
@@ -905,8 +918,8 @@ class App(Frame):
 
         ttk.Label(picture_subframe, image=self.image_rack_pil).pack(side=RIGHT, pady=1)
 
-        get_info_log(user=user_data.get('user_name'), message='Warehouse mode widgets were rendered',
-                     func_name=self.render_widgets_warehouse_mode.__name__, func_path=abspath(__file__))
+        get_info_log(user=self.user_name, message='Purchased parts mode widgets were rendered',
+                     func_name=self.render_widgets_purchased_parts_mode.__name__, func_path=abspath(__file__))
 
     def render_widgets_selected_bom(self):
         """
@@ -1008,10 +1021,10 @@ class App(Frame):
 
         ttk.Label(picture_subframe, image=self.image_spare_part_pil).pack(side=RIGHT, pady=1)
 
-        get_info_log(user=user_data.get('user_name'), message='BOM widgets were rendered',
+        get_info_log(user=self.user_name, message='BOM widgets were rendered',
                      func_name=self.render_widgets_selected_bom.__name__, func_path=abspath(__file__))
 
-    def get_selected_row_data(self) -> list:
+    def get_selected_row_data(self) -> list[Any] | Literal[""]:
         """
         Функция возврата значений выделенной строки пользователем в таблице
         :return: Список значений табличной строки
@@ -1082,53 +1095,6 @@ class App(Frame):
             callback_function=self.open_purchased_parts_window)
         self.event = event
 
-    def on_pressed_key_one(self, event):
-        """
-        Обработчик события нажатия клавиши 1
-        :param event: Обрабатываемое событие
-        """
-        self.open_main_menu()
-
-    def on_pressed_key_two(self, event):
-        """
-        Обработчик события нажатия клавиши 2
-        :param event: Обрабатываемое событие
-        """
-        try:
-            self.key_two_func()
-        except TypeError:
-            pass
-
-    def on_pressed_key_three(self, event):
-        """
-        Обработчик события нажатия клавиши 3
-        :param event: Обрабатываемое событие
-        """
-        try:
-            self.key_three_func()
-        except TypeError:
-            pass
-
-    def on_pressed_key_four(self, event):
-        """
-        Обработчик события нажатия клавиши 4
-        :param event: Обрабатываемое событие
-        """
-        try:
-            self.key_four_func()
-        except TypeError:
-            pass
-
-    def on_pressed_key_five(self, event):
-        """
-        Обработчик события нажатия клавиши 5
-        :param event: Обрабатываемое событие
-        """
-        try:
-            self.key_five_func()
-        except TypeError:
-            pass
-
     def render_table(self, columns_sizes: dict):
         """
         Вывод таблицы в отображаемом окне приложения на основе полученных данных, которые были предварительно
@@ -1186,25 +1152,6 @@ class App(Frame):
         self.tree.bind('<Double-ButtonPress-1>', self.on_clicked_or_pressed_table_row)
         self.tree.bind('<<TreeviewSelect>>', self.on_selected_table_row)
         self.tree.bind('<Return>', self.on_clicked_or_pressed_table_row)
-
-    def add_listeners(self, funk_two: Callable, funk_three: Callable = None,
-                      funk_four: Callable = None, funk_five: Callable = None):
-        """
-        Функция добавления обработчиков событий при нажатии клавиш клавиатуры
-        :param funk_two: Вызываемая функция клавиши 2
-        :param funk_three: Вызываемая функция клавиши 3
-        :param funk_four: Вызываемая функция клавиши 4
-        :param funk_five: Вызываемая функция клавиши 5
-        """
-        self.key_two_func = funk_two
-        self.key_three_func = funk_three
-        self.key_four_func = funk_four
-        self.key_five_func = funk_five
-        self.master.bind('1', self.on_pressed_key_one)
-        self.master.bind('2', self.on_pressed_key_two)
-        self.master.bind('3', self.on_pressed_key_three)
-        self.master.bind('4', self.on_pressed_key_four)
-        self.master.bind('5', self.on_pressed_key_five)
 
     def remove_listeners(self):
         """
@@ -1402,7 +1349,7 @@ class App(Frame):
             qr_window.resizable(False, False)
             qr_window.render_widgets_before_getting_code()
             if qr_window.changed_data:
-                get_info_log(user=user_data.get('user_name'), message='Status changing',
+                get_info_log(user=self.user_name, message='Status changing',
                              func_name=self.open_qr_window.__name__, func_path=abspath(__file__))
                 self.tree.pack_forget()
                 self.open_mold_scanning_window()
@@ -1425,7 +1372,7 @@ class App(Frame):
             window.render_widgets()
             try:
                 if window.changed_data:
-                    get_info_log(user=user_data.get('user_name'), message='Successful data changing',
+                    get_info_log(user=self.user_name, message='Successful data changing',
                                  func_name=self.render_typical_additional_window.__name__, func_path=abspath(__file__))
                     self.tree.pack_forget()
                     if callback_function:
@@ -1455,7 +1402,7 @@ class App(Frame):
             except (sqlite3.OperationalError, IndexError):
                 messagebox.showerror('Уведомление об ошибке', f'Данных о пресс-форме '
                                                               f'"{mold_number}" не имеется')
-                get_warning_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
+                get_warning_log(user=self.user_name, message='sqlite3.OperationalError',
                                 func_name=self.render_mold_edition_window.__name__, func_path=abspath(__file__))
             else:
                 self.render_typical_additional_window(called_class=lambda: EditedMold(mold_data=mold_data),
@@ -1484,7 +1431,7 @@ class App(Frame):
                                           last_string=True)
             except (sqlite3.OperationalError, IndexError):
                 messagebox.showerror('Уведомление об ошибке', f'Данных о запчасти не имеется')
-                get_warning_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
+                get_warning_log(user=self.user_name, message='sqlite3.OperationalError',
                                 func_name=self.render_bom_edition_window.__name__, func_path=abspath(__file__))
             else:
                 self.render_typical_additional_window(
@@ -1532,7 +1479,7 @@ class App(Frame):
                                           last_string=True)
             except (sqlite3.OperationalError, IndexError):
                 messagebox.showerror('Уведомление об ошибке', f'Данных о запчасти не имеется')
-                get_warning_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
+                get_warning_log(user=self.user_name, message='sqlite3.OperationalError',
                                 func_name=self.render_bom_edition_window.__name__, func_path=abspath(__file__))
             else:
                 self.render_typical_additional_window(
@@ -1557,11 +1504,11 @@ class App(Frame):
                     db.delete_data(column_name=column_name, value=number)
                 except sqlite3.OperationalError:
                     messagebox.showerror('Уведомление об ошибке', 'Ошибка удаления. Обратитесь к администратору.')
-                    get_info_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
+                    get_info_log(user=self.user_name, message='sqlite3.OperationalError',
                                  func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
                 else:
                     messagebox.showinfo('Уведомление', 'Удаление успешно произведено!')
-                    get_info_log(user=user_data.get('user_name'), message='Row was deleted from table',
+                    get_info_log(user=self.user_name, message='Row was deleted from table',
                                  func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
 
                     if column_name == 'MOLD_NUMBER':
@@ -1608,12 +1555,12 @@ class App(Frame):
                     except sqlite3.OperationalError:
                         messagebox.showerror('Уведомление об ошибке',
                                              'Ошибка удаления. Вероятнее всего данный BOM отсутствовал.')
-                        get_warning_log(user=user_data.get('user_name'), message='sqlite3.OperationalError',
-                                        func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
+                        get_warning_log(user=self.user_name, message='sqlite3.OperationalError',
+                                        func_name=self.delete_selected_bom.__name__, func_path=abspath(__file__))
                     else:
                         messagebox.showinfo('Уведомление', 'Удаление BOM успешно произведено!')
-                        get_info_log(user=user_data.get('user_name'), message='Row was deleted from table',
-                                     func_name=self.delete_selected_table_row.__name__, func_path=abspath(__file__))
+                        get_info_log(user=self.user_name, message='BOM was deleted from table',
+                                     func_name=self.delete_selected_bom.__name__, func_path=abspath(__file__))
         else:
             messagebox.showerror(error_messages.get('access_denied').get('message_name'),
                                  error_messages.get('access_denied').get('message_body'))

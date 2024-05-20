@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import tkinter
+from os.path import abspath
 from tkinter import *
 from tkinter import messagebox, ttk, filedialog
 from tkinter.ttk import Frame
@@ -12,6 +13,7 @@ from tkhtmlview import HTMLLabel
 
 from src.data import error_messages
 from src.global_values import user_data
+from src.utils.logger.logs import get_info_log, get_warning_log
 
 
 def download_file(filename: str, root: str):
@@ -23,17 +25,22 @@ def download_file(filename: str, root: str):
     filetype = re.search(r'\.\w+', filename).group(0)
     # Открытие диалогового окна для выбора пользователем локальной директории для сохранения файла,
     # с дальнейшим извлечением пути в виде строки
-
     local_file_path = filedialog.asksaveasfilename(
         filetypes=((f'{filetype.upper()} files', f'*{filetype}'),)
     )
+
     if local_file_path:
         try:
             shutil.copy2(os.path.join(root, filename), f'{local_file_path}{filetype}')
         except IOError:
-            pass
+            get_warning_log(user=user_data.get('user_name'), message='IOError. Attachment was NOT uploaded',
+                            func_name=download_file.__name__,
+                            func_path=abspath(__file__))
         else:
             messagebox.showinfo(title='Уведомление', message='Файл успешно загружен')
+            get_info_log(user=user_data.get('user_name'), message='Attachment was successfully uploaded',
+                         func_name=download_file.__name__,
+                         func_path=abspath(__file__))
 
 
 class Attachment(tkinter.Toplevel):
@@ -71,7 +78,7 @@ class Attachment(tkinter.Toplevel):
         self.geometry('850x400')
         self.frame_header = Frame(self)
         self.frame_header.pack(fill=BOTH, expand=True)
-        # создание канвас для прикрпеления к нему прокрутки / скроллинга
+        # создание канвас для прикрепления к нему прокрутки / скроллинга
         self.canvas = Canvas(self)
         self.frame_body = Frame(self.canvas)
         self.frame_body.pack(fill=BOTH, expand=True)
@@ -131,18 +138,21 @@ class Attachment(tkinter.Toplevel):
                     self.get_label_and_entry_widgets_in_row(text=file, row=row_num, root=root)
                     row_num += 1
         if row_num == 1:
-            (ttk.Label(self.frame_body, text='Нет прикрпеплённых файлов', style='Regular.TLabel')
+            (ttk.Label(self.frame_body, text='Нет прикреплённых файлов', style='Regular.TLabel')
              .grid(column=1, row=row_num, padx=5, pady=5))
         # Обновление размеров канваса после добавления всех виджетов в него
         self.canvas.update_idletasks()
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
         # Запуск работы окна приложения
+        get_info_log(user=user_data.get('user_name'), message='Attachments window was rendered',
+                     func_name=self.render_widgets.__name__,
+                     func_path=abspath(__file__))
         self.mainloop()
 
     def search_attachments(self) -> bool:
         """
         Функция проверки на наличие прикреплённых файлов к элементу BOM или к пресс-форме
-        :return: Булево значение характерезующее результат поиска
+        :return: Булево значение характеризующее результат поиска
         """
         self.define_folder_path()
 
@@ -160,18 +170,25 @@ class Attachment(tkinter.Toplevel):
         :param filename: Имя файла
         """
         if user_data.get('attachments_changing') == 'True':
-            if messagebox.askyesno(title='Подтверждение', message=f'Вы уверены, что хотите удалить файл {filename}?', parent=self):
+            if messagebox.askyesno(title='Подтверждение', message=f'Вы уверены, что хотите удалить файл {filename}?',
+                                   parent=self):
 
                 try:
                     os.remove(os.path.join(root, filename))
                 except AttributeError:
                     messagebox.showerror(title='Ошибка',
-                                         message='Файл не удалось загрузить. Обратитесь к администратору.')
+                                         message='Файл не удалось удалить. Обратитесь к администратору.')
+                    get_warning_log(user=user_data.get('user_name'), message='Attachment file was NOT deleted',
+                                    func_name=self.delete_file.__name__,
+                                    func_path=abspath(__file__))
                 else:
                     messagebox.showinfo(title='Уведомление', message='Файл успешно удалён')
                     self.destroy()
                     attachments = Attachment(self.mold_number, self.part_number, self.hot_runner)
                     attachments.render_widgets()
+                    get_info_log(user=user_data.get('user_name'), message='Attachment file was successfully deleted',
+                                 func_name=self.delete_file.__name__,
+                                 func_path=abspath(__file__))
         else:
             messagebox.showerror(error_messages.get('access_denied').get('message_name'),
                                  error_messages.get('access_denied').get('message_body'))

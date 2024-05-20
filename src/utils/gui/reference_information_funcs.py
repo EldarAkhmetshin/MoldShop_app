@@ -99,7 +99,7 @@ class ReferenceInfo(tkinter.Toplevel):
         frame_body.pack(fill=BOTH, expand=True)
         if self.app_info:
             ttk.Label(frame_body, text='\nПриложение: ArtPack MoldShop Management'
-                                       '\nВерсия: 1.0.2 от 17.02.24'
+                                       '\nВерсия: 1.0.3 от 20.05.24'
                                        '\nТребования: ОС Windows; 64-bit'
                                        f'\nПользователь: {user_data.get("user_name")}'
                                        f'\nПрава пользователя:'
@@ -123,8 +123,12 @@ class ReferenceInfo(tkinter.Toplevel):
             ttk.Button(frame_body, text='Загрузка нового BOM',
                        command=lambda: self.show_instruction(f'{instructions.get("new_bom_uploading")}'),
                        width=32, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
+            ttk.Button(frame_body, text='Лист отслеживания закупок',
+                       command=lambda: self.show_instruction(f'{instructions.get("purchased_spare_parts")}'),
+                       width=32, style='Regular.TButton').pack(side=TOP, padx=5, pady=5)
 
-        get_info_log(user='-', message='Reference info widgets were rendered', func_name=self.render_widgets.__name__,
+        get_info_log(user=user_data.get("user_name"), message='Reference info widgets were rendered',
+                     func_name=self.render_widgets.__name__,
                      func_path=abspath(__file__))
         # Запуск работы окна приложения
         self.mainloop()
