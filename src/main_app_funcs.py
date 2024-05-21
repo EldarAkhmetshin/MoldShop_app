@@ -1255,6 +1255,7 @@ class App(Frame):
         except sqlite3.OperationalError:
             if hot_runner:
                 messagebox.showerror('Уведомление об ошибке', f'Спецификации по номеру "{mold_number}" не имеется')
+                self.hot_runner_bom = None
             else:
                 # рекурсия для открытия BOM на горячий канал если не нашлась таблица с основным BOM
                 try:

@@ -156,6 +156,7 @@ class UsersData(tkinter.Toplevel):
                                message=f'Вы уверены, что хотите удалить пользователя {user_name}?',
                                parent=self):
             users.pop(user_name)
+            self.update_env_file()
             messagebox.showinfo(title='Уведомление',
                                 message='Пользователь успешно удалён',
                                 parent=self)
