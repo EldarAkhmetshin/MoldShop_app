@@ -1135,23 +1135,27 @@ class App(Frame):
             по определённому критерию ("IN"; "OUT"; "IN SERVICE").
         """
         # Выгрузка из базы данных перечня пресс-форм, сортировка и запись в переменные класса
-        self.sort_molds()
-        # Очистка области в окне приложения перед выводом новой таблицы
-        self.clean_frames()
-        self.mold_number = None
-        if sort_status:
-            self.sort_status = sort_status
-            self.current_table = self.sorted_molds_data_tuple.get(sort_status)
+        try:
+            self.sort_molds()
+        except (sqlite3.OperationalError, AttributeError):
+            messagebox.showerror(title='Ошибка', message='Ошибка обработки базы данных')
         else:
-            self.sort_status = None
-        # Рендер кнопок для данного окна
-        self.render_widgets_molds_list()
-        # Рендер таблицы
-        self.render_table(columns_sizes=columns_sizes_molds_table)
-        # Объявление обработчиков событий на клик мышью или клавиши Enter
-        self.tree.bind('<Double-ButtonPress-1>', self.on_clicked_or_pressed_table_row)
-        self.tree.bind('<<TreeviewSelect>>', self.on_selected_table_row)
-        self.tree.bind('<Return>', self.on_clicked_or_pressed_table_row)
+            # Очистка области в окне приложения перед выводом новой таблицы
+            self.clean_frames()
+            self.mold_number = None
+            if sort_status:
+                self.sort_status = sort_status
+                self.current_table = self.sorted_molds_data_tuple.get(sort_status)
+            else:
+                self.sort_status = None
+            # Рендер кнопок для данного окна
+            self.render_widgets_molds_list()
+            # Рендер таблицы
+            self.render_table(columns_sizes=columns_sizes_molds_table)
+            # Объявление обработчиков событий на клик мышью или клавиши Enter
+            self.tree.bind('<Double-ButtonPress-1>', self.on_clicked_or_pressed_table_row)
+            self.tree.bind('<<TreeviewSelect>>', self.on_selected_table_row)
+            self.tree.bind('<Return>', self.on_clicked_or_pressed_table_row)
 
     def remove_listeners(self):
         """

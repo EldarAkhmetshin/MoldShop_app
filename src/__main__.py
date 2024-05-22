@@ -4,7 +4,7 @@ from ttkthemes import ThemedStyle
 from loguru import logger
 
 from src.utils.gui.styles import define_styles
-from src.utils.sql_database.new_tables import create_tables_in_db
+from src.utils.sql_database.new_tables import create_tables_in_db, add_columns_bom_table, delete_titles_row_bom_table
 from src.utils.logger.logs import logger_add
 from src.main_app_funcs import App, create_menu_widgets
 from src.utils.gui.user_authorization_funcs import LogInApp
@@ -51,7 +51,7 @@ def log_in_app():
 @logger.catch
 def run():
     logger_add()
-    # create_tables_in_db()
+    create_tables_in_db()
     # add_columns_bom_table(columns={'WEIGHT': 'REAL'})
     # delete_titles_row_bom_table()
     log_in_app()

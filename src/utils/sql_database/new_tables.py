@@ -94,9 +94,9 @@ def add_columns_bom_table(columns: dict):
     """
     database = DataBase('Database')
     table_names = database.get_all_tables()
-    bom_table_names = list(filter(lambda table_name: 'BOM' in table_name[0], table_names))
+    bom_table_names = list(filter(lambda table_name: 'BOM' in table_name, table_names))
     for table in bom_table_names:
-        bom_db = TableInDb(table[0], 'Database')
+        bom_db = TableInDb(table, 'Database')
         bom_db.add_column(table_params=columns)
 
 
@@ -106,7 +106,7 @@ def delete_titles_row_bom_table():
     """
     database = DataBase('Database')
     table_names = database.get_all_tables()
-    bom_table_names = list(filter(lambda table_name: 'BOM' in table_name[0], table_names))
+    bom_table_names = list(filter(lambda table_name: 'BOM' in table_name, table_names))
     for table in bom_table_names:
-        bom_db = TableInDb(table[0], 'Database')
+        bom_db = TableInDb(table, 'Database')
         bom_db.delete_data(column_name='NUMBER', value='№ по парт листу')

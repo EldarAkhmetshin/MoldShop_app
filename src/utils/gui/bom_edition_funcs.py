@@ -40,6 +40,7 @@ class EditedBOM(tkinter.Toplevel):
         self.parts_quantity_entry_field = None
         self.dimensions_entry_field = None
         self.material_entry_field = None
+        self.weight_entry_field = None
         self.supplier_entry_field = None
         self.additional_info_entry_field = None
         self.description_entry_field = None
@@ -53,6 +54,7 @@ class EditedBOM(tkinter.Toplevel):
         self.additional_info = self.part_data.get('ADDITIONAL_INFO')
         self.supplier = self.part_data.get('SUPPLIER')
         self.material = self.part_data.get('MATERIAL')
+        self.weight = self.part_data.get('WEIGHT')
         self.dimensions = self.part_data.get('DIMENSIONS')
         self.storage_cell = self.part_data.get('STORAGE_CELL')
         self.min_percent = self.part_data.get('MIN_PERCENT')
@@ -127,13 +129,15 @@ class EditedBOM(tkinter.Toplevel):
                                                                             point_info=self.supplier, row=7)
         self.material_entry_field = self.get_label_and_entry_widgets_in_row(text='Материал',
                                                                             point_info=self.material, row=8)
+        self.weight_entry_field = self.get_label_and_entry_widgets_in_row(text='Вес',
+                                                                          point_info=self.weight, row=9)
         self.dimensions_entry_field = self.get_label_and_entry_widgets_in_row(text='Габаритные размеры',
-                                                                              point_info=self.dimensions, row=9)
+                                                                              point_info=self.dimensions, row=10)
         self.storage_cell_entry_field = self.get_label_and_entry_widgets_in_row(text='Ячейка хранения',
-                                                                                point_info=self.storage_cell, row=12)
+                                                                                point_info=self.storage_cell, row=13)
         self.min_percent_entry_field = self.get_label_and_entry_widgets_in_row(text='Необходимый минимум, %',
                                                                                point_info=self.min_percent,
-                                                                               row=13)
+                                                                               row=14)
 
         ttk.Button(
             self.frame_bottom, text='Применить', style='Regular.TButton',
@@ -178,7 +182,7 @@ class EditedBOM(tkinter.Toplevel):
                 self.additional_info_entry_field.get(), self.supplier_entry_field.get(),
                 self.material_entry_field.get(), self.dimensions_entry_field.get(),
                 self.parts_quantity_entry_field.get(), self.used_parts_quantity_entry_field.get(),
-                self.storage_cell_entry_field.get(), self.min_percent_entry_field.get()
+                self.storage_cell_entry_field.get(), self.min_percent_entry_field.get(), self.weight_entry_field.get()
             )
             try:
                 bom = table_funcs.TableInDb(self.table_name, 'Database')
@@ -240,6 +244,8 @@ class EditedBOM(tkinter.Toplevel):
                                                             new_data=self.supplier_entry_field.get()),
                                     'MATERIAL': define_data(old_data=self.material,
                                                             new_data=self.material_entry_field.get()),
+                                    'WEIGHT': define_data(old_data=self.weight,
+                                                          new_data=self.weight_entry_field.get()),
                                     'DIMENSIONS': define_data(old_data=self.dimensions,
                                                               new_data=self.dimensions_entry_field.get()),
                                     'STORAGE_CELL': define_data(old_data=self.storage_cell,
