@@ -93,9 +93,9 @@ class Attachment(tkinter.Toplevel):
         Функция определения пути к папке с прикрепленными файлами
         """
         if self.part_number:
-            define_path: Callable = lambda: os.path.join('savings', 'attachments', self.mold_number, 'hot_runner_parts',
-                                                         str(self.part_number)) \
-                if self.hot_runner else os.path.join('savings', 'attachments', self.mold_number, 'mold_parts',
+            define_path: Callable = lambda: os.path.join('savings', 'attachments', str(self.mold_number),
+                                                         'hot_runner_parts', str(self.part_number)) \
+                if self.hot_runner else os.path.join('savings', 'attachments', str(self.mold_number), 'mold_parts',
                                                      str(self.part_number))
             self.folder_path = define_path()
         else:

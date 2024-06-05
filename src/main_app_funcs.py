@@ -38,10 +38,11 @@ from src.utils.gui.attached_files_review_funcs import Attachment
 from src.utils.sql_database.table_funcs import DataBase, TableInDb
 
 
-def validate_new_bom(mold_number: str, column_names: tuple, hot_runner: bool = None) -> bool:
+def validate_new_bom(mold_number: str, column_names: tuple, rows_data: list, hot_runner: bool = None) -> (bool, str):
     """
     Функция проверки наличия номера пресс-формы в общем перечне всех п/ф, проверки на наличие уже созданного ранее BOM
     с таким номером п/ф, а также проверки на соответствие названий столбцов таблицы из нового BOM
+    :param rows_data: Все строки с информацией из Excel файла загружаемого BOM
     :param mold_number: Номер пресс-формы
     :param column_names: Наименования столбцов нового BOM
     :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
@@ -51,7 +52,7 @@ def validate_new_bom(mold_number: str, column_names: tuple, hot_runner: bool = N
     # Выгрузка информации из базы данных
     molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
     molds_table = molds_data.get_table(type_returned_data='tuple')
-    # Поиск соответствия через цикл
+    # Поиск соответствия по номеру пресс-формы в общем перечне
     for mold_info in molds_table:
         if mold_info[0] == mold_number:
             db = table_funcs.DataBase('Database')
@@ -60,16 +61,59 @@ def validate_new_bom(mold_number: str, column_names: tuple, hot_runner: bool = N
             new_table = define_table_name()
             for table in tables:
                 if table[0] == new_table:
-                    return False
+                    return False, 'Таблица с таким названием уже имеется в базе данных'
             # Проверка названий столбцов нового BOM на корректность
             for num, name in enumerate(columns_bom_parts_table):
                 try:
                     if name != column_names[num]:
-                        return False
+                        return False, (f'Столбец: {name} отсутствует, либо расположен в несоответствии с шаблоном.'
+                                       f'\nСравните вашу таблицу с шаблоном.')
                 except IndexError:
-                    return False
+                    return False, (f'Столбец: {name} отсутствует, либо расположен в несоответствии с шаблоном.'
+                                   f'\nСравните вашу таблицу с шаблоном.')
+
+            part_nums = []
+            for count, row in enumerate(rows_data):
+                # Проверка на наличие номера запчасти в каждой строке и на то, чтобы этот номер не повторялся в BOM
+                part_num = row[0]
+                pcs_in_mold = row[2]
+                new_parts_in_stock = row[8]
+                old_parts_in_stock = row[9]
+                min_percent = row[11]
+                # Проверка на наличие номера запчасти в каждой строке
+                if not part_num:
+                    return (column_names, rows_data,
+                            False, 'BOM не может быть загружен, так как имеется строка без номера запчасти')
+                # Проверка на то, чтобы номер элемента не повторялся в BOM
+                elif part_num in part_nums:
+                    return (column_names, rows_data, False,
+                            f'BOM не может быть загружен, так как номер запчасти: {part_num} '
+                            f'дублируется в строке {count + 1}')
+                # Проверки на соответствие значений числовому типу данных
+                elif count != 0 and not isinstance(pcs_in_mold, int):
+                    return (column_names, rows_data, False,
+                            f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {pcs_in_mold}'
+                            f' должно быть числом в строке {count + 1}')
+                elif count != 0 and not isinstance(new_parts_in_stock, int):
+                    return (column_names, rows_data, False,
+                            f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {new_parts_in_stock}'
+                            f' должно быть числом в строке {count + 1}')
+                elif count != 0 and not isinstance(old_parts_in_stock, int):
+                    return (column_names, rows_data, False,
+                            f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {old_parts_in_stock}'
+                            f' должно быть числом в строке {count + 1}')
+                elif count != 0 and not isinstance(min_percent, int):
+                    return (column_names, rows_data, False,
+                            f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {min_percent}'
+                            f' должно быть числом в строке {count + 1}')
+                part_nums.append(part_num)
+
             return True
-    return False
+
+    return False, (f'BOM не может быть загружен, так как с именем: {mold_number} не найдено ни одной пресс-формы '
+                   f'из общего перечня.'
+                   f'\n\nЕсли вы загружаете спецификацию горячего канала, убедитесь, '
+                   f'что файл называется номером ПРЕСС-ФОРМЫ, а не горячего канала.')
 
 
 def create_menu_widgets(window: tkinter.Tk, application):
@@ -88,7 +132,9 @@ def create_menu_widgets(window: tkinter.Tk, application):
     window.config(menu=menu)
     operations_menu = Menu(menu, tearoff=0)
     operations_menu.add_command(label='Перечень п/ф', command=application.get_molds_data)
-    operations_menu.add_command(label='Дефектация', command=application.get_molds_data)
+    operations_menu.add_command(label='Дефектация', command=lambda: application.render_typical_additional_window(
+        called_class=MinPartsReport,
+        window_name='Min Parts Searching')),
     operations_menu.add_command(label='Журнал склада',
                                 command=lambda: application.open_warehouse_history_window(consumption=True))
     operations_menu.add_command(label='История перемещений п/ф', command=application.open_mold_scanning_window)
@@ -283,11 +329,6 @@ class App(Frame):
         self.sorted_molds_data_tuple = None
         self.sorted_molds_data_dict = None
         self.molds_list_data = None
-        # Объявление переменных, в которых будут вызываться определенные функции при нажатии клавиши
-        self.key_two_func = None
-        self.key_three_func = None
-        self.key_four_func = None
-        self.key_five_func = None
 
         self.init_gui()
 
@@ -328,12 +369,14 @@ class App(Frame):
                 # Получение информации из Иксель файла типа xlsx
                 define_sheet_name: Callable = lambda: 'HOT RUNNER' if hot_runner_bom else 'MOLD'
                 try:
-                    column_names, rows_data, status, error_massage = get_new_bom_from_excel_file(
+                    column_names, rows_data, status, error_message = get_new_bom_from_excel_file(
                         file_path=file_path,
                         work_sheet_name=define_sheet_name())
                     if not status:
                         messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
-                                             message=error_massage)
+                                             message=error_message)
+                        get_warning_log(user=user_data.get('user_name'), message='New BOM wasnt uploaded',
+                                        func_name=self.upload_new_bom.__name__, func_path=abspath(__file__))
                         return
                 except TypeError:
                     get_warning_log(user=user_data.get('user_name'), message='New BOM wasnt uploaded',
@@ -342,7 +385,9 @@ class App(Frame):
                     file_path = file_path.split('/')
                     mold_number = file_path[-1].replace('.xlsx', '')
                     # Поиск соответствия по номеру пресс-формы в общем перечне
-                    if validate_new_bom(mold_number=mold_number, hot_runner=hot_runner_bom, column_names=column_names):
+                    status, message = validate_new_bom(mold_number=mold_number, hot_runner=hot_runner_bom,
+                                                       column_names=column_names, rows_data=rows_data)
+                    if status:
                         # Сохранение информации в базе данных
                         new_tables.create_bom_for_new_mold(mold_number=mold_number, rows_data=rows_data,
                                                            hot_runner=hot_runner_bom)
@@ -357,9 +402,8 @@ class App(Frame):
                                      func_name=self.upload_new_bom.__name__,
                                      func_path=abspath(__file__))
                     else:
-                        error_message = error_messages.get('not_downloaded_bom').get('message_body')
                         messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
-                                             message=error_message.format(mold_number=mold_number))
+                                             message=message)
                         get_warning_log(user=self.user_name, message='New BOM was NOT uploaded',
                                         func_name=self.upload_new_bom.__name__,
                                         func_path=abspath(__file__))
