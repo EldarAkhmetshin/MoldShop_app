@@ -6,3 +6,4 @@ openpyxl==3.1.2
 ttkthemes==3.2.2
 pdf2image==1.16.3
 tkhtmlview==0.2.0
+pyinstaller==6.7.0

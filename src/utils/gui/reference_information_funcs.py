@@ -99,7 +99,7 @@ class ReferenceInfo(tkinter.Toplevel):
         frame_body.pack(fill=BOTH, expand=True)
         if self.app_info:
             ttk.Label(frame_body, text='\nПриложение: ArtPack MoldShop Management'
-                                       '\nВерсия: 1.0.3 от 20.05.24'
+                                       '\nВерсия: 1.0.4 от 05.06.24'
                                        '\nТребования: ОС Windows; 64-bit'
                                        f'\nПользователь: {user_data.get("user_name")}'
                                        f'\nПрава пользователя:'

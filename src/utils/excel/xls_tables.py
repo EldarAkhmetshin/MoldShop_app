@@ -7,7 +7,6 @@ from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
 from openpyxl.utils import get_column_letter
 from pandas import DataFrame
 
-from src.data import purchased_statuses
 from src.global_values import user_data
 from src.utils.logger.logs import get_warning_log
 from src.utils.sql_database import table_funcs
@@ -32,54 +31,15 @@ def get_new_bom_from_excel_file(file_path: str, work_sheet_name: str) -> (tuple,
         work_sheet = work_book[f'{work_sheet_name}']
     except KeyError:
         messagebox.showerror('Уведомление об ошибке',
-                             'Название листа не соответствует. Убедитесь, что вы используете '
-                             'правильный файл шаблона')
+                             'Название листа в файле не корректное. '
+                             '\nУбедитесь, что оно такое же как в файле шаблона')
     else:
-        # part_nums = []
-        # for count, row in enumerate(work_sheet.values):
-        #     # Проверка на наличие номера запчасти в каждой строке и на то, чтобы этот номер не повторялся в BOM
-        #     part_num = row[0]
-        #     pcs_in_mold = row[2]
-        #     new_parts_in_stock = row[8]
-        #     old_parts_in_stock = row[9]
-        #     min_percent = row[11]
-        #
-        #     if not part_num:
-        #         return (column_names, rows_data,
-        #                 False, 'BOM не может быть загружен, так как имеется строка без номера запчасти')
-        #     elif part_num in part_nums:
-        #         return (column_names, rows_data, False,
-        #                 f'BOM не может быть загружен, так как номер запчасти: {part_num} '
-        #                 f'дублируется в строке {count + 1}')
-        #     elif count != 0 and not isinstance(pcs_in_mold, int):
-        #         return (column_names, rows_data, False,
-        #                 f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {pcs_in_mold}'
-        #                 f' должно быть числом в строке {count + 1}')
-        #     elif count != 0 and not isinstance(new_parts_in_stock, int):
-        #         return (column_names, rows_data, False,
-        #                 f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {new_parts_in_stock}'
-        #                 f' должно быть числом в строке {count + 1}')
-        #     elif count != 0 and not isinstance(old_parts_in_stock, int):
-        #         return (column_names, rows_data, False,
-        #                 f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {old_parts_in_stock}'
-        #                 f' должно быть числом в строке {count + 1}')
-        #     elif count != 0 and not isinstance(min_percent, int):
-        #         return (column_names, rows_data, False,
-        #                 f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {min_percent}'
-        #                 f' должно быть числом в строке {count + 1}')
-        #
-        #     if count == 0:
-        #         column_names = row
-        #     else:
-        #         rows_data.append(row)
-        #     part_nums.append(part_num)
         for count, row in enumerate(work_sheet.values):
             if count == 0:
                 column_names = row
             else:
                 rows_data.append(row)
 
-        print(44, column_names, rows_data)
         return column_names, rows_data, True, None
 
 

@@ -35,9 +35,10 @@
 
 ## Примечание для разработчика
 
-Строка кода № 329 модуля внешней библиотеки ttk.py "val = list(map(_convert_stringval, val))" должна быть
-закомментированна, иначе не будут открыты спецификации, по причине конвертации строкового значения в числовое, что
-в результате приводит к смене исходного значения.
+Строка кода модуля внешней библиотеки виртуального окружения tkinter/ttk.py -> функции "def _tclobj_to_py(val)" -> 
+"val = list(map(_convert_stringval, val))" должна быть закомментирована, 
+иначе не будут открыты спецификации (К примеру 07865... или 6913_5), 
+по причине конвертации строкового значения в числовое, что в результате приводит к смене исходного значения.
 
 ```sh
 pip install pyinstaller
@@ -47,4 +48,8 @@ pip install pyinstaller
 
 ```sh
 pyinstaller --noconfirm --onedir --windowed --hidden-import "loguru" --hidden-import "tkhtmlview" --hidden-import "ttkthemes" --add-data "D:/MoldShop_poject/savings;savings/" --add-data "D:/MoldShop_poject/pics;pics/" --add-data "D:/MoldShop_poject/src;src/" --hidden-import "tkinter.ttk" --hidden-import "tkinter" --hidden-import "pandas" --hidden-import "dotenv" --hidden-import "tkinter.messagebox" --hidden-import "tkinter.filedialog" --hidden-import "idlelib.tooltip" "D:/MoldShop_poject/start.py" --icon "D:/MoldShop_poject/pics/artpack.ico" --name "MoldShop Management"
+```
+
+```sh
+pyinstaller --noconfirm --onedir --windowed --hidden-import "loguru" --hidden-import "tkhtmlview" --hidden-import "ttkthemes" --add-data "C:/Users/eahmetshin/Documents/MoldShop_Management_App/MoldShop_app/savings;savings/" --add-data "C:/Users/eahmetshin/Documents/MoldShop_Management_App/MoldShop_app/pics;pics/" --add-data "C:/Users/eahmetshin/Documents/MoldShop_Management_App/MoldShop_app/src;src/" --hidden-import "tkinter.ttk" --hidden-import "tkinter" --hidden-import "pandas" --hidden-import "dotenv" --hidden-import "tkinter.messagebox" --hidden-import "tkinter.filedialog" --hidden-import "idlelib.tooltip" "C:/Users/eahmetshin/Documents/MoldShop_Management_App/MoldShop_app/start.py" --icon "C:/Users/eahmetshin/Documents/MoldShop_Management_App/MoldShop_app/pics/artpack.ico" --name "MoldShop Management"
 ```
