@@ -47,6 +47,7 @@ def validate_new_bom(mold_number: str, column_names: tuple, rows_data: list, hot
     :param column_names: Наименования столбцов нового BOM
     :param hot_runner: Булево значение, которое характеризует какой тип BOM был выбран (Пресс-форма или горячий канал)
     :return: True - если номер п/ф существует в перечне и такой BOM не создавался ранее
+    :return: Сообщение для пользователя
     """
     define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{mold_number}' if hot_runner else f'BOM_{mold_number}'
     # Выгрузка информации из базы данных
@@ -65,7 +66,7 @@ def validate_new_bom(mold_number: str, column_names: tuple, rows_data: list, hot
             # Проверка названий столбцов нового BOM на корректность
             for num, name in enumerate(columns_bom_parts_table):
                 try:
-                    if name != column_names[num]:
+                    if name.lower() != column_names[num].lower():
                         return False, (f'Столбец: {name} отсутствует, либо расположен в несоответствии с шаблоном.'
                                        f'\nСравните вашу таблицу с шаблоном.')
                 except IndexError:
@@ -75,41 +76,50 @@ def validate_new_bom(mold_number: str, column_names: tuple, rows_data: list, hot
             part_nums = []
             for count, row in enumerate(rows_data):
                 # Проверка на наличие номера запчасти в каждой строке и на то, чтобы этот номер не повторялся в BOM
+                excel_row_cnt = count + 2
                 part_num = row[0]
                 pcs_in_mold = row[2]
                 new_parts_in_stock = row[8]
                 old_parts_in_stock = row[9]
                 min_percent = row[11]
+                print(count, row)
                 # Проверка на наличие номера запчасти в каждой строке
                 if not part_num:
-                    return False, 'BOM не может быть загружен, так как имеется строка без номера запчасти'
+                    return (False,
+                            f'Строка: {excel_row_cnt}'
+                            'BOM не может быть загружен, так как строка без номера запчасти')
                 # Проверка на то, чтобы номер элемента не повторялся в BOM
                 elif part_num in part_nums:
                     return (False,
-                            f'BOM не может быть загружен, так как номер запчасти: {part_num} '
-                            f'дублируется в строке {count + 1}')
+                            f'Строка: {excel_row_cnt}'
+                            f'\nBOM не может быть загружен, так как номер запчасти: {part_num} дублируется')
                 # Проверки на соответствие значений числовому типу данных
-                elif count != 0 and not isinstance(pcs_in_mold, int):
+                elif excel_row_cnt != 0 and not isinstance(pcs_in_mold, int) or int(pcs_in_mold) == 0:
                     return (False,
-                            f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {pcs_in_mold}'
-                            f' должно быть числом в строке {count + 1}')
-                elif count != 0 and not isinstance(new_parts_in_stock, int):
+                            f'Строка: {excel_row_cnt}'
+                            f'\nBOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": '
+                            f'{pcs_in_mold} должно быть числом, а также больше 0.')
+                elif excel_row_cnt != 0 and not isinstance(new_parts_in_stock, int) and new_parts_in_stock is not None:
                     return (False,
-                            f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {new_parts_in_stock}'
-                            f' должно быть числом в строке {count + 1}')
-                elif count != 0 and not isinstance(old_parts_in_stock, int):
+                            f'Строка: {excel_row_cnt}'
+                            f'\nBOM не может быть загружен, так как значение "В наличие (новые), шт": '
+                            f'{new_parts_in_stock} должно быть числом')
+                elif excel_row_cnt != 0 and not isinstance(old_parts_in_stock, int) and new_parts_in_stock is not None:
                     return (False,
-                            f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {old_parts_in_stock}'
-                            f' должно быть числом в строке {count + 1}')
-                elif count != 0 and not isinstance(min_percent, int):
+                            f'Строка: {excel_row_cnt}'
+                            f'\nBOM не может быть загружен, так как значение "В наличие (б/у), шт": '
+                            f'{old_parts_in_stock} должно быть числом')
+                elif excel_row_cnt != 0 and not isinstance(min_percent, int) and new_parts_in_stock is not None:
                     return (False,
-                            f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {min_percent}'
-                            f' должно быть числом в строке {count + 1}')
+                            f'Строка: {excel_row_cnt}'
+                            f'\nBOM не может быть загружен, так как значение "Допустимый остаток, %": '
+                            f'{min_percent} должно быть числом')
                 part_nums.append(part_num)
 
-            return True
+            return True, None
 
-    return False, (f'BOM не может быть загружен, так как с именем: {mold_number} не найдено ни одной пресс-формы '
+    return False, (f'BOM не может быть загружен.'
+                   f'\nC именем: {mold_number} не найдено ни одной пресс-формы '
                    f'из общего перечня.'
                    f'\n\nЕсли вы загружаете спецификацию горячего канала, убедитесь, '
                    f'что файл называется номером ПРЕСС-ФОРМЫ, а не горячего канала.')
@@ -190,30 +200,6 @@ def check_value_type(value: Any) -> bool:
         return False
     else:
         return True
-
-
-def fill_bom_parameters():
-    # Выгрузка данных из иксель файла
-    work_book = load_workbook(os.path.join('parameters.xls'))
-    parameters = []
-    try:
-        work_sheet = work_book['data']
-    except KeyError:
-        messagebox.showerror('Уведомление об ошибке',
-                             'Название листа не соответствует. '
-                             'Убедитесь, что вы используете правильный файл шаблона')
-    else:
-        for count, row in enumerate(work_sheet.values):
-            # Проверка на наличие номера запчасти в каждой строке и на то, чтобы этот номер не повторялся в BOM
-            parameters.append(row)
-    # Сортировка бд на поиск схожих значений с последующей замены данных
-    bom_table_names = get_mold_names_list()
-    for bom in bom_table_names:
-        db = TableInDb(bom, 'Database')
-        table_data = db.get_table(type_returned_data='dict')
-        for row in table_data:
-            for param in parameters:
-                pass
 
 
 class App(Frame):
