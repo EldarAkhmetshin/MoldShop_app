@@ -82,28 +82,27 @@ def validate_new_bom(mold_number: str, column_names: tuple, rows_data: list, hot
                 min_percent = row[11]
                 # Проверка на наличие номера запчасти в каждой строке
                 if not part_num:
-                    return (column_names, rows_data,
-                            False, 'BOM не может быть загружен, так как имеется строка без номера запчасти')
+                    return False, 'BOM не может быть загружен, так как имеется строка без номера запчасти'
                 # Проверка на то, чтобы номер элемента не повторялся в BOM
                 elif part_num in part_nums:
-                    return (column_names, rows_data, False,
+                    return (False,
                             f'BOM не может быть загружен, так как номер запчасти: {part_num} '
                             f'дублируется в строке {count + 1}')
                 # Проверки на соответствие значений числовому типу данных
                 elif count != 0 and not isinstance(pcs_in_mold, int):
-                    return (column_names, rows_data, False,
+                    return (False,
                             f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {pcs_in_mold}'
                             f' должно быть числом в строке {count + 1}')
                 elif count != 0 and not isinstance(new_parts_in_stock, int):
-                    return (column_names, rows_data, False,
+                    return (False,
                             f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {new_parts_in_stock}'
                             f' должно быть числом в строке {count + 1}')
                 elif count != 0 and not isinstance(old_parts_in_stock, int):
-                    return (column_names, rows_data, False,
+                    return (False,
                             f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {old_parts_in_stock}'
                             f' должно быть числом в строке {count + 1}')
                 elif count != 0 and not isinstance(min_percent, int):
-                    return (column_names, rows_data, False,
+                    return (False,
                             f'BOM не может быть загружен, так как значение "Кол-во в пресс-форме, шт": {min_percent}'
                             f' должно быть числом в строке {count + 1}')
                 part_nums.append(part_num)
