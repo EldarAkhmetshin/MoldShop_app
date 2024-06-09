@@ -129,10 +129,11 @@ class TableInDb(DataBase):
             try:
                 self.cursor.execute(f''' ALTER TABLE {self.table_name} ADD COLUMN {i_param} {i_type}''')
             except sqlite3.OperationalError:
-                get_warning_log(user='-', message=f'Duplicate column {i_param}', func_name=self.add_column.__name__,
-                                func_path=abspath(__file__))
+                print(f'Duplicate column {i_param}')
             else:
                 print(f'New column {i_param} with type {i_type} successfully added')
+                get_info_log(user='-', message=f'New column {i_param} was added', func_name=self.add_column.__name__,
+                             func_path=abspath(__file__))
         self.connection.commit()
         self.cursor.close()
 
@@ -154,6 +155,8 @@ class TableInDb(DataBase):
             self.cursor.execute(f'INSERT INTO {self.table_name}{cols} VALUES({values});', info)
         except sqlite3.DatabaseError as error:
             logger.exception(f'{error}')
+            get_warning_log(user='', message=f'{error}. New data wasnt added', func_name=self.insert_data.__name__,
+                            func_path=abspath(__file__))
         else:
             get_info_log(user='', message=f'New data were added', func_name=self.insert_data.__name__,
                          func_path=abspath(__file__))
@@ -228,11 +231,16 @@ class TableInDb(DataBase):
             all_info = []
             for i_res in result:
                 all_info.append({columns[i_num]: i_value for i_num, i_value in enumerate(i_res)})
-
+            # Функция при необходимости возращает только одну последнюю строку, которая удовлетворяет заданным условиям
             all_info_check: Callable = lambda: all_info if not last_string else all_info[len(all_info) - 1]
+
+            get_info_log(user='', message='Dict table was got', func_name=self.get_table.__name__,
+                         func_path=abspath(__file__))
             return all_info_check()
 
         elif type_returned_data == 'tuple':
+            get_info_log(user='', message='Tuple table was got', func_name=self.get_table.__name__,
+                         func_path=abspath(__file__))
             return result
 
     def delete_data(self, column_name: str, value: (str, int)):

@@ -10,7 +10,7 @@ from typing import Callable
 from src.data import columns_searching_results, columns_sizes_warehouse_table
 from src.global_values import user_data
 from src.utils.gui.necessary_spare_parts_report_funcs import get_mold_names_list
-from src.utils.logger.logs import get_info_log
+from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database.table_funcs import DataBase, TableInDb
 
 
@@ -45,7 +45,7 @@ class Searcher(tkinter.Toplevel):
 
     def init_gui(self):
         """
-        Инициация окна приложения и контейнеров для размещения виджетов
+        Инициация контейнеров для размещения виджетов
         """
         self.frame_header = Frame(self)
         self.frame_header.pack(fill=BOTH, expand=True)
@@ -163,21 +163,21 @@ class Searcher(tkinter.Toplevel):
                 pass
             else:
                 try:
-                    if ((self.stock.get() == 'True' and int(row.get('PARTS_QUANTITY')) > 0) or self.stock.get() == 'False'
-                            or self.stock.get() == ''):
+                    if ((self.stock.get() == 'True' and
+                         int(row.get('PARTS_QUANTITY')) > 0) or self.stock.get() == 'False' or self.stock.get() == ''):
                         self.results.append(
                             (define_mold_type(), table_name.replace('BOM_', '').replace('HOT_RUNNER_', ''),
                              row.get('PART_NAME'), row.get('DESCRIPTION'),
                              row.get('ADDITIONAL_INFO'), row.get('PARTS_QUANTITY'),
                              row.get('USED_PARTS_QUANTITY')))
-                except TypeError:
+                except (TypeError, ValueError):
                     pass
 
     def start_search(self):
         """
         Функция проведения поиска запчастей по введённым ранее параметрам
         """
-        get_info_log(user=user_data.get('user_name'), message='Searching is run',
+        get_info_log(user=user_data.get('user_name'), message='Searching was run',
                      func_name=self.start_search.__name__, func_path=abspath(__file__))
         if self.input_error_label:
             self.input_error_label.destroy()
@@ -195,8 +195,12 @@ class Searcher(tkinter.Toplevel):
                       and 'BOM' in table):
                     self.sort_table(table)
             self.render_results()
+            get_info_log(user=user_data.get('user_name'), message='Searching was completed with results',
+                         func_name=self.start_search.__name__, func_path=abspath(__file__))
 
         else:
             self.input_error_label = Label(self.frame_bottom, text='По вашему запросу ничего не найдено',
                                            foreground='Red')
             self.input_error_label.pack(side=TOP, padx=5, pady=5)
+            get_warning_log(user=user_data.get('user_name'), message='Searching was completed without results',
+                            func_name=self.start_search.__name__, func_path=abspath(__file__))

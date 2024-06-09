@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
 import os
+from dataclasses import dataclass
 from idlelib.tooltip import Hovertip
-from json import loads
-from os import environ
 
 import PIL
 from PIL import Image, ImageTk
@@ -15,71 +14,48 @@ from tkinter import messagebox, ttk
 
 from src.config_data.config import users
 from src.data import user_rights
-from src.global_values import user_data
 from src.utils.logger.logs import get_info_log
 
 
-def get_users_data():
-    """
-    Функция получения информации о пользователях из env файла
-    :return: Словарь с информацией о пользователях
-    """
-    if not find_dotenv():
-        exit('Environment variables not loaded because file .env is missing')
-    else:
-        load_dotenv()
-        loads(environ.get('USERS'))
-
-
+@dataclass
 class UsersData(tkinter.Toplevel):
     """
-    Класс представляет набор функций для создания графического интерфейса окна авторизации пользователя с помощью
-    библиотеки Tkinter. Также осуществляется проверка введённых данных пользователем.
+    Класс представляет набор функций для создания графического интерфейса и выполнения авторизации пользователя.
     """
+    password_entry_field: tkinter.Frame = None
+    login_entry_field: tkinter.Frame = None
 
-    def __init__(self):
+    delete_icon: PIL.Image.Image = PIL.Image.open(os.path.abspath(os.path.join('pics', 'delete.png'))) \
+        .resize((20, 20))
+    user_rights_icon: PIL.Image.Image = PIL.Image.open(os.path.abspath(os.path.join('pics', 'user_rights.png'))) \
+        .resize((20, 20))
+    password_icon: PIL.Image.Image = PIL.Image.open(os.path.abspath(os.path.join('pics', 'password.png'))) \
+        .resize((20, 20))
+
+    def __post_init__(self):
         """
-        Создание переменных
+        Инициация окна приложения, контейнеров для размещения виджетов и некоторых виджетов
         """
         super().__init__()
-        self.scroll_y = None
-        self.frame_body = None
-        self.canvas = None
-        self.frame_header = None
-        self.password_entry_field = None
-        self.login_entry_field = None
-
-        self.delete_icon = PIL.Image.open(os.path.abspath(os.path.join('pics', 'delete.png'))) \
-            .resize((20, 20))
-        self.delete_icon_pil = ImageTk.PhotoImage(self.delete_icon)
-        self.user_rights_icon = PIL.Image.open(os.path.abspath(os.path.join('pics', 'user_rights.png'))) \
-            .resize((20, 20))
-        self.user_rights_icon_pil = ImageTk.PhotoImage(self.user_rights_icon)
-        self.password_icon = PIL.Image.open(os.path.abspath(os.path.join('pics', 'password.png'))) \
-            .resize((20, 20))
-        self.password_icon_pil = ImageTk.PhotoImage(self.password_icon)
-
-        self.init_gui()
-
-    def init_gui(self):
-        """
-        Инициация окна приложения и контейнера для размещения виджетов
-        """
         self.focus_set()
         self.title('Users Data Edition')
         self.geometry('430x330')
         self.resizable(False, False)
-        self.frame_header = Frame(self)
+        self.frame_header: tkinter.Frame = Frame(self)
         self.frame_header.pack(fill=BOTH, expand=True)
         # Создание канвас для прикрепления к нему прокрутки / скроллинга
-        self.canvas = Canvas(self)
-        self.frame_body = Frame(self.canvas)
+        self.canvas: tkinter.Canvas = Canvas(self)
+        self.frame_body: tkinter.Frame = Frame(self.canvas)
         self.frame_body.pack(fill=BOTH, expand=True)
         self.scroll_y = tkinter.Scrollbar(self, orient=tkinter.VERTICAL, command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=self.scroll_y.set)
         self.scroll_y.pack(side=RIGHT, fill='y')
         self.canvas.pack(fill=BOTH, expand=True)
         self.canvas.create_window((4, 4), window=self.frame_body, anchor="nw")
+        # Определение переменных, отвечающих за отображение изображений на кнопках
+        self.delete_icon_pil: PIL.ImageTk.PhotoImage = ImageTk.PhotoImage(self.delete_icon)
+        self.user_rights_icon_pil: PIL.ImageTk.PhotoImage = ImageTk.PhotoImage(self.user_rights_icon)
+        self.password_icon_pil: PIL.ImageTk.PhotoImage = ImageTk.PhotoImage(self.password_icon)
 
     def get_widgets_in_row(self, row: int, user_name: str, data: dict):
         """
@@ -124,7 +100,7 @@ class UsersData(tkinter.Toplevel):
         """
         (ttk.Label(self.frame_header, text='Информация о пользователях',
                    style='Title.TLabel').pack(side=TOP, pady=7))
-        # Рендер подзаголовков
+
         ttk.Label(self.frame_body, text='Логин', style='SubTitle.TLabel').grid(padx=10, pady=10, column=0, row=0)
         ttk.Label(self.frame_body, text='Пароль', style='SubTitle.TLabel').grid(padx=10, pady=10, column=1, row=0)
 
@@ -201,7 +177,7 @@ class UsersData(tkinter.Toplevel):
 
     def render_window_for_changing_user_rights(self, user_name: str):
         """
-        Рендер окна для смены и просмотра прав пользователя
+        Рендер окна с виджетами для смены и просмотра прав пользователя
         :param user_name: Имя пользователя
         """
         window = tkinter.Toplevel()
@@ -332,9 +308,8 @@ class UsersData(tkinter.Toplevel):
 
         self.update_env_file()
         window.destroy()
+        self.update_window()
 
         get_info_log(user=user_name, message='New user was added', func_name=self.add_new_user.__name__,
                      func_path=abspath(__file__))
-
-        self.update_window()
 

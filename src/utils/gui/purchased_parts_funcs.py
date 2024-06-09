@@ -6,8 +6,7 @@ from tkinter import *
 from tkinter import ttk, filedialog, messagebox
 from tkinter.ttk import Frame
 
-from src.data import columns_searching_results, columns_sizes_warehouse_table, columns_min_parts_excel_table, \
-    error_messages, columns_customs_report_excel_table, purchased_statuses
+from src.data import error_messages, columns_customs_report_excel_table, purchased_statuses, DB_NAME
 from src.global_values import user_data
 from src.utils.excel.xls_tables import export_excel_table, \
     get_purchasing_list_from_excel_file
@@ -57,7 +56,7 @@ def validate_new_parts_table(column_names: list, rows_data: list) -> bool:
                                  message=f'Строка {i + 2}: Название бома ошибочно')
             return False
         # Проверка, что номер и имя элемента из таблицы имеется в реальном BOM БД
-        bom_db = TableInDb(mold_num, 'Database')
+        bom_db = TableInDb(mold_num, DB_NAME)
         if len(bom_db.get_table(type_returned_data='tuple', first_param='NUMBER', first_value=part_num,
                                 second_param='PART_NAME', second_value=part_name)) == 0:
             messagebox.showerror(title='Ошибка',
@@ -129,7 +128,7 @@ def sort_table(purchase_number: str) -> list:
     :param purchase_number: Номер закупки, по которой нужно составить отчёт
     :return: Таблица с результатами сортировки данных в виде листа с кортежами внутри
     """
-    purchase_table_db = TableInDb('Purchased_parts', 'Database')
+    purchase_table_db = TableInDb('Purchased_parts', DB_NAME)
     table_purchase_data = purchase_table_db.get_table(type_returned_data='dict', first_param='PURCHASE_NUMBER',
                                                       first_value=purchase_number)
 
@@ -138,7 +137,7 @@ def sort_table(purchase_number: str) -> list:
         bom_name = row.get('MOLD_NUMBER')
         part_number = row.get('PART_NUMBER')
         part_name = row.get('PART_NAME')
-        bom_table_db = TableInDb(bom_name, 'Database')
+        bom_table_db = TableInDb(bom_name, DB_NAME)
         part_data = bom_table_db.get_table(type_returned_data='dict', first_param='NUMBER',
                                            first_value=part_number,
                                            second_param='PART_NAME', second_value=part_name, last_string=True)
@@ -182,7 +181,7 @@ class CustomsReport(tkinter.Toplevel):
 
     def init_gui(self):
         """
-        Инициация окна приложения и контейнеров для размещения виджетов
+        Инициация контейнеров для размещения виджетов
         """
         self.geometry('315x450')
         self.frame_header = Frame(self)
@@ -193,7 +192,7 @@ class CustomsReport(tkinter.Toplevel):
         self.frame_bottom.pack(fill=BOTH, expand=True)
 
     def get_purchase_numbers(self):
-        table_db = TableInDb('Purchased_parts', 'Database')
+        table_db = TableInDb('Purchased_parts', DB_NAME)
         last_table_string = table_db.get_table(type_returned_data='dict', last_string=True)
         last_purchase_number = int(last_table_string.get('PURCHASE_NUMBER'))
         purchase_numbers = tuple(number for number in range(1, last_purchase_number + 1))
@@ -219,6 +218,9 @@ class CustomsReport(tkinter.Toplevel):
             command=self.create_excel_report
         ).pack(side=TOP, padx=10, pady=10)
         # Запуск работы окна приложения
+        get_info_log(user=user_data.get('user_name'), message='Customs report window was rendered',
+                     func_name=self.render_widgets.__name__, func_path=abspath(__file__))
+
         self.mainloop()
 
     def create_excel_report(self):
@@ -236,11 +238,16 @@ class CustomsReport(tkinter.Toplevel):
         sorted_table = [columns_customs_report_excel_table]
         for purchase_num in selected_purchase_nums:
             sorted_table.extend(sort_table(purchase_num))
+
         if len(sorted_table) == 1:
             self.input_error_label = Label(self.frame_bottom, text='По вашему запросу ничего не найдено',
                                            foreground='Red')
             self.input_error_label.pack(side=TOP, padx=5, pady=5)
+            get_warning_log(user=user_data.get('user_name'), message='NO data for report',
+                            func_name=self.create_excel_report.__name__, func_path=abspath(__file__))
         else:
+            get_info_log(user=user_data.get('user_name'), message='Data was collected for report',
+                         func_name=self.create_excel_report.__name__, func_path=abspath(__file__))
             export_excel_table(sorted_table)
 
 
@@ -320,7 +327,8 @@ class PurchasedPart(tkinter.Toplevel):
                                                                                   padx=5, pady=5)
         if self.status == purchased_statuses.get('in_process'):
             self.status_combobox = ttk.Combobox(self.frame_body, values=[status_name for status_name
-                                                                         in purchased_statuses.values()], state='readonly')
+                                                                         in purchased_statuses.values()],
+                                                state='readonly')
             self.status_combobox.grid(column=2, row=7, padx=5, pady=5)
 
         ttk.Label(self.frame_body, text='Комментарий:', style='Regular.TLabel').grid(column=1, row=8,
@@ -335,6 +343,9 @@ class PurchasedPart(tkinter.Toplevel):
             command=self.change_part_status_and_cnt
         ).pack(side=TOP, padx=10, pady=10)
         # Запуск работы окна приложения
+        get_info_log(user=user_data.get('user_name'), message='Purchased part window was rendered',
+                     func_name=self.render_widgets.__name__, func_path=abspath(__file__))
+
         self.mainloop()
 
     def change_part_status_and_cnt(self):
@@ -349,7 +360,7 @@ class PurchasedPart(tkinter.Toplevel):
             else:
                 # Изменение количества запчастей в BOM
                 try:
-                    bom_db = TableInDb(self.mold_number, 'Database')
+                    bom_db = TableInDb(self.mold_number, DB_NAME)
                     part_info = bom_db.get_table(type_returned_data='dict',
                                                  first_param='NUMBER', first_value=self.part_number,
                                                  second_param='PART_NAME', second_value=self.part_name,
@@ -365,18 +376,18 @@ class PurchasedPart(tkinter.Toplevel):
                     get_warning_log(user=user_data.get('user_name'), message='Error of data changing',
                                     func_name=self.change_part_status_and_cnt.__name__, func_path=abspath(__file__))
             new_comment = self.comment_entry_field.get()
-            purchased_parts_db = TableInDb('Purchased_parts', 'Database')
+            purchased_parts_db = TableInDb('Purchased_parts', DB_NAME)
             purchased_parts_db.change_data(first_param='PURCHASE_NUMBER', first_value=self.purchase_number,
                                            second_param='PART_NUMBER', second_value=self.part_number,
-                                           data={'STATUS': new_status, 'COMMENT': self.comment_entry_field.get()}
-                                           if self.comment_entry_field.get()
-                                           else {'STATUS': new_status})
+                                           data={'STATUS': new_status, 'COMMENT': new_comment}
+                                           if new_comment else {'STATUS': new_status})
+
             try:
                 self.status_combobox.get()
                 messagebox.showinfo('Уведомление', 'Информация о закупаемой запчасти успешно изменена. '
                                                    f'Количество на складе увеличено на {self.purchased_cnt}')
             except AttributeError:
-                messagebox.showinfo('Уведомление', 'Информация о закупаемой запчасти успешно сохранена. ')
+                messagebox.showinfo('Уведомление', 'Информация о закупаемой запчасти успешно сохранена.')
 
             self.changed_data = True
             self.quit()
@@ -387,5 +398,3 @@ class PurchasedPart(tkinter.Toplevel):
         else:
             messagebox.showerror(title='Ошибка',
                                  message='Отсутствуют права на приём запчастей')
-            get_warning_log(user=user_data.get('user_name'), message='Error of user access right',
-                            func_name=self.change_part_status_and_cnt.__name__, func_path=abspath(__file__))

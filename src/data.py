@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*- #
 import os
 
+DB_NAME = 'Database'
 mold_statuses_list = ['IN', 'OUT', 'IN SERVICE']
 mold_statuses_dict = {'IN': '', 'OUT': '', 'IN SERVICE': ''}
 part_statuses_list = ['В наличие', 'Отсутствующие', 'Меньше минимума', 'Наоборот']

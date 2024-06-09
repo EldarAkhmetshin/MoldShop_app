@@ -13,7 +13,7 @@ from datetime import datetime
 from src.global_values import user_data
 from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database import table_funcs
-from src.data import mold_statuses_list
+from src.data import mold_statuses_list, DB_NAME
 from src.utils.sql_database.table_funcs import DataBase
 
 
@@ -27,6 +27,7 @@ class EditedMold(tkinter.Toplevel):
         """
         Создание переменных
         """
+        super().__init__()
         self.frame_bottom = None
         self.frame_body = None
         self.frame_header = None
@@ -58,12 +59,12 @@ class EditedMold(tkinter.Toplevel):
         self.changed_data = None
         self.input_error_label = None
         self.frame = None
-        super().__init__()
+
         self.protocol("WM_DELETE_WINDOW", self.confirm_delete)
         self.init_gui()
 
     def init_gui(self):
-        """Инициация окна приложения и контейнера для размещения виджетов"""
+        """Инициация контейнеров для размещения виджетов"""
         self.focus_set()
         self.grab_set()
         self.frame_header = Frame(self)
@@ -145,7 +146,7 @@ class EditedMold(tkinter.Toplevel):
             self.frame_bottom, text='Применить', style='Regular.TButton',
             command=define_command
         ).pack(side=TOP, padx=10, pady=10)
-        get_info_log(user=user_data.get('user_name'), message='Widgets were rendered',
+        get_info_log(user=user_data.get('user_name'), message='Mold edition window were rendered',
                      func_name=self.render_widgets.__name__, func_path=abspath(__file__))
         # Запуск работы окна приложения
         self.mainloop()
@@ -180,7 +181,7 @@ class EditedMold(tkinter.Toplevel):
                     status, self.location_entry_field.get()
                 )
                 try:
-                    molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
+                    molds_data = table_funcs.TableInDb('All_molds_data', DB_NAME)
                     molds_data.insert_data(info=row)
                 except sqlite3.ProgrammingError:
                     self.input_error_label = Label(self.frame,
@@ -203,6 +204,8 @@ class EditedMold(tkinter.Toplevel):
                 self.input_error_label = Label(self.frame,
                                                text='Не корректный ввод данных', foreground='Red')
                 self.input_error_label.grid(column=1, row=12)
+                get_warning_log(user=user_data.get('user_name'), message='Not correct inputs for saving new mold',
+                                func_name=self.validate_and_save_new_mold_data.__name__, func_path=abspath(__file__))
 
     def change_table_names_and_paths(self, new_mold_number: str):
         """
@@ -214,7 +217,7 @@ class EditedMold(tkinter.Toplevel):
                                                                                              new_mold_number))
         except FileNotFoundError:
             pass
-        db = DataBase('Database')
+        db = DataBase(DB_NAME)
         try:
             db.rename_table(old_name=f'BOM_{self.mold_number}', new_name=f'BOM_{new_mold_number}')
         except sqlite3.OperationalError:
@@ -248,7 +251,7 @@ class EditedMold(tkinter.Toplevel):
             # Загрузка изменённых данных в базу данных
             try:
                 define_data: Callable = lambda old_data, new_data: new_data if new_data else old_data
-                molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
+                molds_data = table_funcs.TableInDb('All_molds_data', DB_NAME)
                 molds_data.change_data(first_param='MOLD_NUMBER', first_value=self.mold_number,
                                        data={
                                            'MOLD_NUMBER': define_data(old_data=self.mold_number,
@@ -283,7 +286,7 @@ class EditedMold(tkinter.Toplevel):
                     if new_mold_name:
                         self.mold_name = new_mold_name
                     # Запись в журнал
-                    moving_history = table_funcs.TableInDb('Molds_moving_history', 'Database')
+                    moving_history = table_funcs.TableInDb('Molds_moving_history', DB_NAME)
                     moving_history.insert_data(info=(str(datetime.now()), user_data.get('user_name'), self.mold_number,
                                                      self.mold_name, self.status,
                                                      new_mold_status))
@@ -292,6 +295,8 @@ class EditedMold(tkinter.Toplevel):
                                                    text='Ошибка записи данных! Обратитесь к администратору',
                                                    foreground='Red')
                 self.input_error_label.grid(column=1, row=12)
+                get_warning_log(user=user_data.get('user_name'), message='SqliteProgrammingError. Mold data cant be changed',
+                                func_name=self.validate_and_save_edited_mold_data.__name__, func_path=abspath(__file__))
             else:
                 self.quit()
                 self.destroy()
@@ -304,6 +309,6 @@ class EditedMold(tkinter.Toplevel):
         """
         Функция вывода диалогового окна для запроса подтверждения закрытия окна
         """
-        message = "Вы уверены, что хотите закрыть это окно?"
+        message = 'Вы уверены, что хотите закрыть это окно?'
         if messagebox.askyesno(message=message, parent=self):
             self.destroy()

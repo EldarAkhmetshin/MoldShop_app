@@ -7,6 +7,7 @@ from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
 from openpyxl.utils import get_column_letter
 from pandas import DataFrame
 
+from src.data import DB_NAME
 from src.global_values import user_data
 from src.utils.logger.logs import get_warning_log
 from src.utils.sql_database import table_funcs
@@ -125,6 +126,6 @@ def save_new_molds_list():
         file_path=os.path.abspath(os.path.join('..', 'incoming_data', 'molds_data.xlsx')),
         work_sheet_name='Molds')
     # Загрузка данных в базу данных
-    molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
+    molds_data = table_funcs.TableInDb('All_molds_data', DB_NAME)
     for row in rows_data:
         molds_data.insert_data(row)

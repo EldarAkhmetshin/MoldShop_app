@@ -2,70 +2,60 @@
 # -*- coding: utf-8 -*- #
 import sqlite3
 import tkinter
+from dataclasses import dataclass
 from datetime import datetime
+from os.path import abspath
 from tkinter import *
 from tkinter import messagebox, ttk
 from tkinter.ttk import Frame
 from typing import Callable
 
+from src.data import DB_NAME
 from src.global_values import user_data
+from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database import table_funcs
 
 
+@dataclass
 class Stock(tkinter.Toplevel):
     """
     Класс представляет набор функций для создания графического интерфейса окна изменения количества какого либо
     элемента на складе.
     """
-    def __init__(self, mold_number: str, part_data: dict, table_name: str, consumption: bool = None):
-        """
-        Создание переменных
-        """
-        self.part_data = part_data
-        self.mold_number = mold_number
-        self.table_name = table_name
-        self.consumption = consumption
-        self.used_parts_quantity_entry_field = None
-        self.parts_quantity_entry_field = None
-        self.part_number = self.part_data.get('NUMBER')
-        self.part_name = self.part_data.get('PART_NAME')
-        if not self.part_data.get('PARTS_QUANTITY'):
-            self.parts_quantity = 0
-        else:
-            self.parts_quantity = int(self.part_data.get('PARTS_QUANTITY'))
+    mold_number: str
+    part_data: dict
+    table_name: str
+    consumption: bool = None
+    parts_quantity_entry_field: tkinter.Entry = None
+    used_parts_quantity_entry_field: tkinter.Entry = None
+    required_part_type: str = None
+    quantity_entry_field: tkinter.Entry = None
+    part_type_combobox: ttk.Combobox = None
+    required_quantity: str | int = None
+    changed_data: bool = None
+    input_error_label: tkinter.Label = None
 
-        if not self.part_data.get('USED_PARTS_QUANTITY'):
-            self.used_parts_quantity = 0
-        else:
-            self.used_parts_quantity = int(self.part_data.get('USED_PARTS_QUANTITY'))
-
-        self.storage_cell = self.part_data.get('STORAGE_CELL')
-        self.frame_bottom = None
-        self.frame_body = None
-        self.frame_header = None
-        self.required_part_type = None
-        self.quantity_entry_field = None
-        self.part_type_combobox = None
-        self.required_quantity = None
-        self.changed_data = None
-        self.input_error_label = None
-        self.frame = None
+    def __post_init__(self):
+        """
+        Инициация контейнеров для размещения виджетов и некоторых переменнных
+        """
         super().__init__()
-        self.protocol("WM_DELETE_WINDOW", self.confirm_delete)
-        self.init_gui()
-
-    def init_gui(self):
-        """
-        Инициация окна приложения и контейнеров для размещения виджетов
-        """
         self.focus_set()
         self.grab_set()
-        self.frame_header = Frame(self)
+        self.frame_header: tkinter.Frame = Frame(self)
         self.frame_header.pack()
-        self.frame_body = Frame(self)
+        self.frame_body: tkinter.Frame = Frame(self)
         self.frame_body.pack()
-        self.frame_bottom = Frame(self)
+        self.frame_bottom: tkinter.Frame = Frame(self)
         self.frame_bottom.pack()
+
+        self.part_number: str = self.part_data.get('NUMBER')
+        self.part_name: str = self.part_data.get('PART_NAME')
+        self.parts_quantity: int = int(self.part_data.get('PARTS_QUANTITY')) \
+            if self.part_data.get('PARTS_QUANTITY') else 0
+        self.used_parts_quantity: int = int(self.part_data.get('USED_PARTS_QUANTITY')) \
+            if self.part_data.get('USED_PARTS_QUANTITY') else 0
+        self.storage_cell: str = self.part_data.get('STORAGE_CELL')
 
     def render_widgets(self):
         """
@@ -88,6 +78,9 @@ class Stock(tkinter.Toplevel):
             command=self.validate_and_save_changed_data
         ).pack(padx=10, pady=10, side=TOP)
         # Запуск работы окна приложения
+        get_info_log(user=user_data.get('user_name'), message='Stock changing window was rendered',
+                     func_name=self.render_widgets.__name__, func_path=abspath(__file__))
+
         self.mainloop()
 
     def define_column_name(self) -> str:
@@ -95,10 +88,7 @@ class Stock(tkinter.Toplevel):
         Функция определения типа запрашиваемой запчасти / BOM элемента
         :return: Соответствующий тип запчасти
         """
-        if self.consumption:
-            return 'PARTS_QUANTITY'
-        else:
-            return 'USED_PARTS_QUANTITY'
+        return 'PARTS_QUANTITY' if self.consumption else 'USED_PARTS_QUANTITY'
 
     def get_end_quantity(self) -> int:
         """
@@ -107,10 +97,8 @@ class Stock(tkinter.Toplevel):
         """
         define_income_quantity: Callable = lambda: self.parts_quantity \
             if self.required_part_type == 'Новая' else self.used_parts_quantity
-        if self.consumption:
-            return define_income_quantity() - self.required_quantity
-        else:
-            return define_income_quantity() + self.required_quantity
+
+        return define_income_quantity() - self.required_quantity if self.consumption else define_income_quantity() + self.required_quantity
 
     def check_parts_quantity(self) -> bool:
         """
@@ -122,13 +110,13 @@ class Stock(tkinter.Toplevel):
             if self.required_part_type == 'Новая' else self.used_parts_quantity
         try:
             self.required_quantity = int(self.required_quantity)
-        except TypeError:
-            self.input_error_label = Label(self.frame,
+        except ValueError:
+            self.input_error_label = Label(self.frame_bottom,
                                            text='В поле количество введите число',
                                            foreground='Red')
         else:
             if self.consumption and self.required_quantity > define_income_quantity():
-                self.input_error_label = Label(self.frame,
+                self.input_error_label = Label(self.frame_bottom,
                                                text='Запрашиваемое количество отсутствует на складе. Введите другое '
                                                     'число.',
                                                foreground='Red')
@@ -159,18 +147,21 @@ class Stock(tkinter.Toplevel):
                 # Загрузка данных в базу данных
                 try:
                     # Изменение количества запчастей в BOM
-                    bom = table_funcs.TableInDb(self.table_name, 'Database')
+                    bom = table_funcs.TableInDb(self.table_name, DB_NAME)
                     bom.change_data(first_param='NUMBER', first_value=self.part_number,
                                     data={define_column_name(): self.get_end_quantity()}, second_param='PART_NAME',
                                     second_value=self.part_name)
                     # Новая запись в журнале истории изменений склада
-                    warehouse_history = table_funcs.TableInDb(define_table_name(), 'Database')
+                    warehouse_history = table_funcs.TableInDb(define_table_name(), DB_NAME)
                     warehouse_history.insert_data(info=define_data())
                 except sqlite3.ProgrammingError:
-                    self.input_error_label = Label(self.frame,
+                    self.input_error_label = Label(self.frame_bottom,
                                                    text='Ошибка записи данных! Обратитесь к администратору',
                                                    foreground='Red')
                     self.input_error_label.grid(column=1, row=12)
+                    get_warning_log(user=user_data.get('user_name'),
+                                    message='SqliteProgrammingError. Part cnt wasnt changed',
+                                    func_name=self.validate_and_save_changed_data.__name__, func_path=abspath(__file__))
                 else:
                     self.quit()
                     self.destroy()
@@ -178,18 +169,18 @@ class Stock(tkinter.Toplevel):
                                         f'Итоговое количество успешно изменено.'
                                         f'\nЯчейка хранения: {self.storage_cell}')
                     self.changed_data = True
+                    get_info_log(user=user_data.get('user_name'), message='Part cnt was changed',
+                                 func_name=self.validate_and_save_changed_data.__name__, func_path=abspath(__file__))
             else:
-                self.input_error_label = Label(self.frame_bottom,
-                                               text='Ошибка. Возможно указано кол-во больше,\nчем есть в наличие',
-                                               foreground='Red')
                 self.input_error_label.pack(side=TOP, padx=5, pady=5)
+                get_warning_log(user=user_data.get('user_name'),
+                                message='Required part cnt wasnt correct. Part cnt wasnt changed',
+                                func_name=self.validate_and_save_changed_data.__name__, func_path=abspath(__file__))
         # Если данные введены некорректно пользователь получит уведомление об ошибке
         else:
             self.input_error_label = Label(self.frame_bottom,
                                            text='Не выбран тип запчасти', foreground='Red')
             self.input_error_label.pack(side=TOP, padx=5, pady=5)
-
-    def confirm_delete(self):
-        message = "Вы уверены, что хотите закрыть это окно?"
-        if messagebox.askyesno(message=message, parent=self):
-            self.destroy()
+            get_warning_log(user=user_data.get('user_name'),
+                            message='Part type wasnt selected. Part cnt wasnt changed',
+                            func_name=self.validate_and_save_changed_data.__name__, func_path=abspath(__file__))

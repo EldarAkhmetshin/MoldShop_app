@@ -8,10 +8,10 @@ from tkinter.ttk import Frame
 from typing import Callable
 from math import ceil
 
-from src.data import columns_searching_results, columns_sizes_warehouse_table, columns_min_parts_excel_table
+from src.data import columns_searching_results, columns_sizes_warehouse_table, columns_min_parts_excel_table, DB_NAME
 from src.global_values import user_data
 from src.utils.excel.xls_tables import export_excel_table
-from src.utils.logger.logs import get_info_log
+from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database.table_funcs import DataBase, TableInDb
 
 
@@ -24,7 +24,7 @@ def sort_table(table_name):
     define_mold_type: Callable = lambda: 'Горячий канал' if 'HOT_RUNNER' in table_name else 'Пресс-форма'
     check_min_availability: Callable = lambda: True if parts_quantity / parts_quantity_in_mold * 100 < \
         min_part_percent else False
-    bom = TableInDb(table_name, 'Database')
+    bom = TableInDb(table_name, DB_NAME)
     table_data = bom.get_table(type_returned_data='dict')
     result_table = []
     for row in table_data:
@@ -51,7 +51,7 @@ def get_mold_names_list() -> list:
     """
     Функция для получения наименований всех БОМов имеющихся в текущей базе данных
     """
-    database = DataBase('Database')
+    database = DataBase(DB_NAME)
     table_names = database.get_all_tables()
     return list(filter(lambda table_name: 'BOM' in table_name, table_names))
 
@@ -88,9 +88,9 @@ class MinPartsReport(tkinter.Toplevel):
 
     def init_gui(self):
         """
-        Инициация окна приложения и контейнеров для размещения виджетов
+        Инициация контейнеров для размещения виджетов
         """
-        self.geometry('315x450')
+        self.geometry('330x450')
         self.frame_header = Frame(self)
         self.frame_header.pack(fill=BOTH, expand=True)
         self.frame_body = Frame(self)
@@ -124,6 +124,8 @@ class MinPartsReport(tkinter.Toplevel):
             command=self.start_search
         ).pack(side=TOP, padx=10, pady=10)
         # Запуск работы окна приложения
+        get_info_log(user=user_data.get('user_name'), message='Min parts searching window was rendered',
+                     func_name=self.render_widgets.__name__, func_path=abspath(__file__))
         self.mainloop()
 
     def start_search(self):
@@ -131,8 +133,7 @@ class MinPartsReport(tkinter.Toplevel):
         Функция проведения поиска запчастей по введённым ранее параметрам
         """
         sorted_table = [columns_min_parts_excel_table]
-        get_info_log(user=user_data.get('user_name'), message='Searching is run',
-                     func_name=self.start_search.__name__, func_path=abspath(__file__))
+
         if self.input_error_label:
             self.input_error_label.destroy()
         # Получение всех наименований, которые были выделены пользователем
@@ -142,8 +143,12 @@ class MinPartsReport(tkinter.Toplevel):
         for table in selected_table_names:
             sorted_table.extend(sort_table(table))
         if len(sorted_table) == 1:
+            get_warning_log(user=user_data.get('user_name'), message='Searching was completed without results',
+                            func_name=self.start_search.__name__, func_path=abspath(__file__))
             self.input_error_label = Label(self.frame_bottom, text='По вашему запросу ничего не найдено',
                                            foreground='Red')
             self.input_error_label.pack(side=TOP, padx=5, pady=5)
         else:
+            get_info_log(user=user_data.get('user_name'), message='Searching was completed with results',
+                         func_name=self.start_search.__name__, func_path=abspath(__file__))
             export_excel_table(sorted_table)

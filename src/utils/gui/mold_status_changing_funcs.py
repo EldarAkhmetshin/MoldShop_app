@@ -2,12 +2,15 @@
 # -*- coding: utf-8 -*- #
 import sqlite3
 import tkinter
+from os.path import abspath
 from tkinter import *
 from tkinter import messagebox
 from tkinter.ttk import Frame
 from datetime import datetime
 
+from src.data import DB_NAME
 from src.global_values import user_data
+from src.utils.logger.logs import get_warning_log, get_info_log
 from src.utils.sql_database import table_funcs
 
 
@@ -22,6 +25,7 @@ class QRWindow(tkinter.Toplevel):
         """
         Создание переменных
         """
+        super().__init__()
         self.next_status = next_status
         self.tracked_variable = StringVar()
         self.tracked_variable.trace("w", self.check_entry_field)
@@ -29,13 +33,12 @@ class QRWindow(tkinter.Toplevel):
         self.changed_data = None
         self.input_error_label = None
         self.frame = None
-        super().__init__()
-        self.protocol("WM_DELETE_WINDOW", self.confirm_delete)
+
         self.init_gui()
 
     def init_gui(self):
         """
-        Инициация окна приложения и контейнера для размещения виджетов
+        Инициация контейнеров для размещения виджетов
         """
         self.focus_set()
         self.grab_set()
@@ -77,13 +80,13 @@ class QRWindow(tkinter.Toplevel):
             # Загрузка изменённых данных в базу данных
             try:
                 # Сохранение нового статус п/ф в таблице перечня пресс-форм
-                molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
+                molds_data = table_funcs.TableInDb('All_molds_data', DB_NAME)
                 mold_info = molds_data.get_table(type_returned_data='dict', first_param='MOLD_NUMBER',
                                                  first_value=mold_number, last_string=True)
                 molds_data.change_data(first_param='MOLD_NUMBER', first_value=mold_number,
                                        data={'STATUS': self.next_status})
                 # Запись в журнал
-                moving_history = table_funcs.TableInDb('Molds_moving_history', 'Database')
+                moving_history = table_funcs.TableInDb('Molds_moving_history', DB_NAME)
                 moving_history.insert_data(info=(str(datetime.now().strftime("%m/%d/%Y, %H:%M")),
                                                  user_data.get('user_name'), mold_number,
                                                  mold_info.get('MOLD_NAME'), mold_info.get('STATUS'), self.next_status))
@@ -92,11 +95,17 @@ class QRWindow(tkinter.Toplevel):
                                                text='Ошибка записи данных! Обратитесь к администратору',
                                                foreground='Red')
                 self.input_error_label.grid(column=1, row=12)
+                get_warning_log(user=user_data.get('user_name'),
+                                message='SqliteProgrammingError. Mold status was NOT changed',
+                                func_name=self.validate_and_save_edited_data.__name__,
+                                func_path=abspath(__file__))
             else:
                 self.quit()
                 self.destroy()
                 messagebox.showinfo('Уведомление', 'Информация о пресс-форме успешно изменена')
                 self.changed_data = True
+                get_info_log(user=user_data.get('user_name'), message='Data was successfully changed',
+                             func_name=self.validate_and_save_edited_data.__name__, func_path=abspath(__file__))
         else:
             # Если данные введены некорректно пользователь получит уведомление об ошибке
             self.input_error_label = Label(self.frame,

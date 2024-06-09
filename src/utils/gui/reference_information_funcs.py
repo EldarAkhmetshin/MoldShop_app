@@ -50,7 +50,7 @@ class ReferenceInfo(tkinter.Toplevel):
 
     def init_gui(self):
         """
-        Инициация окна приложения и контейнера для размещения виджетов
+        Инициация контейнера для размещения виджетов
         """
         self.focus_set()
         self.frame = Frame(self)

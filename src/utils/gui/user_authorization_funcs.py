@@ -6,9 +6,11 @@ from os.path import abspath
 from tkinter import *
 from tkinter import messagebox, ttk
 
+from dataclasses import dataclass
+
 from src.config_data.config import users
 from src.global_values import user_data
-from src.utils.logger.logs import get_info_log
+from src.utils.logger.logs import get_info_log, get_warning_log
 
 
 def change_user(window: tkinter.Tk):
@@ -24,35 +26,24 @@ def change_user(window: tkinter.Tk):
     if user_data.get('access'):
         render_main_window()
 
-
+@dataclass
 class LogInApp(Frame):
     """
     Класс представляет набор функций для создания графического интерфейса окна авторизации пользователя с помощью
     библиотеки Tkinter. Также осуществляется проверка введённых данных пользователем.
     """
+    window: tkinter.Tk
+    password_entry_field: tkinter.ttk.Entry = None
+    login_entry_field: tkinter.ttk.Entry = None
 
-    def __init__(self, window: tkinter.Tk):
-        """
-        Создание переменных
-        :param window: Окно приложения
-        self.password_entry_field: Поле ввода пароля
-        self.login_entry_field: Поле ввода логина
-        self.login_frame: Контейнер для размещения виджетов (кнопок, надписей и т.д.)
-        """
-        self.window = window
-        self.password_entry_field = None
-        self.login_entry_field = None
-        self.login_frame = None
-        super().__init__()
-        self.init_gui()
-
-    def init_gui(self):
+    def __post_init__(self):
         """
         Инициация окна приложения и контейнера для размещения виджетов
         """
+        super().__init__()
         self.master.title('MoldShop Management')
         self.pack(fill=BOTH, expand=True)
-        self.login_frame = Frame(self)
+        self.login_frame: tkinter.Frame = Frame(self)
         self.login_frame.pack()
 
     def check_entry_user_data(self):
@@ -85,6 +76,9 @@ class LogInApp(Frame):
                 messagebox.showerror('Ошибка', 'Не верный пароль!')
                 self.login_entry_field.delete(0, END)
                 self.password_entry_field.delete(0, END)
+                get_warning_log(user=user_name, message='Not correct login or password',
+                                func_name=self.check_entry_user_data.__name__,
+                                func_path=abspath(__file__))
 
     def on_pressed_key(self, event):
         """
@@ -114,8 +108,8 @@ class LogInApp(Frame):
             command=lambda: self.check_entry_user_data()
         ).grid(padx=10, pady=10, column=2, row=4)
 
+        # Запуск работы окна приложения
         get_info_log(user='-', message='Login widgets were rendered', func_name=self.render_widgets.__name__,
                      func_path=abspath(__file__))
-        # Запуск работы окна приложения
-        self.window.mainloop()
 
+        self.window.mainloop()

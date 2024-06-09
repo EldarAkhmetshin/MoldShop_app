@@ -9,6 +9,7 @@ from tkinter import messagebox, ttk
 from tkinter.ttk import Frame
 from typing import Callable
 
+from src.data import DB_NAME
 from src.global_values import user_data
 from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database import table_funcs
@@ -25,6 +26,7 @@ class EditedBOM(tkinter.Toplevel):
         """
         Создание переменных
         """
+        super().__init__()
         self.frame_bottom = None
         self.frame_body = None
         self.frame_header = None
@@ -62,13 +64,13 @@ class EditedBOM(tkinter.Toplevel):
         self.changed_data = None
         self.input_error_label = None
         self.frame = None
-        super().__init__()
+
         self.protocol("WM_DELETE_WINDOW", self.confirm_delete)
         self.init_gui()
 
     def init_gui(self):
         """
-        Инициация окна приложения и контейнера для размещения виджетов
+        Инициация контейнеров для размещения виджетов
         """
         self.focus_set()
         self.grab_set()
@@ -185,7 +187,7 @@ class EditedBOM(tkinter.Toplevel):
                 self.storage_cell_entry_field.get(), self.min_percent_entry_field.get(), self.weight_entry_field.get()
             )
             try:
-                bom = table_funcs.TableInDb(self.table_name, 'Database')
+                bom = table_funcs.TableInDb(self.table_name, DB_NAME)
                 bom.insert_data(info=row)
             except sqlite3.ProgrammingError:
                 self.input_error_label = Label(self.frame,
@@ -227,7 +229,7 @@ class EditedBOM(tkinter.Toplevel):
             # Загрузка изменённых данных в базу данных
             try:
                 define_data: Callable = lambda old_data, new_data: new_data if new_data else old_data
-                bom = table_funcs.TableInDb(self.table_name, 'Database')
+                bom = table_funcs.TableInDb(self.table_name, DB_NAME)
                 bom.change_data(first_param='NUMBER', first_value=self.number,
                                 data={
                                     'NUMBER': define_data(old_data=self.number,
@@ -275,6 +277,6 @@ class EditedBOM(tkinter.Toplevel):
         """
         Функция вывода диалогового окна для запроса подтверждения закрытия окна
         """
-        message = "Вы уверены, что хотите закрыть это окно?"
+        message = 'Вы уверены, что хотите закрыть это окно?'
         if messagebox.askyesno(message=message, parent=self):
             self.destroy()

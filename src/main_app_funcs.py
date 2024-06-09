@@ -18,7 +18,7 @@ from typing import Callable, Any, List, Literal
 from src.global_values import user_data
 from src.data import mold_statuses_list, part_statuses_list, columns_warehouse_table, \
     columns_sizes_warehouse_table, columns_bom_parts_table, columns_sizes_bom_parts_table, columns_purchased_parts, \
-    columns_sizes_purchased_parts_table, columns_molds_table, columns_sizes_molds_table
+    columns_sizes_purchased_parts_table, columns_molds_table, columns_sizes_molds_table, DB_NAME
 from src.data import info_messages, error_messages, columns_molds_moving_history_table, \
     columns_sizes_moving_history_table
 from src.utils.excel.xls_tables import get_new_bom_from_excel_file, export_excel_table
@@ -51,12 +51,12 @@ def validate_new_bom(mold_number: str, column_names: tuple, rows_data: list, hot
     """
     define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{mold_number}' if hot_runner else f'BOM_{mold_number}'
     # Выгрузка информации из базы данных
-    molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
+    molds_data = table_funcs.TableInDb('All_molds_data', DB_NAME)
     molds_table = molds_data.get_table(type_returned_data='tuple')
     # Поиск соответствия по номеру пресс-формы в общем перечне
     for mold_info in molds_table:
         if mold_info[0] == mold_number:
-            db = table_funcs.DataBase('Database')
+            db = table_funcs.DataBase(DB_NAME)
             tables = db.get_all_tables()
             # Проверка базы данных на наличие схожей таблицы по названию
             new_table = define_table_name()
@@ -360,11 +360,13 @@ class App(Frame):
                     if not status:
                         messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
                                              message=error_message)
-                        get_warning_log(user=user_data.get('user_name'), message='New BOM wasnt uploaded',
+                        get_warning_log(user=user_data.get('user_name'),
+                                        message='Status is False. New BOM wasnt uploaded',
                                         func_name=self.upload_new_bom.__name__, func_path=abspath(__file__))
                         return
                 except TypeError:
-                    get_warning_log(user=user_data.get('user_name'), message='New BOM wasnt uploaded',
+                    get_warning_log(user=user_data.get('user_name'),
+                                    message='TypeError. New BOM wasnt uploaded',
                                     func_name=self.upload_new_bom.__name__, func_path=abspath(__file__))
                 else:
                     file_path = file_path.split('/')
@@ -389,7 +391,8 @@ class App(Frame):
                     else:
                         messagebox.showerror(title=error_messages.get('not_downloaded_bom').get('message_name'),
                                              message=message)
-                        get_warning_log(user=self.user_name, message='New BOM was NOT uploaded',
+                        get_warning_log(user=self.user_name,
+                                        message='New BOM was NOT validated and uploaded',
                                         func_name=self.upload_new_bom.__name__,
                                         func_path=abspath(__file__))
         else:
@@ -454,8 +457,7 @@ class App(Frame):
                     except IOError:
                         messagebox.showerror(title='Ошибка',
                                              message='Файл не удалось прикрепить. Обратитесь к администратору.')
-                        get_warning_log(user=user_data.get('user_name'), message='File wasnt attached because of '
-                                                                                 'IOError',
+                        get_warning_log(user=user_data.get('user_name'), message='IOError. File wasnt attached',
                                         func_name=self.upload_attachment.__name__, func_path=abspath(__file__))
                     else:
                         messagebox.showinfo(title='Уведомление', message='Файл успешно прикреплён')
@@ -468,7 +470,8 @@ class App(Frame):
             else:
                 messagebox.showerror(title='Ошибка',
                                      message='Чтобы прикрепить файл выберите элемент из таблицы')
-                get_warning_log(user=self.user_name, message='Document was NOT attached',
+                get_warning_log(user=self.user_name,
+                                message='Document was NOT attached. Mold wasnt selected',
                                 func_name=self.upload_attachment.__name__,
                                 func_path=abspath(__file__))
         else:
@@ -520,7 +523,7 @@ class App(Frame):
                     messagebox.showerror(title='Уведомление об ошибке',
                                          message='Ошибка в записи файла.\nПовторите ещё раз, либо обратитесь к '
                                                  'администратору')
-                    get_warning_log(user=self.user_name, message='Template was not saved in Excel file',
+                    get_warning_log(user=self.user_name, message='Exception. Template was not saved in Excel file',
                                     func_name=self.save_bom_parts_template.__name__, func_path=abspath(__file__))
                 else:
                     messagebox.showinfo(title='Уведомление', message='BOM шаблон успешно сохранен на Ваш компьютер')
@@ -986,7 +989,7 @@ class App(Frame):
         stock_frame = ttk.LabelFrame(main_sub_frame, text='Склад', relief=RIDGE)
         stock_frame.pack(side=LEFT, padx=5, pady=1)
         # Рендер виджетов
-        molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
+        molds_data = table_funcs.TableInDb('All_molds_data', DB_NAME)
         mold_info = molds_data.get_table(type_returned_data='dict', first_param='MOLD_NUMBER',
                                          first_value=self.mold_number, last_string=True)
         (ttk.Label(title_frame, text=f'BOM для пресс-формы № {self.mold_number} '
@@ -1091,7 +1094,8 @@ class App(Frame):
                 mold_number=mold_number,
                 checking=True)
                           .search_attachments())
-
+        # Подсветка кнопки Вложения в зависимости от наличия прикреплённых файлов к пресс-форме или
+        # элементу спецификации (BOM)
         if attachment:
             self.open_attachments_button.config(style='GreenToolbar.TButton')
         else:
@@ -1203,7 +1207,7 @@ class App(Frame):
         self.sorted_molds_data_tuple = {status: [columns_molds_table] for status in mold_statuses_list}
         self.sorted_molds_data_dict = {status: [] for status in mold_statuses_list}
         # Выгрузка таблицы из БД
-        molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
+        molds_data = table_funcs.TableInDb('All_molds_data', DB_NAME)
         self.all_molds_table_dict = molds_data.get_table(type_returned_data='dict')
         self.molds_list_data = molds_data.get_table(type_returned_data='tuple')
         self.current_table = molds_data.get_table(type_returned_data='tuple')
@@ -1227,7 +1231,7 @@ class App(Frame):
         # Выгрузка таблицы из БД
         define_table_name: Callable = lambda: f'BOM_HOT_RUNNER_{self.mold_number}' if hot_runner \
             else f'BOM_{self.mold_number}'
-        bom = table_funcs.TableInDb(define_table_name(), 'Database')
+        bom = table_funcs.TableInDb(define_table_name(), DB_NAME)
         self.bom_table_dict = list(reversed(bom.get_table(type_returned_data='dict')))
         self.bom_data = list(reversed(bom.get_table(type_returned_data='tuple')))
         self.current_table = list(reversed(bom.get_table(type_returned_data='tuple')))
@@ -1282,7 +1286,7 @@ class App(Frame):
                 self.current_table = self.sorted_bom_tuple.get(sort_status)
             else:
                 self.mold_number = mold_number
-                bom = table_funcs.TableInDb(define_table_name(), 'Database')
+                bom = table_funcs.TableInDb(define_table_name(), DB_NAME)
                 self.current_table = [columns_bom_parts_table]
                 self.current_table.extend(list(reversed(bom.get_table(type_returned_data='tuple'))))
         except sqlite3.OperationalError:
@@ -1313,7 +1317,7 @@ class App(Frame):
         # Очистка области в окне приложения перед выводом новой таблицы
         self.clean_frames()
         # Формирование табличных данных
-        moving_history = table_funcs.TableInDb('Molds_moving_history', 'Database')
+        moving_history = table_funcs.TableInDb('Molds_moving_history', DB_NAME)
         moving_history_data = moving_history.get_table(type_returned_data='tuple')
         self.current_table = []
         self.current_table = [columns_molds_moving_history_table if i == 0 else moving_history_data[i - 1]
@@ -1334,7 +1338,7 @@ class App(Frame):
         # Очистка области в окне приложения перед выводом новой таблицы
         self.clean_frames()
         # Формирование табличных данных
-        warehouse_history = table_funcs.TableInDb(define_table_name(), 'Database')
+        warehouse_history = table_funcs.TableInDb(define_table_name(), DB_NAME)
         warehouse_history_data = warehouse_history.get_table(type_returned_data='tuple')
         self.current_table = []
         self.current_table = [columns_warehouse_table if i == 0 else warehouse_history_data[i - 1]
@@ -1351,7 +1355,7 @@ class App(Frame):
         # Очистка области в окне приложения перед выводом новой таблицы
         self.clean_frames()
         # Формирование табличных данных
-        purchased_parts = table_funcs.TableInDb('Purchased_parts', 'Database')
+        purchased_parts = table_funcs.TableInDb('Purchased_parts', DB_NAME)
         purchased_parts_data = purchased_parts.get_table(type_returned_data='tuple')
         self.current_table = []
         self.current_table = [columns_purchased_parts if i == 0 else purchased_parts_data[i - 1]
@@ -1406,7 +1410,7 @@ class App(Frame):
             window.render_widgets()
             try:
                 if window.changed_data:
-                    get_info_log(user=self.user_name, message='Successful data changing',
+                    get_info_log(user=self.user_name, message=f'Window: {window_name}. Successful data changing',
                                  func_name=self.render_typical_additional_window.__name__, func_path=abspath(__file__))
                     self.tree.pack_forget()
                     if callback_function:
@@ -1430,7 +1434,7 @@ class App(Frame):
 
             try:
                 # Выгрузка информации о пресс-форме из базы данных
-                all_molds_data = table_funcs.TableInDb('All_molds_data', 'Database')
+                all_molds_data = table_funcs.TableInDb('All_molds_data', DB_NAME)
                 mold_data = all_molds_data.get_table(type_returned_data='dict', first_param='MOLD_NUMBER',
                                                      first_value=mold_number, last_string=True)
             except (sqlite3.OperationalError, IndexError):
@@ -1459,7 +1463,7 @@ class App(Frame):
 
             try:
                 # Выгрузка информации о пресс-форме из базы данных
-                bom = table_funcs.TableInDb(table_name, 'Database')
+                bom = table_funcs.TableInDb(table_name, DB_NAME)
                 part_data = bom.get_table(type_returned_data='dict', first_param='NUMBER',
                                           first_value=part_number, second_param='PART_NAME', second_value=part_name,
                                           last_string=True)
@@ -1507,14 +1511,14 @@ class App(Frame):
 
             try:
                 # Выгрузка информации о пресс-форме из базы данных
-                bom = table_funcs.TableInDb(table_name, 'Database')
+                bom = table_funcs.TableInDb(table_name, DB_NAME)
                 part_data = bom.get_table(type_returned_data='dict', first_param='NUMBER',
                                           first_value=part_number, second_param='PART_NAME', second_value=part_name,
                                           last_string=True)
             except (sqlite3.OperationalError, IndexError):
                 messagebox.showerror('Уведомление об ошибке', f'Данных о запчасти не имеется')
                 get_warning_log(user=self.user_name, message='sqlite3.OperationalError',
-                                func_name=self.render_bom_edition_window.__name__, func_path=abspath(__file__))
+                                func_name=self.open_parts_quantity_changing_window.__name__, func_path=abspath(__file__))
             else:
                 self.render_typical_additional_window(
                     called_class=lambda: Stock(part_data=part_data, mold_number=self.mold_number,
@@ -1534,7 +1538,7 @@ class App(Frame):
 
                 try:
                     number = self.get_selected_row_data()[0]
-                    db = table_funcs.TableInDb(table_name, 'Database')
+                    db = table_funcs.TableInDb(table_name, DB_NAME)
                     db.delete_data(column_name=column_name, value=number)
                 except sqlite3.OperationalError:
                     messagebox.showerror('Уведомление об ошибке', 'Ошибка удаления. Обратитесь к администратору.')
@@ -1548,7 +1552,7 @@ class App(Frame):
                     if column_name == 'MOLD_NUMBER':
 
                         try:
-                            bom = table_funcs.TableInDb(f'BOM_{number}', 'Database')
+                            bom = table_funcs.TableInDb(f'BOM_{number}', DB_NAME)
                             bom.delete_db_table()
                         except sqlite3.OperationalError:
                             pass
@@ -1584,7 +1588,7 @@ class App(Frame):
                 if messagebox.askyesno(title='Подтверждение', message=message, parent=self):
 
                     try:
-                        bom = table_funcs.TableInDb(define_table(), 'Database')
+                        bom = table_funcs.TableInDb(define_table(), DB_NAME)
                         bom.delete_db_table()
                     except sqlite3.OperationalError:
                         messagebox.showerror('Уведомление об ошибке',
