@@ -82,7 +82,6 @@ def validate_new_bom(mold_number: str, column_names: tuple, rows_data: list, hot
                 new_parts_in_stock = row[8]
                 old_parts_in_stock = row[9]
                 min_percent = row[11]
-                print(count, row)
                 # Проверка на наличие номера запчасти в каждой строке
                 if not part_num:
                     return (False,

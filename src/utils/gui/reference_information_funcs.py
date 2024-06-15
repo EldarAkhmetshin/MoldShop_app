@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*- #
 import os
 import tkinter
+from dataclasses import dataclass
 from os.path import abspath
 from tkinter import *
 from tkhtmlview import HTMLLabel
@@ -26,26 +27,21 @@ def check_user_rights() -> str:
     return result
 
 
+@dataclass
 class ReferenceInfo(tkinter.Toplevel):
     """
     Класс представляет набор функций для вывода справочной информации о приложении
     """
+    app_info: bool = None
+    scroll_y: Scrollbar = None
+    back_icon: Image = Image.open(os.path.abspath(os.path.join('pics', 'back.png'))).resize((20, 20))
 
-    def __init__(self, app_info: bool = None):
+    def __post_init__(self):
         """
-        Создание переменных
-        :param app_info: Булево значение, принимающее значение True, когда необходимо вывести инфо о приложении
+        Инициация контейнеров для размещения виджетов и некоторых переменных
         """
-        self.scroll_y = None
-        self.frame_additional = None
-        self.app_info = app_info
-        self.frame_header = None
-        self.frame_body = None
-        self.frame_bottom = None
-        self.back_icon = Image.open(os.path.abspath(os.path.join('pics', 'back.png'))) \
-            .resize((20, 20))
-        self.back_icon_pil = ImageTk.PhotoImage(self.back_icon)
         super().__init__()
+        self.back_icon_pil = ImageTk.PhotoImage(self.back_icon)
         self.init_gui()
 
     def init_gui(self):
@@ -53,7 +49,7 @@ class ReferenceInfo(tkinter.Toplevel):
         Инициация контейнера для размещения виджетов
         """
         self.focus_set()
-        self.frame = Frame(self)
+        self.frame: Frame = Frame(self)
         self.frame.pack()
 
     def clear_frames(self):

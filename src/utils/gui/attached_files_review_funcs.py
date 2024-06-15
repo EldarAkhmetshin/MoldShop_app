@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import tkinter
+from dataclasses import dataclass
 from os.path import abspath
 from tkinter import *
 from tkinter import messagebox, ttk, filedialog
@@ -42,51 +43,41 @@ def download_file(filename: str, root: str):
                          func_name=download_file.__name__,
                          func_path=abspath(__file__))
 
-
+@dataclass
 class Attachment(tkinter.Toplevel):
     """
     Класс представляет набор функций для создания графического интерфейса дополнительного окна просмотра вложенных файлов, 
     редактирования, их предпросмотра и скачивания в указанную директорию пользователем
     """
+    mold_number: str
+    part_number: str = None
+    hot_runner: bool = None
+    checking: bool = None
+    input_error_label: Label = None
+    image: Image = None
+    root: str = None
+    folder_path: str = None
 
-    def __init__(self, mold_number: str, part_number: str = None, hot_runner: bool = None, checking: bool = None):
-        """
-        Создание переменных
-        """
-        self.scroll_y = None
-        self.canvas = None
-        self.frame_body = None
-        self.frame_header = None
-        self.mold_number = mold_number
-        self.part_number = part_number
-        self.hot_runner = hot_runner
-        self.input_error_label = None
-        self.image = None
-        self.image_pil = None
-        self.frame = None
-        self.root = None
-        self.folder_path = None
-        if not checking:
-            super().__init__()
-            self.init_gui()
-
-    def init_gui(self):
+    def __post_init__(self):
         """
         Инициация окна приложения, контейнеров для размещения виджетов и прокрутки
         """
-        self.focus_set()
-        self.geometry('850x400')
-        self.frame_header = Frame(self)
-        self.frame_header.pack(fill=BOTH, expand=True)
-        # создание канвас для прикрепления к нему прокрутки / скроллинга
-        self.canvas = Canvas(self)
-        self.frame_body = Frame(self.canvas)
-        self.frame_body.pack(fill=BOTH, expand=True)
-        self.scroll_y = tkinter.Scrollbar(self, orient=tkinter.VERTICAL, command=self.canvas.yview)
-        self.canvas.configure(yscrollcommand=self.scroll_y.set)
-        self.scroll_y.pack(side=RIGHT, fill='y')
-        self.canvas.pack(fill=BOTH, expand=True)
-        self.canvas.create_window((4, 4), window=self.frame_body, anchor="nw")
+        if not self.checking:
+            super().__init__()
+            self.focus_set()
+            self.geometry('850x400')
+
+            self.canvas: Canvas = Canvas(self)
+            self.frame_header: Frame = Frame(self)
+            self.frame_body: Frame = Frame(self.canvas)
+            self.frame_header.pack(fill=BOTH, expand=True)
+            self.frame_body.pack(fill=BOTH, expand=True)
+            # создание прокрутки / скроллинга
+            self.scroll_y: Scrollbar = Scrollbar(self, orient=tkinter.VERTICAL, command=self.canvas.yview)
+            self.canvas.configure(yscrollcommand=self.scroll_y.set)
+            self.scroll_y.pack(side=RIGHT, fill='y')
+            self.canvas.pack(fill=BOTH, expand=True)
+            self.canvas.create_window((4, 4), window=self.frame_body, anchor="nw")
 
     def define_folder_path(self):
         """

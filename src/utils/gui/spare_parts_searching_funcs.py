@@ -1,58 +1,53 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
 import tkinter
+from dataclasses import dataclass
 from os.path import abspath
 from tkinter import *
 from tkinter import ttk
-from tkinter.ttk import Frame
-from typing import Callable
+from tkinter.ttk import Frame, Combobox
+from typing import Callable, List
 
 from src.data import columns_searching_results, columns_sizes_warehouse_table
 from src.global_values import user_data
 from src.utils.gui.necessary_spare_parts_report_funcs import get_mold_names_list
 from src.utils.logger.logs import get_info_log, get_warning_log
-from src.utils.sql_database.table_funcs import DataBase, TableInDb
+from src.utils.sql_database.table_funcs import TableInDb
 
 
+@dataclass
 class Searcher(tkinter.Toplevel):
     """
     Класс представляет набор функций для создания графического интерфейса окна и осуществления
     поиска запчастей по заданным параметрам.
     """
+    results_window: Toplevel = None
+    checkbutton: Checkbutton = None
+    product_type_combobox: Combobox = None
+    additional_info_entry_field: Entry = None
+    description_entry_field: Entry = None
+    name_entry_field: Entry = None
+    tree: ttk.Treeview = None
+    text_entry_field: Entry = None
+    search_filter_combobox: Combobox = None
+    input_error_label: Label = None
 
-    def __init__(self):
+    def __post_init__(self):
         """
-        Создание переменных
+        Инициация контейнеров для размещения виджетов и некоторых переменных
         """
-        self.results_window = None
-        self.checkbutton = None
-        self.product_type_combobox = None
-        self.additional_info_entry_field = None
-        self.description_entry_field = None
-        self.name_entry_field = None
-        self.tree = None
-        self.frame_bottom = None
-        self.frame_body = None
-        self.frame_header = None
-        self.text_entry_field = None
-        self.search_filter_combobox = None
-        self.stock = StringVar()
-        self.results = []
-        self.input_error_label = None
         super().__init__()
         self.focus_set()
-        self.init_gui()
+        self.frame_header: Frame = Frame(self)
+        self.frame_body: Frame = Frame(self)
+        self.frame_bottom: Frame = Frame(self)
 
-    def init_gui(self):
-        """
-        Инициация контейнеров для размещения виджетов
-        """
-        self.frame_header = Frame(self)
         self.frame_header.pack(fill=BOTH, expand=True)
-        self.frame_body = Frame(self)
         self.frame_body.pack(fill=BOTH, expand=True)
-        self.frame_bottom = Frame(self)
         self.frame_bottom.pack(fill=BOTH, expand=True)
+
+        self.spare_part_status: StringVar = StringVar()
+        self.results: List = []
 
     def render_widgets(self):
         """
@@ -76,13 +71,14 @@ class Searcher(tkinter.Toplevel):
         self.additional_info_entry_field.grid(column=2, row=4, padx=5, pady=5)
 
         ttk.Label(self.frame_body, text='Составляющая', style='Regular.TLabel').grid(column=1, row=5, padx=5, pady=5)
-        self.product_type_combobox = ttk.Combobox(self.frame_body, values=['Пресс-форма', 'Горячий канал', 'Все'],
-                                                  state='readonly')
+        self.product_type_combobox = Combobox(self.frame_body, values=['Пресс-форма', 'Горячий канал', 'Все'],
+                                              state='readonly')
         self.product_type_combobox.grid(column=2, row=5, padx=5, pady=5)
 
         ttk.Label(self.frame_body, text='Наличие на складе', style='Regular.TLabel').grid(column=1, row=6, padx=5,
                                                                                           pady=5)
-        self.checkbutton = ttk.Checkbutton(self.frame_body, variable=self.stock, offvalue='False', onvalue='True')
+        self.checkbutton = ttk.Checkbutton(self.frame_body, variable=self.spare_part_status,
+                                           offvalue='False', onvalue='True')
         self.checkbutton.grid(column=2, row=6, padx=5, pady=5)
 
         ttk.Button(
@@ -123,7 +119,8 @@ class Searcher(tkinter.Toplevel):
                 self.tree.column(column=col_num, stretch=YES, width=col_size)
             for row in self.results:
                 self.tree.insert("", END, values=row)
-            self.results = []
+            # Отчистка списка с результами поиска
+            self.results.clear()
             get_info_log(user=user_data.get('user_name'), message='Results of searching were rendered',
                          func_name=self.render_results.__name__, func_path=abspath(__file__))
 
@@ -163,8 +160,9 @@ class Searcher(tkinter.Toplevel):
                 pass
             else:
                 try:
-                    if ((self.stock.get() == 'True' and
-                         int(row.get('PARTS_QUANTITY')) > 0) or self.stock.get() == 'False' or self.stock.get() == ''):
+                    if ((self.spare_part_status.get() == 'True' and
+                         int(row.get('PARTS_QUANTITY')) > 0) or self.spare_part_status.get() == 'False' or
+                            self.spare_part_status.get() == ''):
                         self.results.append(
                             (define_mold_type(), table_name.replace('BOM_', '').replace('HOT_RUNNER_', ''),
                              row.get('PART_NAME'), row.get('DESCRIPTION'),

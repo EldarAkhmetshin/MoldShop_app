@@ -32,9 +32,9 @@ class LogInApp(Frame):
     Класс представляет набор функций для создания графического интерфейса окна авторизации пользователя с помощью
     библиотеки Tkinter. Также осуществляется проверка введённых данных пользователем.
     """
-    window: tkinter.Tk
-    password_entry_field: tkinter.ttk.Entry = None
-    login_entry_field: tkinter.ttk.Entry = None
+    window: Tk
+    password_entry_field: ttk.Entry = None
+    login_entry_field: ttk.Entry = None
 
     def __post_init__(self):
         """
@@ -43,7 +43,7 @@ class LogInApp(Frame):
         super().__init__()
         self.master.title('MoldShop Management')
         self.pack(fill=BOTH, expand=True)
-        self.login_frame: tkinter.Frame = Frame(self)
+        self.login_frame: Frame = Frame(self)
         self.login_frame.pack()
 
     def check_entry_user_data(self):

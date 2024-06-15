@@ -3,11 +3,12 @@
 import os
 import sqlite3
 import tkinter
+from dataclasses import dataclass
 from os.path import abspath
 from tkinter import *
 from tkinter import messagebox, ttk
 from tkinter.ttk import Frame
-from typing import Callable
+from typing import Callable, Dict
 from datetime import datetime
 
 from src.global_values import user_data
@@ -17,34 +18,46 @@ from src.data import mold_statuses_list, DB_NAME
 from src.utils.sql_database.table_funcs import DataBase
 
 
+@dataclass
 class EditedMold(tkinter.Toplevel):
     """
     Класс представляет набор функций для создания графического интерфейса окон редактирования
     информации о какой-либо пресс-форме, а также валидации и записи новой информации в таблицы базы данных.
     """
+    mold_data: Dict = None
+    mold_number: str = None
+    mold_name: str = None
+    location_entry_field: Entry = None
+    status_entry_field: Entry = None
+    hot_runner_maker_entry_field: Entry = None
+    mold_maker_entry_field: Entry = None
+    cavities_qnt_entry_field: Entry = None
+    release_date_entry_field: Entry = None
+    product_name_entry_field: Entry = None
+    mold_name_entry_field: Entry = None
+    hot_runner_entry_field: Entry = None
+    mold_num_entry_field: Entry = None
+    input_error_label: Label = None
+    changed_data: bool = None
 
-    def __init__(self, mold_data: dict = None):
+    def __post_init__(self):
         """
-        Создание переменных
+        Инициация контейнеров для размещения виджетов и некоторых переменнных
         """
         super().__init__()
-        self.frame_bottom = None
-        self.frame_body = None
-        self.frame_header = None
-        if mold_data:
-            self.mold_data = mold_data
-        else:
-            self.mold_data = {}
-        self.location_entry_field = None
-        self.status_entry_field = None
-        self.hot_runner_maker_entry_field = None
-        self.mold_maker_entry_field = None
-        self.cavities_qnt_entry_field = None
-        self.release_date_entry_field = None
-        self.product_name_entry_field = None
-        self.mold_name_entry_field = None
-        self.hot_runner_entry_field = None
-        self.mold_num_entry_field = None
+        self.focus_set()
+        self.grab_set()
+        self.protocol('WM_DELETE_WINDOW', self.confirm_delete)
+
+        self.frame_header = Frame(self)
+        self.frame_body = Frame(self)
+        self.frame_bottom = Frame(self)
+
+        self.frame_header.pack(fill=BOTH, expand=True)
+        self.frame_body.pack(fill=BOTH, expand=True)
+        self.frame_bottom.pack(fill=BOTH, expand=True)
+
+        self.mold_data = {} if self.mold_data is None else self.mold_data
         self.mold_number = self.mold_data.get('MOLD_NUMBER')
         self.hot_runner_number = self.mold_data.get('HOT_RUNNER_NUMBER')
         self.mold_name = self.mold_data.get('MOLD_NAME')
@@ -55,24 +68,6 @@ class EditedMold(tkinter.Toplevel):
         self.hot_runner_maker = self.mold_data.get('HOT_RUNNER_MAKER')
         self.status = self.mold_data.get('STATUS')
         self.location = self.mold_data.get('LOCATION')
-
-        self.changed_data = None
-        self.input_error_label = None
-        self.frame = None
-
-        self.protocol("WM_DELETE_WINDOW", self.confirm_delete)
-        self.init_gui()
-
-    def init_gui(self):
-        """Инициация контейнеров для размещения виджетов"""
-        self.focus_set()
-        self.grab_set()
-        self.frame_header = Frame(self)
-        self.frame_header.pack(fill=BOTH, expand=True)
-        self.frame_body = Frame(self)
-        self.frame_body.pack(fill=BOTH, expand=True)
-        self.frame_bottom = Frame(self)
-        self.frame_bottom.pack(fill=BOTH, expand=True)
 
     def get_label_and_entry_widgets_in_row(self, text: str, point_info: str, row: int,
                                            necessary_field: bool = None, mold_status_widget: bool = None) \
@@ -158,12 +153,13 @@ class EditedMold(tkinter.Toplevel):
         # Проверка правильности ввода информации о годе выпуска пресс-формы и количестве гнёзд
         if self.input_error_label:
             self.input_error_label.destroy()
+
         try:
             release_date = int(self.release_date_entry_field.get())
             cavities_qnt = int(self.cavities_qnt_entry_field.get())
         except ValueError:
             self.input_error_label = Label(self.frame_bottom,
-                                           text='В графах "Год выпуска" и "Количество гнёзд" '
+                                           text='В графах "Год выпуска" и \n"Количество гнёзд" '
                                                 'должны быть числовые значения',
                                            foreground='Red')
             self.input_error_label.pack(side=TOP)
@@ -184,10 +180,10 @@ class EditedMold(tkinter.Toplevel):
                     molds_data = table_funcs.TableInDb('All_molds_data', DB_NAME)
                     molds_data.insert_data(info=row)
                 except sqlite3.ProgrammingError:
-                    self.input_error_label = Label(self.frame,
+                    self.input_error_label = Label(self.frame_bottom,
                                                    text='Ошибка записи данных! Обратитесь к администратору',
                                                    foreground='Red')
-                    self.input_error_label.grid(column=1, row=12)
+                    self.input_error_label.pack(side=TOP)
                     get_warning_log(user=user_data.get('user_name'), message='Bom data was NOT changed',
                                     func_name=self.validate_and_save_new_mold_data.__name__,
                                     func_path=abspath(__file__))
@@ -201,9 +197,10 @@ class EditedMold(tkinter.Toplevel):
                                  func_name=self.validate_and_save_new_mold_data.__name__, func_path=abspath(__file__))
             # Если данные введены некорректно пользователь получит уведомление об ошибке
             else:
-                self.input_error_label = Label(self.frame,
-                                               text='Не корректный ввод данных', foreground='Red')
-                self.input_error_label.grid(column=1, row=12)
+                self.input_error_label = Label(self.frame_bottom,
+                                               text='Не корректный ввод данных.\n'
+                                                    'Возможно не заполненны обязательные поля', foreground='Red')
+                self.input_error_label.pack(side=TOP)
                 get_warning_log(user=user_data.get('user_name'), message='Not correct inputs for saving new mold',
                                 func_name=self.validate_and_save_new_mold_data.__name__, func_path=abspath(__file__))
 
@@ -242,11 +239,11 @@ class EditedMold(tkinter.Toplevel):
             if cavities_qnt:
                 int(cavities_qnt)
         except ValueError:
-            self.input_error_label = Label(self.frame,
-                                           text='В графах "Год выпуска" и "Количество гнёзд" '
+            self.input_error_label = Label(self.frame_bottom,
+                                           text='В графах "Год выпуска" и \n"Количество гнёзд" '
                                                 'должны быть числовые значения',
                                            foreground='Red')
-            self.input_error_label.grid(column=1, row=12)
+            self.input_error_label.pack(side=TOP)
         else:
             # Загрузка изменённых данных в базу данных
             try:
@@ -291,11 +288,12 @@ class EditedMold(tkinter.Toplevel):
                                                      self.mold_name, self.status,
                                                      new_mold_status))
             except sqlite3.ProgrammingError:
-                self.input_error_label = ttk.Label(self.frame,
-                                                   text='Ошибка записи данных! Обратитесь к администратору',
+                self.input_error_label = ttk.Label(self.frame_bottom,
+                                                   text='Ошибка записи данных!\nОбратитесь к администратору',
                                                    foreground='Red')
-                self.input_error_label.grid(column=1, row=12)
-                get_warning_log(user=user_data.get('user_name'), message='SqliteProgrammingError. Mold data cant be changed',
+                self.input_error_label.pack(side=TOP)
+                get_warning_log(user=user_data.get('user_name'),
+                                message='SqliteProgrammingError. Mold data cant be changed',
                                 func_name=self.validate_and_save_edited_mold_data.__name__, func_path=abspath(__file__))
             else:
                 self.quit()

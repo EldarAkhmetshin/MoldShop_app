@@ -3,11 +3,12 @@
 import os
 import sqlite3
 import tkinter
+from dataclasses import dataclass
 from os.path import abspath
 from tkinter import *
 from tkinter import messagebox, ttk
 from tkinter.ttk import Frame
-from typing import Callable
+from typing import Callable, Dict
 
 from src.data import DB_NAME
 from src.global_values import user_data
@@ -15,40 +16,51 @@ from src.utils.logger.logs import get_info_log, get_warning_log
 from src.utils.sql_database import table_funcs
 
 
+@dataclass
 class EditedBOM(tkinter.Toplevel):
     """
     Класс представляет набор функций для создания графического интерфейса окон редактирования
     информации о выбранной запчасти из BOM пресс-формы, а также валидации и записи новой информации
     в таблицы базы данных.
     """
+    table_name: str
+    mold_number: str
+    part_data: Dict = None
+    changed_data: bool = None
 
-    def __init__(self, mold_number: str, table_name: str, part_data: dict = None):
+    input_error_label: Label = None
+    min_percent_entry_field: Entry = None
+    storage_cell_entry_field: Entry = None
+    used_parts_quantity_entry_field: Entry = None
+    parts_quantity_entry_field: Entry = None
+    dimensions_entry_field: Entry = None
+    material_entry_field: Entry = None
+    weight_entry_field: Entry = None
+    supplier_entry_field: Entry = None
+    additional_info_entry_field: Entry = None
+    description_entry_field: Entry = None
+    pcs_in_mold_entry_field: Entry = None
+    name_entry_field: Entry = None
+    number_entry_field: Entry = None
+
+    def __post_init__(self):
         """
-        Создание переменных
+        Инициация контейнеров для размещения виджетов и некоторых переменнных
         """
         super().__init__()
-        self.frame_bottom = None
-        self.frame_body = None
-        self.frame_header = None
-        if part_data is None:
-            self.part_data = {}
-        else:
-            self.part_data = part_data
-        self.table_name = table_name
-        self.mold_number = mold_number
-        self.min_percent_entry_field = None
-        self.storage_cell_entry_field = None
-        self.used_parts_quantity_entry_field = None
-        self.parts_quantity_entry_field = None
-        self.dimensions_entry_field = None
-        self.material_entry_field = None
-        self.weight_entry_field = None
-        self.supplier_entry_field = None
-        self.additional_info_entry_field = None
-        self.description_entry_field = None
-        self.pcs_in_mold_entry_field = None
-        self.name_entry_field = None
-        self.number_entry_field = None
+        self.focus_set()
+        self.grab_set()
+        self.protocol('WM_DELETE_WINDOW', self.confirm_delete)
+
+        self.frame_header = Frame(self)
+        self.frame_body = Frame(self)
+        self.frame_bottom = Frame(self)
+
+        self.frame_header.pack(fill=BOTH, expand=True)
+        self.frame_body.pack(fill=BOTH, expand=True)
+        self.frame_bottom.pack(fill=BOTH, expand=True)
+
+        self.part_data = {} if self.part_data is None else self.part_data
         self.number = self.part_data.get('NUMBER')
         self.part_name = self.part_data.get('PART_NAME')
         self.pcs_in_mold = self.part_data.get('PCS_IN_MOLDS')
@@ -60,26 +72,6 @@ class EditedBOM(tkinter.Toplevel):
         self.dimensions = self.part_data.get('DIMENSIONS')
         self.storage_cell = self.part_data.get('STORAGE_CELL')
         self.min_percent = self.part_data.get('MIN_PERCENT')
-
-        self.changed_data = None
-        self.input_error_label = None
-        self.frame = None
-
-        self.protocol("WM_DELETE_WINDOW", self.confirm_delete)
-        self.init_gui()
-
-    def init_gui(self):
-        """
-        Инициация контейнеров для размещения виджетов
-        """
-        self.focus_set()
-        self.grab_set()
-        self.frame_header = Frame(self)
-        self.frame_header.pack(fill=BOTH, expand=True)
-        self.frame_body = Frame(self)
-        self.frame_body.pack(fill=BOTH, expand=True)
-        self.frame_bottom = Frame(self)
-        self.frame_bottom.pack(fill=BOTH, expand=True)
 
     def get_label_and_entry_widgets_in_row(self, text: str, point_info: str, row: int,
                                            necessary_field: bool = None) -> tkinter.Entry:
@@ -190,10 +182,10 @@ class EditedBOM(tkinter.Toplevel):
                 bom = table_funcs.TableInDb(self.table_name, DB_NAME)
                 bom.insert_data(info=row)
             except sqlite3.ProgrammingError:
-                self.input_error_label = Label(self.frame,
+                self.input_error_label = Label(self.frame_bottom,
                                                text='Ошибка записи данных! Обратитесь к администратору',
                                                foreground='Red')
-                self.input_error_label.grid(column=1, row=15)
+                self.input_error_label.pack(side=TOP)
                 get_warning_log(user=user_data.get('user_name'), message='New bom data was NOT added',
                                 func_name=self.validate_and_save_new_part_data.__name__, func_path=abspath(__file__))
             else:
@@ -206,9 +198,9 @@ class EditedBOM(tkinter.Toplevel):
                              func_name=self.validate_and_save_new_part_data.__name__, func_path=abspath(__file__))
         # Если данные введены некорректно пользователь получит уведомление об ошибке
         else:
-            self.input_error_label = Label(self.frame,
+            self.input_error_label = Label(self.frame_bottom,
                                            text='Не заполнены обязательные поля', foreground='Red')
-            self.input_error_label.grid(column=1, row=15)
+            self.input_error_label.pack(side=TOP)
 
     def validate_and_save_edited_part_data(self):
         """
@@ -220,11 +212,11 @@ class EditedBOM(tkinter.Toplevel):
         try:
             pass
         except ValueError:
-            self.input_error_label = Label(self.frame,
-                                           text='В графах "Год выпуска" и "Количество гнёзд" '
+            self.input_error_label = Label(self.frame_bottom,
+                                           text='В графах "Год выпуска" и \n"Количество гнёзд" '
                                                 'должны быть числовые значения',
                                            foreground='Red')
-            self.input_error_label.grid(column=1, row=12)
+            self.input_error_label.pack(side=TOP)
         else:
             # Загрузка изменённых данных в базу данных
             try:
@@ -259,10 +251,10 @@ class EditedBOM(tkinter.Toplevel):
                 if new_part_number:
                     self.change_paths(new_part_number)
             except (sqlite3.ProgrammingError, sqlite3.OperationalError):
-                self.input_error_label = Label(self.frame,
-                                               text='Ошибка записи данных! Обратитесь к администратору',
+                self.input_error_label = Label(self.frame_bottom,
+                                               text='Ошибка записи данных!\nОбратитесь к администратору',
                                                foreground='Red')
-                self.input_error_label.grid(column=1, row=12)
+                self.input_error_label.pack(side=TOP)
                 get_warning_log(user=user_data.get('user_name'), message='Bom data was NOT changed',
                                 func_name=self.validate_and_save_edited_part_data.__name__, func_path=abspath(__file__))
             else:

@@ -22,40 +22,39 @@ class UsersData(tkinter.Toplevel):
     """
     Класс представляет набор функций для создания графического интерфейса и выполнения авторизации пользователя.
     """
-    password_entry_field: tkinter.Frame = None
-    login_entry_field: tkinter.Frame = None
+    password_entry_field: Frame = None
+    login_entry_field: Frame = None
 
-    delete_icon: PIL.Image.Image = PIL.Image.open(os.path.abspath(os.path.join('pics', 'delete.png'))) \
-        .resize((20, 20))
-    user_rights_icon: PIL.Image.Image = PIL.Image.open(os.path.abspath(os.path.join('pics', 'user_rights.png'))) \
-        .resize((20, 20))
-    password_icon: PIL.Image.Image = PIL.Image.open(os.path.abspath(os.path.join('pics', 'password.png'))) \
-        .resize((20, 20))
+    delete_icon: Image = PIL.Image.open(os.path.abspath(os.path.join('pics', 'delete.png'))).resize((20, 20))
+    user_rights_icon: Image = PIL.Image.open(os.path.abspath(os.path.join('pics', 'user_rights.png'))).resize((20, 20))
+    password_icon: Image = PIL.Image.open(os.path.abspath(os.path.join('pics', 'password.png'))).resize((20, 20))
 
     def __post_init__(self):
         """
         Инициация окна приложения, контейнеров для размещения виджетов и некоторых виджетов
         """
         super().__init__()
+        self.frame_header: Frame = Frame(self)
+        self.canvas: Canvas = Canvas(self)
+        self.frame_body: Frame = Frame(self.canvas)
+        # Определение переменных, отвечающих за отображение изображений на кнопках
+        self.delete_icon_pil: PhotoImage = ImageTk.PhotoImage(self.delete_icon)
+        self.user_rights_icon_pil: PhotoImage = ImageTk.PhotoImage(self.user_rights_icon)
+        self.password_icon_pil: PhotoImage = ImageTk.PhotoImage(self.password_icon)
+
         self.focus_set()
         self.title('Users Data Edition')
         self.geometry('430x330')
         self.resizable(False, False)
-        self.frame_header: tkinter.Frame = Frame(self)
+
         self.frame_header.pack(fill=BOTH, expand=True)
-        # Создание канвас для прикрепления к нему прокрутки / скроллинга
-        self.canvas: tkinter.Canvas = Canvas(self)
-        self.frame_body: tkinter.Frame = Frame(self.canvas)
         self.frame_body.pack(fill=BOTH, expand=True)
-        self.scroll_y = tkinter.Scrollbar(self, orient=tkinter.VERTICAL, command=self.canvas.yview)
+        # Создание канвас для прикрепления к нему прокрутки / скроллинга
+        self.scroll_y: Scrollbar = Scrollbar(self, orient=tkinter.VERTICAL, command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=self.scroll_y.set)
         self.scroll_y.pack(side=RIGHT, fill='y')
         self.canvas.pack(fill=BOTH, expand=True)
         self.canvas.create_window((4, 4), window=self.frame_body, anchor="nw")
-        # Определение переменных, отвечающих за отображение изображений на кнопках
-        self.delete_icon_pil: PIL.ImageTk.PhotoImage = ImageTk.PhotoImage(self.delete_icon)
-        self.user_rights_icon_pil: PIL.ImageTk.PhotoImage = ImageTk.PhotoImage(self.user_rights_icon)
-        self.password_icon_pil: PIL.ImageTk.PhotoImage = ImageTk.PhotoImage(self.password_icon)
 
     def get_widgets_in_row(self, row: int, user_name: str, data: dict):
         """
@@ -145,7 +144,7 @@ class UsersData(tkinter.Toplevel):
         """
         window = tkinter.Toplevel()
         window.title('Password Changing')
-        window.geometry('300x150')
+        window.geometry('350x150')
         window.focus_set()
         window.grab_set()
         (ttk.Label(window, text=f'Введите новый пароль для пользователя: {user_name}', font=('Times', '11', 'normal'))

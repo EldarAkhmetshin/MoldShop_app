@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
 import tkinter
+from dataclasses import dataclass
 from os.path import abspath
 from tkinter import *
 from tkinter import ttk
 from tkinter.ttk import Frame
-from typing import Callable
+from typing import Callable, List
 from math import ceil
 
 from src.data import columns_searching_results, columns_sizes_warehouse_table, columns_min_parts_excel_table, DB_NAME
@@ -56,47 +57,77 @@ def get_mold_names_list() -> list:
     return list(filter(lambda table_name: 'BOM' in table_name, table_names))
 
 
+@dataclass
 class MinPartsReport(tkinter.Toplevel):
     """
     Класс представляет набор функций для создания графического интерфейса окна и осуществления
     поиска запчастей по заданным параметрам.
     """
+    molds_list_box: Listbox = None
+    results_window: Tk = None
+    checkbutton: Checkbutton = None
+    product_type_combobox: ttk.Combobox = None
+    additional_info_entry_field: Entry = None
+    description_entry_field: Entry = None
+    name_entry_field: Entry = None
+    tree: ttk.Treeview = None
+    text_entry_field: Entry = None
+    search_filter_combobox: ttk.Combobox = None
+    input_error_label: Label = None
 
-    def __init__(self):
+    def __post_init__(self):
         """
-        Создание переменных
+        Инициация контейнеров для размещения виджетов и некоторых переменных
         """
-        self.molds_list_box = None
-        self.results_window = None
-        self.checkbutton = None
-        self.product_type_combobox = None
-        self.additional_info_entry_field = None
-        self.description_entry_field = None
-        self.name_entry_field = None
-        self.tree = None
-        self.frame_bottom = None
-        self.frame_body = None
-        self.frame_header = None
-        self.text_entry_field = None
-        self.search_filter_combobox = None
-        self.stock = StringVar()
-        self.results = []
-        self.input_error_label = None
         super().__init__()
         self.focus_set()
-        self.init_gui()
+        self.geometry('330x500')
+        self.frame_header: Frame = Frame(self)
+        self.frame_body: Frame = Frame(self)
+        self.frame_bottom: Frame = Frame(self)
 
-    def init_gui(self):
-        """
-        Инициация контейнеров для размещения виджетов
-        """
-        self.geometry('330x450')
-        self.frame_header = Frame(self)
         self.frame_header.pack(fill=BOTH, expand=True)
-        self.frame_body = Frame(self)
         self.frame_body.pack(fill=BOTH, expand=True)
-        self.frame_bottom = Frame(self)
         self.frame_bottom.pack(fill=BOTH, expand=True)
+
+        self.spare_part_status: StringVar = StringVar()
+        self.results: List = []
+
+    # def __init__(self):
+    #     """
+    #     Создание переменных
+    #     """
+    #     self.molds_list_box = None
+    #     self.results_window = None
+    #     self.checkbutton = None
+    #     self.product_type_combobox = None
+    #     self.additional_info_entry_field = None
+    #     self.description_entry_field = None
+    #     self.name_entry_field = None
+    #     self.tree = None
+    #     self.frame_bottom = None
+    #     self.frame_body = None
+    #     self.frame_header = None
+    #     self.text_entry_field = None
+    #     self.search_filter_combobox = None
+    #     self.spare_part_status = StringVar()
+    #     self.results = []
+    #     self.input_error_label = None
+    #     super().__init__()
+    #     self.focus_set()
+    #     self.init_gui()
+    #
+    # def init_gui(self):
+    #     """
+    #     Инициация контейнеров для размещения виджетов
+    #     """
+    #     self.geometry('330x450')
+    #     self.frame_header = Frame(self)
+    #     self.frame_header.pack(fill=BOTH, expand=True)
+    #     self.frame_body = Frame(self)
+    #     self.frame_body.pack(fill=BOTH, expand=True)
+    #     self.frame_bottom = Frame(self)
+    #     self.frame_bottom.pack(fill=BOTH, expand=True)
 
     def render_widgets(self):
         """

@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
 import tkinter
+from dataclasses import dataclass
 from os.path import abspath
 from tkinter import *
 from tkinter import ttk, filedialog, messagebox
 from tkinter.ttk import Frame
+from typing import List
 
 from src.data import error_messages, columns_customs_report_excel_table, purchased_statuses, DB_NAME
 from src.global_values import user_data
@@ -148,55 +150,58 @@ def sort_table(purchase_number: str) -> list:
     return result_table
 
 
+@dataclass
 class CustomsReport(tkinter.Toplevel):
     """
     Класс представляет набор функций для создания графического интерфейса окна и осуществления
     поиска запчастей по заданным параметрам.
     """
+    purchase_numbers_list_box: Listbox = None
+    results_window: Tk = None
+    checkbutton: Checkbutton = None
+    product_type_combobox: ttk.Combobox = None
+    additional_info_entry_field: Entry = None
+    description_entry_field: Entry = None
+    name_entry_field: Entry = None
+    tree: ttk.Treeview = None
+    text_entry_field: Entry = None
+    search_filter_combobox: ttk.Combobox = None
+    input_error_label: Label = None
 
-    def __init__(self):
+    def __post_init__(self):
         """
-        Создание переменных
+        Инициация контейнеров для размещения виджетов и некоторых переменных
         """
         super().__init__()
-        self.purchase_numbers_list_box = None
-        self.results_window = None
-        self.checkbutton = None
-        self.product_type_combobox = None
-        self.additional_info_entry_field = None
-        self.description_entry_field = None
-        self.name_entry_field = None
-        self.tree = None
-        self.frame_bottom = None
-        self.frame_body = None
-        self.frame_header = None
-        self.text_entry_field = None
-        self.search_filter_combobox = None
-        self.stock = StringVar()
-        self.results = []
-        self.input_error_label = None
         self.focus_set()
-
-        self.init_gui()
-
-    def init_gui(self):
-        """
-        Инициация контейнеров для размещения виджетов
-        """
         self.geometry('315x450')
-        self.frame_header = Frame(self)
+
+        self.frame_header: Frame = Frame(self)
+        self.frame_body: Frame = Frame(self)
+        self.frame_bottom: Frame = Frame(self)
+
         self.frame_header.pack(fill=BOTH, expand=True)
-        self.frame_body = Frame(self)
         self.frame_body.pack(fill=BOTH, expand=True)
-        self.frame_bottom = Frame(self)
         self.frame_bottom.pack(fill=BOTH, expand=True)
 
+        self.spare_part_status: StringVar = StringVar()
+        self.results: List = []
+
     def get_purchase_numbers(self):
+        """
+         Функция получения номеров закупочных партий для последующей возможности создания отчёта на основании
+         выбранного номера пользователем
+        """
         table_db = TableInDb('Purchased_parts', DB_NAME)
-        last_table_string = table_db.get_table(type_returned_data='dict', last_string=True)
-        last_purchase_number = int(last_table_string.get('PURCHASE_NUMBER'))
-        purchase_numbers = tuple(number for number in range(1, last_purchase_number + 1))
-        self.purchase_numbers_list_box.insert(0, *purchase_numbers)
+        try:
+            last_table_string = table_db.get_table(type_returned_data='dict', last_string=True)
+        except IndexError:
+            get_warning_log(user=user_data.get('user_name'), message='Purchase numbers were NOT found ',
+                            func_name=self.get_purchase_numbers.__name__, func_path=abspath(__file__))
+        else:
+            last_purchase_number = int(last_table_string.get('PURCHASE_NUMBER'))
+            purchase_numbers = tuple(number for number in range(1, last_purchase_number + 1))
+            self.purchase_numbers_list_box.insert(0, *purchase_numbers)
 
     def render_widgets(self):
         """
@@ -251,46 +256,76 @@ class CustomsReport(tkinter.Toplevel):
             export_excel_table(sorted_table)
 
 
+@dataclass
 class PurchasedPart(tkinter.Toplevel):
     """
     Класс представляет набор функций для создания графического интерфейса окна и осуществления
     поиска запчастей по заданным параметрам.
     """
+    purchase_number: str
+    mold_number: str
+    part_number: str
+    part_name: str
+    purchased_cnt: str
+    status: str = None
+    comment: str = None
+    changed_data: bool = None
 
-    def __init__(self, purchase_number, mold_number, part_number, part_name, purchased_cnt, status, comment):
+    status_combobox: ttk.Combobox = None
+    comment_entry_field: Entry = None
+
+    def __post_init__(self):
         """
-        Создание переменных
+        Инициация контейнеров для размещения виджетов и некоторых переменнных
         """
-        self.changed_data = None
-        self.purchase_number = purchase_number
-        self.mold_number = mold_number
-        self.part_number = part_number
-        self.part_name = part_name
-        self.purchased_cnt = purchased_cnt
-        self.status = status if status else '-'
-        self.comment = comment if comment else '-'
-
-        self.status_combobox = None
-        self.comment_entry_field = None
-
-        self.frame_bottom = None
-        self.frame_body = None
-        self.frame_header = None
-
         super().__init__()
         self.focus_set()
-        self.init_gui()
 
-    def init_gui(self):
-        """
-        Инициация окна приложения и контейнеров для размещения виджетов
-        """
-        self.frame_header = Frame(self)
+        self.frame_header: Frame = Frame(self)
+        self.frame_body: Frame = Frame(self)
+        self.frame_bottom: Frame = Frame(self)
+
         self.frame_header.pack(fill=BOTH, expand=True)
-        self.frame_body = Frame(self)
         self.frame_body.pack(fill=BOTH, expand=True)
-        self.frame_bottom = Frame(self)
         self.frame_bottom.pack(fill=BOTH, expand=True)
+
+        self.status: str = self.status if self.status else '-'
+        self.comment: str = self.comment if self.comment else '-'
+
+    # def __init__(self, purchase_number, mold_number, part_number, part_name, purchased_cnt, status, comment):
+    #     """
+    #     Создание переменных
+    #     """
+    #     self.changed_data = None
+    #     self.purchase_number = purchase_number
+    #     self.mold_number = mold_number
+    #     self.part_number = part_number
+    #     self.part_name = part_name
+    #     self.purchased_cnt = purchased_cnt
+    #     self.status = status if status else '-'
+    #     self.comment = comment if comment else '-'
+    #
+    #     self.status_combobox = None
+    #     self.comment_entry_field = None
+    #
+    #     self.frame_bottom = None
+    #     self.frame_body = None
+    #     self.frame_header = None
+    #
+    #     super().__init__()
+    #     self.focus_set()
+    #     self.init_gui()
+    #
+    # def init_gui(self):
+    #     """
+    #     Инициация окна приложения и контейнеров для размещения виджетов
+    #     """
+    #     self.frame_header = Frame(self)
+    #     self.frame_header.pack(fill=BOTH, expand=True)
+    #     self.frame_body = Frame(self)
+    #     self.frame_body.pack(fill=BOTH, expand=True)
+    #     self.frame_bottom = Frame(self)
+    #     self.frame_bottom.pack(fill=BOTH, expand=True)
 
     def render_widgets(self):
         """
